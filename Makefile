@@ -218,8 +218,7 @@ rebuild:
 
 ## Trigger an immediate heartbeat cycle locally — populates Zone 3, rematerializes GeoJSON
 heartbeat:
-	podman exec maps-link-handler python3 -c \
-	  "import httpx; r = httpx.post('http://localhost:8000/api/heartbeat/run', timeout=180); print('heartbeat:', r.status_code)"
+	podman exec -i maps-link-handler python3 - < scripts/heartbeat_run.py
 
 ## Seed a SpaceAPI endpoint list into local Oxigraph. LIST = URL or local path
 ## (default: directory.spaceapi.io). NETWORK = filter-chip slug (default: spaceapi).
@@ -360,7 +359,7 @@ publish: sync-app
 	@echo "→ waiting for link-handler to be healthy..."
 	ssh $(REMOTE) 'timeout 90 sh -c "until docker exec maps-link-handler python3 -c \"import urllib.request; urllib.request.urlopen('"'"'http://localhost:8000/health'"'"')\" 2>/dev/null; do sleep 3; done" && echo ok'
 	@echo "→ triggering immediate heartbeat cycle (refreshes claimed spaces + rematerializes GeoJSON)..."
-	ssh $(REMOTE) 'docker exec maps-link-handler python3 -c "import httpx; r = httpx.post(\"http://localhost:8000/api/heartbeat/run\", timeout=300); print(\"heartbeat:\", r.status_code)"'
+	ssh $(REMOTE) 'docker exec -i maps-link-handler python3 -' < scripts/heartbeat_run.py
 	@echo "→ reloading gateway nginx (clears stale upstream cache after maps-nginx recreate)..."
 	ssh $(REMOTE) 'docker exec nginx-gateway nginx -s reload'
 	@echo "✓ published — map live"
@@ -404,7 +403,7 @@ vps-seed:
 	    ssh $(REMOTE) 'docker exec -e OXIGRAPH_ENDPOINT=http://oxigraph:7878 -e PYTHONPATH=/app maps-link-handler python3 /app/scripts/seed_spaceapi.py --list /tmp/seed-list.json --network "$(NETWORK)" --force' ;; \
 	esac
 	@echo "→ triggering heartbeat cycle..."
-	ssh $(REMOTE) 'docker exec maps-link-handler python3 -c "import httpx; r = httpx.post(\"http://localhost:8000/api/heartbeat/run\", timeout=300); print(\"heartbeat:\", r.status_code)"'
+	ssh $(REMOTE) 'docker exec -i maps-link-handler python3 -' < scripts/heartbeat_run.py
 	@echo "→ rematerializing GeoJSON..."
 	ssh $(REMOTE) 'docker exec maps-link-handler python3 -c "import httpx; r = httpx.post(\"http://localhost:8000/api/rematerialize\", timeout=30); print(\"rematerialize:\", r.status_code)"'
 	@echo "✓ VPS seeded (network=$(NETWORK))"
