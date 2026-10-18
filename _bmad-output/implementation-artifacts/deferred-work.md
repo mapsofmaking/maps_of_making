@@ -1,5 +1,24 @@
 # Deferred Work
 
+## Deferred from: demo-readiness quick fix, Axis B thresholds (2026-10-18) → Story (post-traction), pairs with party-mode liveness entry (2026-06-10)
+
+- **Axis B thresholds widened as a demo stopgap, not a fix.** `infra/link_handler/config.yaml`
+  + `web/app.js` `FALLBACK_THRESHOLDS`: aging/zombie/dead 30/90/180 → **180/365/730** (`6cc1b06`).
+  The SpaceAPI-directory seed was batch-stamped `mom:updatedAt` ≈ 2026-06-17 (first-fetch
+  backfill); ~170/215 spaces never changed content, so at 123d they sat in zombie while their
+  endpoints answered fine. **Batch cliff ≈ 2026-12-14** — all still-unchanged seed spaces flip
+  to aging together. That date is the onboarding window. If they are still unchanged then,
+  build the "accept any field change" / `mom_liveness_optin` rework below — do NOT bump the
+  thresholds again.
+- **Copy fixed in the same commit:** zombie/aging said "Unreachable" / "last fetched" while the
+  card showed a fresh fetch. Axis B = unchanged content, never connectivity; only `broken`
+  (Axis A, "Endpoint issue" + `last_fetch_error`) may say the endpoint is down.
+- **Fixed, not deferred (`b58507c`):** `make publish` heartbeat raced Oxigraph after the full
+  restart (`httpx.ConnectError` → 500), left `spaces.geojson` with the old thresholds block
+  (the file's `thresholds` beat the JS fallback), and still printed "✓ published".
+  `scripts/heartbeat_run.py` now retries 6×10s and exits non-zero. Retry path not yet seen
+  live — the next publish exercises it.
+
 ## Deferred from: Diátaxis documentation restructure (2026-08-17) → needs its own story, number TBD at triage
 
 ### Conditional GET is absent from the live heartbeat fetch path — investigate before claiming it publicly
