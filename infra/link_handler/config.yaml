@@ -3,10 +3,12 @@ endpoint_health:
   warning_minutes_threshold: 30
   broken_minutes_threshold: 60
 
+# Widened for the demo (was 30/90/180): seeded SpaceAPI listings rarely change
+# content, so Axis B aged them to zombie despite live endpoints. Mirror in web/app.js.
 operational_state:
-  aging_days_threshold: 30
-  zombie_days_threshold: 90
-  dead_days_threshold: 180
+  aging_days_threshold: 180
+  zombie_days_threshold: 365
+  dead_days_threshold: 730
 
 bandwidth:
   heartbeat_interval_seconds: 600

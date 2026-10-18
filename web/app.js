@@ -17,9 +17,9 @@
       broken_minutes_threshold: 60,
     },
     operational_state: {
-      aging_days_threshold: 30,
-      zombie_days_threshold: 90,
-      dead_days_threshold: 180,
+      aging_days_threshold: 180,
+      zombie_days_threshold: 365,
+      dead_days_threshold: 730,
     },
   };
 
@@ -754,7 +754,7 @@ function glyphColorExpr(surface) {
 
     renderChips('#chips-network', networks, state.filters.networks, {}, filteredSpacesExcluding('networks'), active);
     renderChips('#chips-country', countries.map((c) => [c, countryLabel(c)]), state.filters.countries, {}, filteredSpacesExcluding('countries'), active);
-    const chipLabel = { seeded: 'unclaimed', confirmed: 'claimed', open: 'open now', shut: 'closed now', aging: 'going quiet', zombie: 'unreachable', dead: 'closed' };
+    const chipLabel = { seeded: 'unclaimed', confirmed: 'claimed', open: 'open now', shut: 'closed now', aging: 'going quiet', zombie: 'quiet', dead: 'closed' };
     renderChips('#chips-status', statuses.map((s) => [s, chipLabel[s] || s]), state.filters.statuses, { swatch: true }, filteredSpacesExcluding('statuses'), active);
     renderChips('#chips-spec', specialties, state.filters.specialties, {}, filteredSpacesExcluding('specialties'), active);
   }
@@ -968,7 +968,7 @@ function glyphColorExpr(surface) {
     if (kind !== 'seeded') {
       const dotClass = ['aging', 'zombie'].includes(kind) ? 'sp-dot sp-dot-stale'
         : kind === 'broken' ? 'sp-dot sp-dot-error' : 'sp-dot';
-      const statusPhrases = { open: 'Reports open now', shut: 'Reports close now', confirmed: 'Claimed', broken: 'Endpoint issue', aging: 'Going quiet', zombie: 'Unreachable', dead: 'Permanently closed' };
+      const statusPhrases = { open: 'Reports open now', shut: 'Reports close now', confirmed: 'Claimed', broken: 'Endpoint issue', aging: 'Going quiet', zombie: 'No updates in months', dead: 'Permanently closed' };
       const phrase = statusPhrases[kind] || kind;
       const lastMs = _lastActivity(s);
       body.appendChild(el('div', { class: 'sp-status-bar' }, [
@@ -1065,16 +1065,16 @@ function glyphColorExpr(surface) {
           el('div', { style: { fontSize: '13px', color: 'var(--error, #c0392b)', marginTop: '4px' } }, [`${headline}.${lastOkAgo}`]),
         ]));
       } else if (kind === 'aging') {
-        const agingAgo = s.observed_at ? ` — last fetched ${timeAgo(s.observed_at)} ago` : '';
+        const agingAgo = s.observed_at ? ` Last checked ${timeAgo(s.observed_at)} ago.` : '';
         body.appendChild(el('div', { class: 'sp-section' }, [
           el('div', { class: 'sp-section-label' }, ['Heads up']),
-          el('div', { style: { fontSize: '13px', color: 'var(--muted)', marginTop: '4px' } }, [`Going quiet${agingAgo}. Data may be slightly stale.`]),
+          el('div', { style: { fontSize: '13px', color: 'var(--muted)', marginTop: '4px' } }, [`Going quiet — no changes in a while. Data may be slightly stale.${agingAgo}`]),
         ]));
       } else if (kind === 'zombie') {
-        const zombieAgo = s.observed_at ? `. Last seen ${timeAgo(s.observed_at)} ago` : '';
+        const zombieAgo = s.observed_at ? ` Last checked ${timeAgo(s.observed_at)} ago.` : '';
         body.appendChild(el('div', { class: 'sp-section' }, [
           el('div', { class: 'sp-section-label' }, ['Heads up']),
-          el('div', { style: { fontSize: '13px', color: 'var(--error, #c0392b)', marginTop: '4px' } }, [`Unreachable for a while — information may be outdated${zombieAgo}.`]),
+          el('div', { style: { fontSize: '13px', color: 'var(--error, #c0392b)', marginTop: '4px' } }, [`No changes to this listing in months — information may be outdated.${zombieAgo}`]),
         ]));
       } else if (kind === 'dead') {
         body.appendChild(el('div', { class: 'sp-section' }, [
