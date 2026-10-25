@@ -122,7 +122,7 @@ class TestThreeTokensMaterializer:
         live_stack.oxigraph.insert(
             space_uri,
             f"""
-PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
 INSERT DATA {{
   GRAPH <{space_uri}> {{
@@ -198,7 +198,7 @@ INSERT DATA {{
         live_stack.oxigraph.insert(
             space_uri,
             f"""
-PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
 INSERT DATA {{
   GRAPH <{space_uri}> {{
@@ -245,7 +245,7 @@ INSERT DATA {{
         live_stack.oxigraph.insert(
             space_uri,
             f"""
-PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
 INSERT DATA {{
   GRAPH <{space_uri}> {{

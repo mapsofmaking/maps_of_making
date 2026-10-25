@@ -47,7 +47,7 @@ def _baseline_payload() -> dict:
 def test_required_triples_present():
     """Required (non-OPTIONAL) triples the materialization query depends on."""
     sparql = build_canary_sparql(_baseline_payload())
-    assert f"<{SPACE_URI}> a <https://nicolasdb.github.io/mapsofmaking_ontology/ns#Space>" in sparql
+    assert f"<{SPACE_URI}> a <https://mapsofmaking.org/ns/mom#Space>" in sparql
     assert '"Mother Sands"' in sparql
     assert "51.65" in sparql
     assert "1.7" in sparql

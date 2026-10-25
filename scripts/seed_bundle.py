@@ -47,7 +47,7 @@ OXIGRAPH_ENDPOINT = os.getenv("OXIGRAPH_ENDPOINT", "http://localhost:7878")
 UPDATE_URL = f"{OXIGRAPH_ENDPOINT}/update"
 QUERY_URL = f"{OXIGRAPH_ENDPOINT}/query"
 
-MOM_NS = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+MOM_NS = "https://mapsofmaking.org/ns/mom#"
 SCHEMA_NS = "https://schema.org/"
 
 # Europe bbox kept for seed_spaceapi.py; seed_bundle.py accepts global coordinates

@@ -2,7 +2,7 @@ import re
 from typing import Optional
 from urllib.parse import urlparse
 
-MOM = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+MOM = "https://mapsofmaking.org/ns/mom#"
 SCHEMA = "https://schema.org/"
 
 _ALLOWED_SCHEMES = {"http", "https", "urn"}

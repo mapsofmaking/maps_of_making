@@ -9,7 +9,7 @@ FAQ_ENTRIES = [
     {
         "trigger": "open now in berlin",
         "description": "Spaces open now in Berlin — matched via schema:addressLocality (city) and mom:openNow (liveness state), the pattern the map's own materializer already uses correctly.",
-        "sparql_template": """PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+        "sparql_template": """PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 SELECT ?name ?city ?url WHERE {

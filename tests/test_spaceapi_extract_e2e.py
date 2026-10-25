@@ -28,7 +28,7 @@ OXIGRAPH_URL = os.getenv("OXIGRAPH_URL", "http://localhost:7878").rstrip("/")
 if OXIGRAPH_URL.endswith("/query"):
     OXIGRAPH_URL = OXIGRAPH_URL[: -len("/query")]
 
-MOM_NS = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+MOM_NS = "https://mapsofmaking.org/ns/mom#"
 CANARY_GRAPH = "urn:mak:canary"
 CANARY_SUBJECT = "urn:mak:canary/mother-sands"
 

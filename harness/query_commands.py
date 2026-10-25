@@ -16,7 +16,7 @@ log = structlog.get_logger()
 LINK_HANDLER_URL = os.environ.get("LINK_HANDLER_URL", "http://mak-link-handler:8000")
 
 PREFIX = """\
-PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
 """
 

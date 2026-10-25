@@ -73,7 +73,7 @@ async def _query_all_claimed_spaces(oxigraph_endpoint: str) -> list[dict]:
     gate inside run_space_pipeline is still authoritative — this just prunes
     the work list early.
     """
-    sparql = """PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+    sparql = """PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 SELECT ?graph ?subject ?endpointUrl WHERE {
   GRAPH ?graph {
     ?subject mom:endpointUrl ?endpointUrl .
@@ -122,7 +122,7 @@ async def _find_seeded_graph_by_name(oxigraph_endpoint: str, name: str) -> Optio
     """
     # Escape the name for safe literal inclusion.
     safe = name.replace("\\", "\\\\").replace('"', '\\"')
-    sparql = f"""PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+    sparql = f"""PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
 SELECT ?graph WHERE {{
   GRAPH ?graph {{
@@ -158,7 +158,7 @@ async def _find_graph_by_endpoint(oxigraph_endpoint: str, endpoint_url: str) -> 
     was claimed before the original name-only slug was confirmed, or vice versa).
     """
     safe_url = endpoint_url.strip()
-    sparql = f"""PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+    sparql = f"""PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 SELECT ?graph WHERE {{
   GRAPH ?graph {{
     ?s mom:endpointUrl <{safe_url}> .
@@ -242,7 +242,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Maps of Making Link Handler", lifespan=lifespan)
 
 
-_SPARQL_SELECT = """PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+_SPARQL_SELECT = """PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
@@ -799,7 +799,7 @@ async def heartbeat_space(space_id: str):
         graph_uri = f"urn:mak:space/{space_id}"
         subject = graph_uri
 
-    sparql = f"""PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+    sparql = f"""PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 SELECT ?endpointUrl WHERE {{
   GRAPH <{graph_uri}> {{
     <{subject}> mom:endpointUrl ?endpointUrl .
@@ -1072,7 +1072,7 @@ async def get_space_snapshots(space_id: str):
     """Fetch ingestion history snapshots for a space."""
     if not re.match(r'^[a-zA-Z0-9_-]+$', space_id):
         return []
-    sparql_query = f"""PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+    sparql_query = f"""PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 
 SELECT ?graph ?snapshotDate ?snapshotSummary ?lastHttpStatus
 WHERE {{

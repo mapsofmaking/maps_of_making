@@ -133,6 +133,22 @@
 		reverse_proxy mak-link-handler:8000
 	}
 
+	# ── The vocabulary (ontology/, a subtree of mapsofmaking_ontology) ─────
+	# Its IRIs live here (https://mapsofmaking.org/ns/mom#Space, …), so they
+	# resolve: /ns/mom, /ns/core, /ns/iop, /ns/sup, /ns/crosswalks/mom-to-okw
+	# answer the Turtle file; /ns/<file>.ttl too. Readable from anywhere.
+	handle_path /ns/* {
+		root * /ns
+		rewrite /iop /iop/iop.ttl
+		@term path /mom /core /sup /crosswalks/mom-to-okw
+		rewrite @term {path}.ttl
+		header Access-Control-Allow-Origin "*"
+		header Cache-Control "no-cache"
+		@turtle path *.ttl
+		header @turtle Content-Type "text/turtle; charset=utf-8"
+		file_server
+	}
+
 	# ── Admin area (login) ──────────────────────────────────────────────────
 	# The hash comes from .env (MAP_ADMIN_PASSWORD_HASH, made with
 	# `caddy hash-password`). Unset, Caddy refuses to start: no admin area

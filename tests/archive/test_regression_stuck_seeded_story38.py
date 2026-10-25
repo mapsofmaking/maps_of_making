@@ -36,7 +36,7 @@ SERVED_FILE = REPO_ROOT / "data" / "canary" / "served.json"
 HEARTBEAT_DB = REPO_ROOT / "data" / "tasks" / "heartbeat_log.db"
 OXIGRAPH_URL = "http://localhost:7878"
 
-MOM = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+MOM = "https://mapsofmaking.org/ns/mom#"
 
 
 def _read_baseline() -> dict:

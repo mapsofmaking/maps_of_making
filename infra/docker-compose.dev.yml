@@ -17,6 +17,7 @@ services:
       - ../web/data:/srv/data:ro,z
       - ../web/canary:/srv/canary:ro,z
       - ./web/Caddyfile:/etc/caddy/Caddyfile:ro,z
+      - ../ontology:/ns:ro,z
     environment:
       # Local only: admin / devadmin.
       - MAP_ADMIN_PASSWORD_HASH=$$2a$$14$$l26hqpGHYHgPrXnLjySlquUViWGhKG3G4WYL2d0zlZpijAGkR5Fpa

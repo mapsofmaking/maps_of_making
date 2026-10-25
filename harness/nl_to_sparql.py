@@ -67,9 +67,9 @@ FORBIDDEN = re.compile(
 # Sanitize user input going into LLM prompt to prevent prompt injection
 _SANITIZE = re.compile(r'[{}<>"\\' + r"\n\r\x00-\x1f]", re.ASCII)
 
-PREFIX_BLOCK = """PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+PREFIX_BLOCK = """PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
-PREFIX iop: <https://nicolasdb.github.io/mapsofmaking_ontology/iop#>
+PREFIX iop: <https://mapsofmaking.org/ns/iop#>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 """
 
@@ -90,9 +90,9 @@ def _ensure_prefixes(sparql: str) -> str:
 
 NL_TO_SPARQL_SYSTEM = """You are a SPARQL generator for a makerspace directory.
 Prefixes (already declared for you — do NOT repeat PREFIX lines in your output):
-  PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+  PREFIX mom: <https://mapsofmaking.org/ns/mom#>
   PREFIX schema: <https://schema.org/>
-  PREFIX iop: <https://nicolasdb.github.io/mapsofmaking_ontology/iop#>
+  PREFIX iop: <https://mapsofmaking.org/ns/iop#>
   PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
 Graph shape (this is the one thing that varies between question types — copy it

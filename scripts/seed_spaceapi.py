@@ -42,7 +42,7 @@ QUERY_URL = f"{OXIGRAPH_ENDPOINT}/query"
 
 DIRECTORY_URL = "https://directory.spaceapi.io/"
 DEFAULT_NETWORK = "spaceapi"
-MOM_NS = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+MOM_NS = "https://mapsofmaking.org/ns/mom#"
 
 
 def network_uri(slug: str) -> str:
@@ -70,7 +70,7 @@ def space_id(name: str, endpoint_url: str) -> str:
 def graph_source(client: httpx.Client, graph_uri: str) -> str | None:
     """Return the mom:source literal of an existing graph, or None if not present."""
     query = (
-        "PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#> "
+        "PREFIX mom: <https://mapsofmaking.org/ns/mom#> "
         f"SELECT ?src WHERE {{ GRAPH <{graph_uri}> {{ ?s mom:source ?src }} }} LIMIT 1"
     )
     resp = client.post(

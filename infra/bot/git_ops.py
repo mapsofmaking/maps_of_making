@@ -26,7 +26,7 @@ import httpx  # noqa: E402
 
 OXIGRAPH_ENDPOINT = os.environ.get("OXIGRAPH_ENDPOINT", "http://localhost:7878")
 BOT_REPOS_DIR = Path(os.environ.get("BOT_REPOS_DIR", "/app/bot-repos"))
-MOM = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+MOM = "https://mapsofmaking.org/ns/mom#"
 
 # Per-space lock so concurrent !mom update/!mom link for the same space can't
 # double-clone or race a non-fast-forward push (Story 6.1 code review finding).

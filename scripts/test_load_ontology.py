@@ -56,7 +56,7 @@ def test_mom_space_loaded():
     <urn:mak:ontology/mom> named graph.
     """
     query = """
-PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX owl: <http://www.w3.org/2002/07/owl#>
 
 ASK { GRAPH <urn:mak:ontology/mom> { mom:Space a owl:Class } }

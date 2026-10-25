@@ -151,7 +151,7 @@ def _seed_space(updated_at_iso: str, open_now: bool, last_open_change: str = "17
     """Seed a single Space named graph with the three Oxigraph-side tokens."""
     _sparql_update(f"DROP SILENT GRAPH <{SPACE_URI}>")
     _sparql_update(f"""
-PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 INSERT DATA {{
@@ -402,7 +402,7 @@ def _seed_claimed_no_updated_at(endpoint_url: str) -> None:
     """Seed a claimed space that has mom:endpointUrl but no mom:updatedAt."""
     _sparql_update(f"DROP SILENT GRAPH <{SPACE_URI}>")
     _sparql_update(f"""
-PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
 INSERT DATA {{
   GRAPH <{SPACE_URI}> {{
@@ -419,7 +419,7 @@ def _read_updated_at_from_graph() -> str | None:
     """Return mom:updatedAt value from Oxigraph for SPACE_URI, or None."""
     r = httpx.post(
         f"{OXIGRAPH_URL}/query",
-        content=f"""PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+        content=f"""PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 SELECT ?t WHERE {{ GRAPH <{SPACE_URI}> {{ <{SPACE_URI}> mom:updatedAt ?t }} }}""",
         headers={"Content-Type": "application/sparql-query",
                  "Accept": "application/sparql-results+json"},

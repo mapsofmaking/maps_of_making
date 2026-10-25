@@ -33,7 +33,7 @@ OHM_BASE     = os.environ.get("OHM_BASE_URL",          "http://localhost:8001/v1
 SPARQL_URL   = os.environ.get("MOM_SPARQL_URL",         "http://localhost:8080/sparql/query")
 UPDATE_URL   = os.environ.get("MOM_SPARQL_UPDATE_URL",  "http://localhost:7878/update")
 REPO_ROOT = Path(__file__).parent.parent
-MOM_NS = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+MOM_NS = "https://mapsofmaking.org/ns/mom#"
 
 # Wikidata QIDs for key manufacturing processes (canonical anchors)
 WD = {

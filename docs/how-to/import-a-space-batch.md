@@ -120,7 +120,7 @@ registered a live endpoint is safe from a re-import.
 ssh hetzner 'docker exec maps-link-handler python3 -c "
 import httpx
 r = httpx.post(\"http://oxigraph:7878/query\",
-    data=\"SELECT (COUNT(*) AS ?n) WHERE { GRAPH ?g { ?s a <https://nicolasdb.github.io/mapsofmaking_ontology/ns#Space> } }\",
+    data=\"SELECT (COUNT(*) AS ?n) WHERE { GRAPH ?g { ?s a <https://mapsofmaking.org/ns/mom#Space> } }\",
     headers={\"Content-Type\":\"application/sparql-query\",\"Accept\":\"application/sparql-results+json\"})
 print(r.json()[\"results\"][\"bindings\"])
 "'

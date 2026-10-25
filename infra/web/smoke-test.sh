@@ -72,4 +72,13 @@ header "'unsafe-eval'" -H Host:mothersands.mapsofmaking.org $W/
 header 'Access-Control-Allow-Origin: *' $W/sparql/query
 header 'X-Content-Type-Options: nosniff' $W/
 
+status 200 $W/ns/mom
+status 200 $W/ns/iop
+status 200 $W/ns/crosswalks/mom-to-okw
+status 200 $W/ns/sup.ttl
+status 404 $W/ns/nothing
+header 'Content-Type: text/turtle' $W/ns/mom
+header 'Access-Control-Allow-Origin: *' $W/ns/core
+body '@prefix mom: <https://mapsofmaking.org/ns/mom#>' $W/ns/mom
+
 exit $fail
