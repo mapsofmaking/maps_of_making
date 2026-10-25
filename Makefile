@@ -1,5 +1,5 @@
-REMOTE      := hetzner
-REMOTE_APP  := /home/nicolas/maps_of_making
+REMOTE      ?= hetzner
+REMOTE_APP  ?= /home/nicolas/maps_of_making
 REMOTE_GW   := /home/nicolas/hetzner-gateway/nginx/conf.d
 
 # Files/dirs excluded from app sync
