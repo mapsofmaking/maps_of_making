@@ -1,0 +1,51 @@
+# Builds the app's three images and pushes them to GHCR on every push to
+# mom-vps: ghcr.io/mapsofmaking/<image>:sha-<short commit> (what a server
+# deploys) and :mom-vps (the branch's latest). maps-web is smoke-tested
+# before anything is pushed.
+name: images
+
+on:
+  push:
+    branches: [mom-vps]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: images
+  cancel-in-progress: false
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: maps-web smoke test
+        run: sh infra/web/smoke-test.sh
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: build and push
+        run: |
+          set -eu
+          SHA=sha-$(git rev-parse --short=7 HEAD)
+          R=ghcr.io/mapsofmaking
+          build() {  # build <image> <docker build args...>
+            name=$1; shift
+            docker build \
+              --label org.opencontainers.image.source=https://github.com/${{ github.repository }} \
+              --label org.opencontainers.image.revision=${{ github.sha }} \
+              -t $R/$name:$SHA -t $R/$name:mom-vps "$@"
+            docker push $R/$name:$SHA
+            docker push $R/$name:mom-vps
+          }
+          build maps-web -f infra/web/Dockerfile .
+          build maps-link-handler infra/link_handler
+          build maps-agent-bot harness
+          echo "Pushed $SHA" >> "$GITHUB_STEP_SUMMARY"

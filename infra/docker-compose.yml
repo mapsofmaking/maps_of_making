@@ -1,5 +1,11 @@
 name: maps_of_making
 
+# Images: CI (.github/workflows/images.yml) builds maps-web, maps-link-handler
+# and maps-agent-bot on every push to mom-vps and pushes them to GHCR as
+# sha-<commit> and mom-vps. A server pulls the tag in MAP_TAG and never
+# builds:  docker compose pull && docker compose up -d --no-build
+# Locally, MAP_TAG is unset: `up --build` builds and tags them `local`.
+
 services:
 
   # ─────────────────────────────────────────────────────────────────
@@ -13,6 +19,7 @@ services:
     build:
       context: ..
       dockerfile: infra/web/Dockerfile
+    image: ghcr.io/mapsofmaking/maps-web:${MAP_TAG:-local}
     container_name: maps-web
     restart: unless-stopped
     mem_limit: 64m
@@ -81,7 +88,9 @@ services:
       - internal
     environment:
       - POSTGRES_USER=dendrite
-      - POSTGRES_PASSWORD=${DENDRITE_DB_PASSWORD:?DENDRITE_DB_PASSWORD must be set in .env}
+      # `:-`, not `:?`: compose checks `:?` even when the `matrix` profile is
+      # off. Unset, the postgres image refuses to initialise an empty database.
+      - POSTGRES_PASSWORD=${DENDRITE_DB_PASSWORD:-}
       - POSTGRES_DATABASE=dendrite
       - PGDATA=/var/lib/postgresql/data/pgdata   # avoid initdb choking on .gitkeep at the mount root
     volumes:
@@ -130,6 +139,7 @@ services:
   # ─────────────────────────────────────────────────────────────────
   mak-agent-bot:
     build: ../harness
+    image: ghcr.io/mapsofmaking/maps-agent-bot:${MAP_TAG:-local}
     container_name: maps-agent-bot
     restart: unless-stopped
     profiles: [bot]
@@ -175,6 +185,7 @@ services:
   # ─────────────────────────────────────────────────────────────────
   mak-link-handler:
     build: ./link_handler
+    image: ghcr.io/mapsofmaking/maps-link-handler:${MAP_TAG:-local}
     container_name: maps-link-handler
     restart: unless-stopped
     mem_limit: 384m
