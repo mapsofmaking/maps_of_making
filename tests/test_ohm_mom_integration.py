@@ -27,7 +27,12 @@ from pathlib import Path
 import pytest
 import httpx
 
+# Every test here talks to the running Mac stack (MoM + OHM, `make mac-up`):
+# deselected in CI with the other `live` tests.
+pytestmark = pytest.mark.live
+
 # ── Configuration ─────────────────────────────────────────────────────────────
+
 
 OHM_BASE     = os.environ.get("OHM_BASE_URL",          "http://localhost:8001/v1")
 SPARQL_URL   = os.environ.get("MOM_SPARQL_URL",         "http://localhost:8080/sparql/query")
