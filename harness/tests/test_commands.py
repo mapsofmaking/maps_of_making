@@ -181,7 +181,7 @@ def test_values_match_string():
 async def test_update_from_low_power_level_is_refused():
     ctx = _make_context(power_level=0)
     result = await commands.try_handle('update state.open "true"', "@u:x", "!room:x", "sid", context=ctx)
-    assert result == bernard.read_only_ack()
+    assert result == bernard.read_only_ack("@u:x")
 
 
 @pytest.mark.asyncio
@@ -195,14 +195,14 @@ async def test_update_disallowed_field_is_refused():
 async def test_open_from_low_power_level_is_refused():
     ctx = _make_context(power_level=0)
     result = await commands.try_handle("open", "@u:x", "!room:x", "sid", context=ctx)
-    assert result == bernard.read_only_ack()
+    assert result == bernard.read_only_ack("@u:x")
 
 
 @pytest.mark.asyncio
 async def test_close_from_low_power_level_is_refused():
     ctx = _make_context(power_level=0)
     result = await commands.try_handle("close", "@u:x", "!room:x", "sid", context=ctx)
-    assert result == bernard.read_only_ack()
+    assert result == bernard.read_only_ack("@u:x")
 
 
 # ---------------------------------------------------------------------------
