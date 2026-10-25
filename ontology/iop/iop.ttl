@@ -1,8 +1,8 @@
-@prefix iop: <https://nicolasdb.github.io/mapsofmaking_ontology/iop#> .
+@prefix iop: <https://mapsofmaking.org/ns/iop#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
-@prefix mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#> .
+@prefix mom: <https://mapsofmaking.org/ns/mom#> .
 @prefix schema: <https://schema.org/> .
 
 # IoP Ontology — Internet of Places (minimal spatial vocabulary)
@@ -10,7 +10,7 @@
 # Equipment/capability semantics belong in OKW crosswalk (ontology/crosswalks/mom-to-okw.ttl).
 # Do NOT publish to ontology repo until OKW interop direction is decided.
 
-<https://nicolasdb.github.io/mapsofmaking_ontology/iop#>
+<https://mapsofmaking.org/ns/iop#>
   a owl:Ontology ;
   rdfs:label "Internet of Places Ontology" ;
   rdfs:comment "Vocabulary for federated spatial infrastructure — makerspace edition." .

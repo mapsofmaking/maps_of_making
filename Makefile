@@ -21,7 +21,7 @@ RSYNC_EXCLUDE := \
 	--exclude='graphify-out/' \
 	--exclude='data/'
 
-.PHONY: sync sync-app sync-gateway publish startdev rebuild seed-spaceapi seed-bundle bundle-to-csv csv-to-bundle heartbeat devdeploy reset vps-rebuild vps-seed vps-reset help endpoint deploy-genjson bernard-copy load-ontology vps-load-ontology vps-load-suppliers suppliers-csv suppliers-geocode suppliers-ttl
+.PHONY: ontology-pull sync sync-app sync-gateway publish startdev rebuild seed-spaceapi seed-bundle bundle-to-csv csv-to-bundle heartbeat devdeploy reset vps-rebuild vps-seed vps-reset help endpoint deploy-genjson bernard-copy load-ontology vps-load-ontology vps-load-suppliers suppliers-csv suppliers-geocode suppliers-ttl
 .PHONY: mac-up mac-down mac-init mac-reset mac-heartbeat mac-test
 .PHONY: c-reset c-activate c-demo c-all
 .PHONY: ca-reachable ca-timeout ca-dns-fail ca-http-error caxis-a
@@ -246,6 +246,12 @@ seed-bundle:
 	@echo "→ rematerializing GeoJSON..."
 	$(LOCAL_CEXEC) python3 -c "import httpx; r = httpx.post('http://localhost:8000/api/rematerialize', timeout=60); print('rematerialize:', r.status_code)"
 	@echo "✓ local bundle seeded (network=$(NETWORK))"
+
+## Bring ontology/ up to date with its source of truth, the org's ontology repo
+## (a git subtree: change the vocabulary there first, never here).
+ONTOLOGY_REPO ?= https://github.com/mapsofmaking/mapsofmaking_ontology.git
+ontology-pull:
+	git subtree pull --prefix=ontology $(ONTOLOGY_REPO) main --squash
 
 ## Load mom.ttl + iop.ttl + sup.ttl + crosswalks + data/supplier-lists/*.ttl into
 ## Oxigraph named graphs (urn:mak:ontology/{mom,iop,sup}, urn:mak:suppliers/<space>).

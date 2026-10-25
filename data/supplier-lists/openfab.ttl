@@ -12,7 +12,7 @@
 @prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
 @prefix schema: <https://schema.org/> .
 @prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
-@prefix mom:    <https://nicolasdb.github.io/mapsofmaking_ontology/ns#> .
+@prefix mom:    <https://mapsofmaking.org/ns/mom#> .
 
 <urn:mak:supplier/gedebois> a mom:Supplier ;
     schema:name "Gedebois" ;

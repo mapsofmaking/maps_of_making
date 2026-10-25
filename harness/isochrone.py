@@ -34,7 +34,7 @@ _polygon_cache: dict[tuple, tuple[dict, float]] = {}
 CACHE_TTL_SECONDS = 86400  # 24 hours
 
 PREFIX = """\
-PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
 """
 

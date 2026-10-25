@@ -6,9 +6,12 @@
 > layer: **what RDF the pipeline writes, where, against which vocabulary, and which of it is live vs.
 > staged for later.** All anchors are exact.
 >
-> Canonical namespace authority (the one all queries use): `https://nicolasdb.github.io/mapsofmaking_ontology/`.
-> `mom:` = `…/ns#`, `core:` = `…/ns/core#`, `iop:` = `…/iop#`. `mom.ttl` is authoritative — **not**
-> `mapsofmaking.eu` (see [[reference_ontology_repo]]).
+> Canonical namespace authority (the one all queries use): `https://mapsofmaking.org/ns/`.
+> `mom:` = `…/mom#`, `core:` = `…/core#`, `iop:` = `…/iop#`. `mom.ttl` is authoritative — **not**
+> `mapsofmaking.eu`. Since 2026-10-25 it is no longer `nicolasdb.github.io/mapsofmaking_ontology/`
+> (that never resolved; replaced by the migration). Source of truth: the
+> [ontology repo](https://github.com/mapsofmaking/mapsofmaking_ontology), carried here as a git
+> subtree under `ontology/`.
 
 ## Why this layer exists — the enhancer
 

@@ -153,7 +153,7 @@ If a coordinator wants their file to be usable as linked data (for export or fed
 ```json
 {
   "@context": {
-    "mom": "https://nicolasdb.github.io/mapsofmaking_ontology/ns#",
+    "mom": "https://mapsofmaking.org/ns/mom#",
     "schema": "https://schema.org/",
     "space": "schema:name",
     "url": "schema:url",

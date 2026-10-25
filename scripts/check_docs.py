@@ -51,7 +51,8 @@ DEAD_TOKENS: dict[str, str] = {
     r"tasks/ingest\.py": "transform is scripts/spaceapi_extract/ (core, mom)",
     r"\bmetrics\.db\b": "operational data lives in data/tasks/snapshot_store.db",
     r"\bmak-scheduler\b": "no scheduler container; APScheduler runs inside link_handler",
-    r"w3id\.org/maps-of-making": "canonical ns = nicolasdb.github.io/mapsofmaking_ontology",
+    r"w3id\.org/maps-of-making": "canonical ns = mapsofmaking.org/ns/ (mom#, core#, iop#)",
+    r"nicolasdb\.github\.io/mapsofmaking_ontology": "canonical ns = mapsofmaking.org/ns/ since 2026-10-25",
     r"\bbuild_state_only_update\b": "deleted in Epic 3.5 (304 writes nothing to Oxigraph)",
     # NOTE: `mom:observedAt` is NOT listed — it is a LIVE predicate (SQLite token
     # name; written to Oxigraph only in the canary-skeleton path). The dead fact is

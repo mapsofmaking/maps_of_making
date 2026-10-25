@@ -1,5 +1,5 @@
-@prefix core: <https://nicolasdb.github.io/mapsofmaking_ontology/ns/core#> .
-@prefix mom:  <https://nicolasdb.github.io/mapsofmaking_ontology/ns#> .
+@prefix core: <https://mapsofmaking.org/ns/core#> .
+@prefix mom:  <https://mapsofmaking.org/ns/mom#> .
 @prefix schema: <https://schema.org/> .
 @prefix owl:  <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -12,7 +12,8 @@
 # Operationalizes the three-layer model from mom-schema-architecture-handoff.md
 # (Story 3.5). See ADR-016 for the four-layer bundle model.
 #
-# Namespace authority: https://nicolasdb.github.io/mapsofmaking_ontology/ only.
+# Namespace authority: https://mapsofmaking.org/ns/ only (since 2026-10-25;
+# before: nicolasdb.github.io/mapsofmaking_ontology/, which never resolved).
 # core: lives UNDER that authority as the .../ns/core# sub-namespace.
 # (The handoff body's illustrative non-canonical IRIs are illegal — its
 #  correction block is authoritative over its body.)
@@ -22,11 +23,12 @@
 #   - Operational fields → owned by mom: (the .../ns# namespace), referenced here
 #   - core:Place + core:relationships → the only NEW terms this file mints
 #
-# Sync model: this file is the working copy. The maintainer manually syncs it to
-# the github.com/nicolasdb/mapsofmaking_ontology repo. Do not git-push there.
+# Source of truth: github.com/mapsofmaking/mapsofmaking_ontology. The map repo
+# carries it as a git subtree under ontology/ (git subtree pull), never edited
+# there first.
 # ──────────────────────────────────────────────────────────────────────────────
 
-<https://nicolasdb.github.io/mapsofmaking_ontology/ns/core#>
+<https://mapsofmaking.org/ns/core#>
   a owl:Ontology ;
   rdfs:label "Maps of Making — core base schema (Layer 2)" ;
   owl:versionInfo "0.1" ;

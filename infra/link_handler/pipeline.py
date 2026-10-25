@@ -37,7 +37,7 @@ from pipeline_helpers import detect_diff, _extract_open_now, _extract_last_open_
 
 logger = logging.getLogger(__name__)
 
-MOM_NS = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+MOM_NS = "https://mapsofmaking.org/ns/mom#"
 SCHEMA_NS = "https://schema.org/"
 XSD_DT = "http://www.w3.org/2001/XMLSchema#dateTime"
 

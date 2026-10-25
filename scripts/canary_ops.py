@@ -42,7 +42,7 @@ CANARY_ENDPOINT_URL = os.environ.get(
     "CANARY_ENDPOINT_URL", "https://mapsofmaking.org/canary/mother-sands.json"
 )
 
-MOM = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+MOM = "https://mapsofmaking.org/ns/mom#"
 XSD_DT = "http://www.w3.org/2001/XMLSchema#dateTime"
 XSD_BOOL = "http://www.w3.org/2001/XMLSchema#boolean"
 GRAPH = "urn:mak:canary"

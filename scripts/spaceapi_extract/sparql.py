@@ -9,7 +9,7 @@ from typing import Any
 
 _NS = {
     "schema": "https://schema.org/",
-    "mom": "https://nicolasdb.github.io/mapsofmaking_ontology/ns#",
+    "mom": "https://mapsofmaking.org/ns/mom#",
 }
 
 XSD_DT = "http://www.w3.org/2001/XMLSchema#dateTime"

@@ -1,4 +1,4 @@
-@prefix mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#> .
+@prefix mom: <https://mapsofmaking.org/ns/mom#> .
 @prefix schema: <https://schema.org/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -9,7 +9,7 @@
 # MOM Ontology — Maps of Making vocabulary
 # A minimal application vocabulary extending Schema.org
 
-<https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+<https://mapsofmaking.org/ns/mom#>
   a owl:Ontology ;
   rdfs:label "Maps of Making Ontology" ;
   owl:versionInfo "0.2" ;

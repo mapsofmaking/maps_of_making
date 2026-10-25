@@ -5,7 +5,7 @@
 > *vocabulary* and live once, centrally, in `ontology/sup.ttl`. This doc is the contract between
 > the two.
 >
-> Canonical namespace: `mom:` = `https://nicolasdb.github.io/mapsofmaking_ontology/ns#`.
+> Canonical namespace: `mom:` = `https://mapsofmaking.org/ns/mom#`.
 
 ## Why the vocabulary is not yours to mint
 
@@ -112,7 +112,7 @@ The graph is `<urn:mak:suppliers/<space>>`; the vocabulary is `<urn:mak:ontology
 identical whichever language the asker used:
 
 ```sparql
-PREFIX mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#>
+PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 PREFIX schema: <https://schema.org/>
 SELECT ?name WHERE {

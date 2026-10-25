@@ -16,7 +16,7 @@ from spaceapi_extract.address import parse_locality_from_free_address
 # Freshness predicates that must NEVER appear in extractor output (AC 8 final bullet)
 _FRESHNESS = frozenset({"mom:observedAt", "mom:updatedAt", "mom:openNow", "mom:lastOpenChange"})
 
-_MOM_NS = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+_MOM_NS = "https://mapsofmaking.org/ns/mom#"
 _SCHEMA_NS = "https://schema.org/"
 
 

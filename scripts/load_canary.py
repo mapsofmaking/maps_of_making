@@ -47,7 +47,7 @@ CANARY_FILE = Path(
 )
 OXIGRAPH_URL = os.environ.get("OXIGRAPH_URL", "http://localhost:7878").rstrip("/")
 
-MOM = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+MOM = "https://mapsofmaking.org/ns/mom#"
 XSD_DT = "http://www.w3.org/2001/XMLSchema#dateTime"
 
 GRAPH_URI = "urn:mak:canary"

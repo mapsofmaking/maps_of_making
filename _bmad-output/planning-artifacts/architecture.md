@@ -625,7 +625,7 @@ The `.ttl` is the specification; `scripts/spaceapi_extract/` (`core`/`mom`) is i
 
 ### ADR-016: Layered Community Namespaces + Bundle-Loading Model
 
-**Decision:** The MOM schema is organised as four layers under the **single canonical authority** `https://nicolasdb.github.io/mapsofmaking_ontology/`. Communities are loaded as composable *bundles* — a view configuration, not a separate graph. The handoff document's `w3id.org` IRIs are illegal; the layer split is real and lives *under* the canonical authority as sub-namespaces. Operationalized by Story 3.5 (`core.ttl`, `crosswalk.csv`).
+**Decision:** The MOM schema is organised as four layers under the **single canonical authority** `https://nicolasdb.github.io/mapsofmaking_ontology/`. Communities are loaded as composable *bundles* — a view configuration, not a separate graph. The handoff document's `w3id.org` IRIs are illegal; the layer split is real and lives *under* the canonical authority as sub-namespaces. Operationalized by Story 3.5 (`core.ttl`, `crosswalk.csv`). **Superseded 2026-10-25:** the authority is now `https://mapsofmaking.org/ns/` (`mom#`, `core#`, `iop#`).
 
 **The four layers:**
 
@@ -772,7 +772,7 @@ Oxigraph written ONLY on a real content change. `build_state_only_update` (304�
 
 **Critical (block implementation):**
 - MOM ontology strategy — align-and-extend (decided)
-- `@context` IRI stability — canonical `nicolasdb.github.io/mapsofmaking_ontology` GitHub Pages (decided)
+- `@context` IRI stability — canonical `nicolasdb.github.io/mapsofmaking_ontology` GitHub Pages (decided; superseded 2026-10-25 by `mapsofmaking.org/ns/`)
 - IoP integration pattern — named graph + cached prompt slice (decided)
 - Logging — structlog from day one (decided)
 
@@ -802,7 +802,7 @@ Note: `observed_at` (Axis A) and the raw payload are authoritative in **SQLite `
 - Base: `schema:LocalBusiness`, `schema:openingHours`, `schema:geo` (Schema.org)
 - Equipment/capabilities: `skos:closeMatch` to IoP classes — reference without hard dependency
 - Maker-specific: `mom:` classes/properties (e.g. `mom:memberOf`, `mom:operationalState`, `mom:endpointUrl`)
-- **Canonical namespace: `https://nicolasdb.github.io/mapsofmaking_ontology/ns#` (prefix `mom:`)** — `mom.ttl` is authoritative. The earlier `w3id.org/maps-of-making/` IRI is **not used** anywhere in code, queries, or `.ttl`.
+- **Canonical namespace: `https://mapsofmaking.org/ns/mom#` (prefix `mom:`)** — `mom.ttl` is authoritative. The earlier `w3id.org/maps-of-making/` IRI is **not used** anywhere in code, queries, or `.ttl`.
 - Working copies live in repo at `ontology/mom.ttl` + `ontology/core.ttl`, manually synced to `github.com/nicolasdb/mapsofmaking_ontology` (GitHub Pages). Nothing git-pushes to the ontology repo automatically.
 
 **IoP integration in Oxigraph:**
@@ -975,7 +975,7 @@ maps_of_making/                          # 🟢 live · 🟡 dormant (planned) �
 │   └── gateway-nginx/                   # 🟢 VPS gateway vhosts (06–09: map/admin/genjson/mothersands)
 │
 ├── ontology/                            # 🟢 MOM vocabulary + IoP reference (working copies)
-│   ├── mom.ttl                          # canonical: nicolasdb.github.io/mapsofmaking_ontology/ns#
+│   ├── mom.ttl                          # canonical: mapsofmaking.org/ns/mom#
 │   ├── core.ttl                         # portable identity layer (ADR-016)
 │   ├── crosswalk.csv · crosswalk.md     # living SpaceAPI↔mom bridge registry
 │   └── iop/iop.ttl                      # IoP ontology snapshot

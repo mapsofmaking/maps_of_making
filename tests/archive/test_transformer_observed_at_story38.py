@@ -23,7 +23,7 @@ from transformer import transform_to_sparql, build_state_only_update
 from main import SpaceAPISchema
 
 OXIGRAPH_URL = "http://localhost:7878"
-MOM = "https://nicolasdb.github.io/mapsofmaking_ontology/ns#"
+MOM = "https://mapsofmaking.org/ns/mom#"
 
 BASELINE = {
     "api": "0.13",

@@ -1,4 +1,4 @@
-@prefix mom: <https://nicolasdb.github.io/mapsofmaking_ontology/ns#> .
+@prefix mom: <https://mapsofmaking.org/ns/mom#> .
 @prefix okw: <https://github.com/iop-alliance/OpenKnowWhere/raw/main/src/okw_core.ttl#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix skos: <http://www.w3.org/2004/02/skos/core#> .
@@ -25,7 +25,7 @@
 #   https://github.com/iop-alliance/OpenKnowWhere
 # ─────────────────────────────────────────────────────────────────────────────
 
-<https://nicolasdb.github.io/mapsofmaking_ontology/crosswalks/mom-to-okw>
+<https://mapsofmaking.org/ns/crosswalks/mom-to-okw>
   a owl:Ontology ;
   rdfs:label "MOM–OKW Crosswalk" ;
   rdfs:comment "Alignment between Maps of Making activity vocabulary and OpenKnowWhere manufacturing process concepts. Wikidata QIDs serve as the shared canonical anchor." ;
