@@ -247,18 +247,18 @@ seed-bundle:
 	$(LOCAL_CEXEC) python3 -c "import httpx; r = httpx.post('http://localhost:8000/api/rematerialize', timeout=60); print('rematerialize:', r.status_code)"
 	@echo "✓ local bundle seeded (network=$(NETWORK))"
 
+## Bring ontology/ up to date with its source of truth, the org's ontology repo
+## (a git subtree: change the vocabulary there first, never here).
+ONTOLOGY_REPO ?= https://github.com/mapsofmaking/mapsofmaking_ontology.git
+ontology-pull:
+	git subtree pull --prefix=ontology $(ONTOLOGY_REPO) main --squash
+
 ## Load mom.ttl + iop.ttl + sup.ttl + crosswalks + data/supplier-lists/*.ttl into
 ## Oxigraph named graphs (urn:mak:ontology/{mom,iop,sup}, urn:mak:suppliers/<space>).
 ## Idempotent (PUT replaces the graph). Dormant scaffold for the Epic 6 NL→SPARQL bot —
 ## the live heartbeat/materialize path does NOT query these graphs yet. Folded into
 ## devdeploy so a fresh stack always carries the vocabulary. See
 ## docs/reference/semantic-layer.md and docs/reference/supplier-list-schema.md.
-
-## Bring ontology/ up to date with its source of truth, the org's ontology repo
-## (a git subtree: change the vocabulary there first, never here).
-ONTOLOGY_REPO ?= https://github.com/mapsofmaking/mapsofmaking_ontology.git
-ontology-pull:
-	git subtree pull --prefix=ontology $(ONTOLOGY_REPO) main --squash
 load-ontology:
 	bash scripts/load_ontology.sh http://localhost:7878
 
