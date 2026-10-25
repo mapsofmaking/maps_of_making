@@ -28,7 +28,8 @@ sudo useradd --system --create-home --shell /bin/sh --groups docker deploy
 sudo install -d -o deploy -g deploy -m 750 /srv/mom-map
 sudo -u deploy git clone -q --branch mom-vps https://github.com/mapsofmaking/maps_of_making /srv/mom-map
 
-# 2. infra/.env, secrets generated on the server (600, owner deploy).
+# 2. .env, secrets generated on the server (600, owner deploy). infra/.env is
+#    a tracked symlink to it: compose reads it from infra/.
 sudo -u deploy sh -c 'umask 077; { echo GATEWAY_NETWORK=proxy; echo COMPOSE_PROFILES=; echo "LINK_SECRET=$(openssl rand -hex 32)"; echo "BOT_KEY_SECRET=$(openssl rand -base64 32 | tr -- "+/" "-_")"; } > /srv/mom-map/infra/.env'
 
 # 3. Admin login: type the password at the prompt (not echoed).
@@ -38,7 +39,7 @@ printf 'Admin password: '; stty -echo; read -r P; stty echo; echo; H=$(printf '%
 sudo install -o root -g root -m 755 /srv/mom-map/infra/deploy/mom-map-deploy /usr/local/sbin/mom-map-deploy
 
 # 5. CI's public key, forced to the script (key made on the workstation, below).
-sudo -u deploy sh -c 'umask 077; mkdir -p ~/.ssh; printf "restrict,command=\"/usr/local/sbin/mom-map-deploy\" %s\n" "$(cat /tmp/mom-map-ci.pub)" >> ~/.ssh/authorized_keys' && rm /tmp/mom-map-ci.pub
+sudo -u deploy sh -c 'umask 077; mkdir -p /home/deploy/.ssh; printf "restrict,command=\"/usr/local/sbin/mom-map-deploy\" %s\n" "$(cat /tmp/mom-map-ci.pub)" >> /home/deploy/.ssh/authorized_keys' && rm /tmp/mom-map-ci.pub
 ```
 
 The secrets of step 2 are fresh, for a test install. At the switch from the

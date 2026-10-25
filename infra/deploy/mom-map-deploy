@@ -32,10 +32,12 @@ git checkout -q --detach "$COMMIT" || fail "git checkout $COMMIT"
 
 cd infra
 # The tag running is recorded in .env, so a later `docker compose up -d` by
-# hand starts the same images, not `:local`.
-[ -f .env ] || fail "$APP/infra/.env is missing"
+# hand starts the same images, not `:local`. infra/.env is a tracked symlink
+# to ../.env: --follow-symlinks edits the target, where plain `sed -i` would
+# replace the link with a file and leave the checkout dirty.
+[ -f .env ] || fail "$APP/.env is missing"
 if grep -q '^MAP_TAG=' .env; then
-  sed -i "s/^MAP_TAG=.*/MAP_TAG=$TAG/" .env
+  sed -i --follow-symlinks "s/^MAP_TAG=.*/MAP_TAG=$TAG/" .env
 else
   echo "MAP_TAG=$TAG" >> .env
 fi
