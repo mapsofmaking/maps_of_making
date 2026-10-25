@@ -6,18 +6,20 @@
 # On VPS (Ubuntu), use docker-compose.yml alone — gateway handles routing.
 
 services:
-  maps-nginx:
+  maps-web:
     networks:
       - internal    # drop gateway network (doesn't exist locally)
     ports:
       - "8080:80"
     volumes:
-      - ../web:/var/www/mapsofmaking:ro,z
-      - ../web/data:/var/www/mapsofmaking/data:z
-      - ../web/canary:/var/www/mapsofmaking/canary:z
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro,z
-      - ../data/logs/nginx:/var/log/nginx:z
-      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro,z
+      # Live web/ and Caddyfile: edits show without a rebuild (restart for the Caddyfile).
+      - ../web:/srv:ro,z
+      - ../web/data:/srv/data:ro,z
+      - ../web/canary:/srv/canary:ro,z
+      - ./web/Caddyfile:/etc/caddy/Caddyfile:ro,z
+    environment:
+      # Local only: admin / devadmin.
+      - MAP_ADMIN_PASSWORD_HASH=$$2a$$14$$l26hqpGHYHgPrXnLjySlquUViWGhKG3G4WYL2d0zlZpijAGkR5Fpa
 
   mak-link-handler:
     volumes:

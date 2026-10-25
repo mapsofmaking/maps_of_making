@@ -3,26 +3,32 @@ name: maps_of_making
 services:
 
   # ─────────────────────────────────────────────────────────────────
-  # maps-nginx — serves static web/ files, proxies /sparql → oxigraph
-  # Joins the shared gateway network so the host's gateway can reach it.
+  # maps-web — the app's web server (Caddy, infra/web/Caddyfile).
+  # Serves web/ (baked into the image), routes /api, /claim, /sparql and
+  # the admin login, and maps admin./genjson./mothersands. hosts to their
+  # sections. Joins the gateway network: the host's gateway sends every
+  # Maps of Making hostname here, unchanged, and does TLS.
   # ─────────────────────────────────────────────────────────────────
-  maps-nginx:
-    image: nginx:1.29.8-alpine
-    container_name: maps-nginx
+  maps-web:
+    build:
+      context: ..
+      dockerfile: infra/web/Dockerfile
+    container_name: maps-web
     restart: unless-stopped
     mem_limit: 64m
     networks:
       - gateway
       - internal
     volumes:
-      - ../web:/var/www/mapsofmaking:ro
-      - ../web/data:/var/www/mapsofmaking/data
-      - ../web/canary:/var/www/mapsofmaking/canary
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ../data/logs/nginx:/var/log/nginx
-      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - ../web/data:/srv/data:ro
+      - ../web/canary:/srv/canary:ro
+    environment:
+      # Admin login. Hash from `caddy hash-password`; unset, maps-web will not
+      # start (no admin area without a password).
+      - MAP_ADMIN_USER=${MAP_ADMIN_USER:-admin}
+      - MAP_ADMIN_PASSWORD_HASH=${MAP_ADMIN_PASSWORD_HASH:-}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -203,4 +209,4 @@ networks:
     external: true        # shared with the host's gateway (hetzner-gateway, or Caddy on MoM)
     name: ${GATEWAY_NETWORK:-gateway}   # MoM: GATEWAY_NETWORK=proxy in .env
   internal:
-    driver: bridge        # maps-nginx ↔ oxigraph, mak-agent-bot, mak-link-handler
+    driver: bridge        # maps-web ↔ oxigraph, mak-agent-bot, mak-link-handler
