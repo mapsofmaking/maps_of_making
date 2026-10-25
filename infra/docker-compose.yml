@@ -4,12 +4,13 @@ services:
 
   # ─────────────────────────────────────────────────────────────────
   # maps-nginx — serves static web/ files, proxies /sparql → oxigraph
-  # Joins the shared gateway network so hetzner-gateway can reach it.
+  # Joins the shared gateway network so the host's gateway can reach it.
   # ─────────────────────────────────────────────────────────────────
   maps-nginx:
-    image: nginx:alpine
+    image: nginx:1.29.8-alpine
     container_name: maps-nginx
     restart: unless-stopped
+    mem_limit: 64m
     networks:
       - gateway
       - internal
@@ -37,9 +38,11 @@ services:
   # Internal only — access via nginx proxy on VPS.
   # ─────────────────────────────────────────────────────────────────
   oxigraph:
-    image: ghcr.io/oxigraph/oxigraph:latest
+    # Pinned: data/oxigraph is copied raw between hosts, so the version must match.
+    image: ghcr.io/oxigraph/oxigraph:0.5.7
     container_name: maps-oxigraph
     restart: unless-stopped
+    mem_limit: 768m
     networks:
       - internal
     volumes:
@@ -49,14 +52,25 @@ services:
     command: serve --location /data --bind 0.0.0.0:7878
 
   # ─────────────────────────────────────────────────────────────────
+  # Profile `matrix` (dendrite + its postgres) and profile `bot`
+  # (mak-agent-bot) start only when asked: COMPOSE_PROFILES=matrix,bot in
+  # .env for the full stack. Without them, `up` starts the data plane alone
+  # (nginx, oxigraph, link-handler): a second Dendrite with the same server
+  # name, or a second bot on the same access token, must never run next to
+  # the live ones.
+  # ─────────────────────────────────────────────────────────────────
+
+  # ─────────────────────────────────────────────────────────────────
   # dendrite-postgres — DB for the self-hosted Matrix homeserver.
   # Postgres (not SQLite) per Dendrite's own guidance: SQLite is
   # single-writer and explicitly not recommended for federated deployments.
   # ─────────────────────────────────────────────────────────────────
   dendrite-postgres:
-    image: postgres:16-alpine
+    image: postgres:16.14-alpine
     container_name: maps-dendrite-postgres
     restart: unless-stopped
+    profiles: [matrix]
+    mem_limit: 256m
     networks:
       - internal
     environment:
@@ -84,9 +98,11 @@ services:
   # proxies/well-known delegation is a deploy-time step (see Dev Notes).
   # ─────────────────────────────────────────────────────────────────
   dendrite:
-    image: ghcr.io/element-hq/dendrite-monolith:latest
+    image: ghcr.io/element-hq/dendrite-monolith:v0.15.2
     container_name: maps-dendrite
     restart: unless-stopped
+    profiles: [matrix]
+    mem_limit: 256m
     networks:
       - gateway
       - internal
@@ -110,6 +126,8 @@ services:
     build: ../harness
     container_name: maps-agent-bot
     restart: unless-stopped
+    profiles: [bot]
+    mem_limit: 128m
     networks:
       - internal
     volumes:
@@ -139,8 +157,11 @@ services:
     depends_on:
       oxigraph:
         condition: service_started
+      # Not required: Dendrite may run elsewhere (the bot reaches it at
+      # BERNARD_MATRIX_HOMESERVER, a URL), or in this project's `matrix` profile.
       dendrite:
         condition: service_started
+        required: false
 
   # ─────────────────────────────────────────────────────────────────
   # mak-link-handler — FastAPI magic link validator & claim handler
@@ -150,6 +171,7 @@ services:
     build: ./link_handler
     container_name: maps-link-handler
     restart: unless-stopped
+    mem_limit: 384m
     networks:
       - internal
     expose:
@@ -178,6 +200,7 @@ services:
 
 networks:
   gateway:
-    external: true        # shared with hetzner-gateway
+    external: true        # shared with the host's gateway (hetzner-gateway, or Caddy on MoM)
+    name: ${GATEWAY_NETWORK:-gateway}   # MoM: GATEWAY_NETWORK=proxy in .env
   internal:
     driver: bridge        # maps-nginx ↔ oxigraph, mak-agent-bot, mak-link-handler
