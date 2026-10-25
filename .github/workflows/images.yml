@@ -1,7 +1,8 @@
 # Builds the app's three images and pushes them to GHCR on every push to
 # mom-vps: ghcr.io/mapsofmaking/<image>:sha-<short commit> (what a server
 # deploys) and :mom-vps (the branch's latest). maps-web is smoke-tested
-# before anything is pushed.
+# before anything is pushed. Then `deploy` runs that commit on the server
+# (infra/deploy/README.md).
 name: images
 
 on:
@@ -34,7 +35,8 @@ jobs:
       - name: build and push
         run: |
           set -eu
-          SHA=sha-$(git rev-parse --short=7 HEAD)
+          # Exactly 7 characters: the deploy script derives the tag the same way.
+          SHA=sha-${GITHUB_SHA::7}
           R=ghcr.io/mapsofmaking
           build() {  # build <image> <docker build args...>
             name=$1; shift
@@ -49,3 +51,32 @@ jobs:
           build maps-link-handler infra/link_handler
           build maps-agent-bot harness
           echo "Pushed $SHA" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: build-push
+    # Off until the server is set up (infra/deploy/README.md): repo variable
+    # MOM_DEPLOY = on. Images are still built and pushed without it.
+    if: github.ref == 'refs/heads/mom-vps' && vars.MOM_DEPLOY == 'on'
+    runs-on: ubuntu-latest
+    # Secrets live in the `production` environment, not the repo: only this
+    # job, on this branch, can read them.
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - name: deploy this commit
+        env:
+          HOST: ${{ secrets.MOM_DEPLOY_HOST }}
+          KEY: ${{ secrets.MOM_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.MOM_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # The server's key is forced to infra/deploy/mom-map-deploy: the only
+          # thing this connection can send is the commit id.
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            "deploy@$HOST" "$GITHUB_SHA"

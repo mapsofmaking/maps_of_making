@@ -1,0 +1,46 @@
+#!/bin/sh
+# Deploys one commit of mom-vps on the server, from CI.
+#
+# Installed root-owned as /usr/local/sbin/mom-map-deploy (a copy: root never
+# runs files from the checkout). It is the forced command of CI's key in
+# ~deploy/.ssh/authorized_keys, so that key can do this and nothing else:
+#   restrict,command="/usr/local/sbin/mom-map-deploy" ssh-ed25519 AAAA… mom-map CI
+# CI sends the full commit id as the ssh command; the script checks it is
+# on mom-vps, checks it out, pulls that commit's images (tag sha-<7>) and
+# restarts. Each run says how it went in the journal:
+#   journalctl -t mom-map-deploy
+# By hand (as deploy):  mom-map-deploy <40-hex commit>
+set -eu
+
+APP=/srv/mom-map
+BRANCH=mom-vps
+
+log()  { logger -t mom-map-deploy "$*"; echo "$*"; }
+fail() { logger -t mom-map-deploy -p user.err "FAILED: $*"; echo "FAILED: $*" >&2; exit 1; }
+
+COMMIT=${SSH_ORIGINAL_COMMAND:-${1:-}}
+case "$COMMIT" in
+  *[!0-9a-f]* | "") fail "expected a commit id (40 hex characters), got '$COMMIT'" ;;
+esac
+[ ${#COMMIT} -eq 40 ] || fail "expected a commit id (40 hex characters), got '$COMMIT'"
+TAG=sha-$(printf %s "$COMMIT" | cut -c1-7)
+
+cd "$APP"
+git fetch -q origin "$BRANCH" || fail "git fetch"
+git merge-base --is-ancestor "$COMMIT" "origin/$BRANCH" || fail "$COMMIT is not on $BRANCH"
+git checkout -q --detach "$COMMIT" || fail "git checkout $COMMIT"
+
+cd infra
+# The tag running is recorded in .env, so a later `docker compose up -d` by
+# hand starts the same images, not `:local`.
+[ -f .env ] || fail "$APP/infra/.env is missing"
+if grep -q '^MAP_TAG=' .env; then
+  sed -i "s/^MAP_TAG=.*/MAP_TAG=$TAG/" .env
+else
+  echo "MAP_TAG=$TAG" >> .env
+fi
+
+docker compose pull -q || fail "pull $TAG"
+docker compose up -d --no-build --wait --wait-timeout 120 || fail "up $TAG (not healthy within 120 s)"
+
+log "ok: $TAG ($COMMIT)"
