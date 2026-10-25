@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "cheerio": "latest",
-    "puppeteer": "latest"
-  }
-}
