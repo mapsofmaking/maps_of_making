@@ -10,18 +10,20 @@
 #   - Adds OHM (Open Hardware Manager) for integration testing
 
 services:
-  maps-nginx:
+  maps-web:
     networks:
-      - internal
+      - internal    # drop gateway network (doesn't exist locally)
     ports:
       - "8080:80"
     volumes:
-      - ../web:/var/www/mapsofmaking:ro
-      - ../web/data:/var/www/mapsofmaking/data
-      - ../web/canary:/var/www/mapsofmaking/canary
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ../data/logs/nginx:/var/log/nginx
-      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      # Live web/ and Caddyfile: edits show without a rebuild (restart for the Caddyfile).
+      - ../web:/srv:ro
+      - ../web/data:/srv/data:ro
+      - ../web/canary:/srv/canary:ro
+      - ./web/Caddyfile:/etc/caddy/Caddyfile:ro
+    environment:
+      # Local only: admin / devadmin.
+      - MAP_ADMIN_PASSWORD_HASH=$$2a$$14$$l26hqpGHYHgPrXnLjySlquUViWGhKG3G4WYL2d0zlZpijAGkR5Fpa
 
   mak-link-handler:
     volumes:

@@ -1,0 +1,7 @@
+# Only infra/web/Dockerfile builds from the repo root: send it web/ and its
+# Caddyfile, nothing else (data/ holds hundreds of MB of runtime state).
+*
+!web/
+!infra/web/
+web/data/
+web/canary/

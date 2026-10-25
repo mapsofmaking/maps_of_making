@@ -1,0 +1,156 @@
+# =============================================================================
+# Maps of Making — the app's web server (container maps-web)
+#
+# Serves web/ and routes to the app's backends. Plain HTTP on :80: TLS,
+# hostnames and the server's front door are the host's gateway, which sends
+# every Maps of Making host here unchanged. Everything the app decides lives
+# in this file: which host shows which section, paths, headers, admin login.
+#
+# Hosts are matched on their first label, so the same file serves
+# mapsofmaking.org, the .com, a test subdomain and localhost:
+#   admin.*        → /admin/        (login)
+#   genjson.*      → /genjson/      (+ its /api/)
+#   mothersands.*  → /mothersands/
+#   anything else  → the map
+# =============================================================================
+
+{
+	# No admin API, no certificates: this server sits behind the gateway.
+	admin off
+	auto_https off
+	servers {
+		# The gateway is on a private Docker network: trust its
+		# X-Forwarded-For, so logs and link-handler see the visitor's address.
+		trusted_proxies static private_ranges
+	}
+}
+
+:80 {
+	# Access log on stdout (docker logs maps-web).
+	log
+
+	root * /srv
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+
+	@admin_host expression {host}.startsWith("admin.")
+	@genjson_host expression {host}.startsWith("genjson.")
+	@mothersands_host expression {host}.startsWith("mothersands.")
+
+	# ── Host → section ───────────────────────────────────────────────────────
+	# A section host shows its folder at its root. Top-level `rewrite` runs
+	# before every `handle` below (Caddy's directive order), so the path
+	# routes (login on /admin/, the backends) apply to the rewritten path.
+	# Not inside a `route` block: `route` sorts after `handle` and would
+	# never run.
+	rewrite @admin_host /admin{uri}
+	rewrite @mothersands_host /mothersands{uri}
+	# genjson's page calls /api/ on its own host: keep that path as is.
+	@genjson_page {
+		expression {host}.startsWith("genjson.")
+		not path /api/*
+	}
+	rewrite @genjson_page /genjson{uri}
+
+	# ── Headers per section ─────────────────────────────────────────────────
+	# The map is embedded in other sites (iframe): allow any parent.
+	header @admin_host X-Frame-Options "DENY"
+	header @genjson_host {
+		X-Frame-Options "SAMEORIGIN"
+		Content-Security-Policy "default-src 'self' 'unsafe-inline'"
+	}
+	header @mothersands_host {
+		X-Frame-Options "SAMEORIGIN"
+		Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval'"
+	}
+	@map_host not expression {host}.startsWith("admin.") || {host}.startsWith("genjson.") || {host}.startsWith("mothersands.")
+	header @map_host Content-Security-Policy "frame-ancestors *"
+
+	# ── Health check (compose healthcheck) ─────────────────────────────────
+	handle /health {
+		log_skip
+		respond "ok" 200
+	}
+
+	# ── SPARQL (Oxigraph) ────────────────────────────────────────────────────
+	# Read: public, any origin (open data; ADR-018: this URL is a contract).
+	handle /sparql/query {
+		header Access-Control-Allow-Origin "*"
+		rewrite * /query?{query}
+		reverse_proxy oxigraph:7878 {
+			transport http {
+				dial_timeout 10s
+				response_header_timeout 30s
+			}
+		}
+	}
+	# Update: never from outside. CORS preflight answered, everything else 403.
+	handle /sparql/update {
+		@preflight method OPTIONS
+		handle @preflight {
+			header {
+				Access-Control-Allow-Origin "*"
+				Access-Control-Allow-Methods "GET, POST, OPTIONS"
+				Access-Control-Max-Age "86400"
+			}
+			respond 204
+		}
+		respond 403
+	}
+
+	# ── link-handler (FastAPI) ───────────────────────────────────────────────
+	# Timeouts per endpoint: /raw and /snapshots answer fast or not at all;
+	# the rest of /api/ includes /api/heartbeat-space/{id} and
+	# /api/rematerialize, which run a whole-corpus query.
+	@snapshots path_regexp ^/api/space/[^/]+/snapshots$
+	handle @snapshots {
+		reverse_proxy mak-link-handler:8000 {
+			transport http {
+				response_header_timeout 10s
+			}
+		}
+	}
+	@raw path_regexp ^/api/space/[^/]+/raw$
+	handle @raw {
+		reverse_proxy mak-link-handler:8000 {
+			transport http {
+				response_header_timeout 15s
+			}
+		}
+	}
+	handle /api/* {
+		reverse_proxy mak-link-handler:8000 {
+			transport http {
+				response_header_timeout 60s
+			}
+		}
+	}
+	handle /claim/* {
+		reverse_proxy mak-link-handler:8000
+	}
+
+	# ── Admin area (login) ──────────────────────────────────────────────────
+	# The hash comes from .env (MAP_ADMIN_PASSWORD_HASH, made with
+	# `caddy hash-password`). Unset, Caddy refuses to start: no admin area
+	# without a password.
+	handle /admin/* {
+		basic_auth {
+			{$MAP_ADMIN_USER:admin} {$MAP_ADMIN_PASSWORD_HASH}
+		}
+		file_server
+	}
+
+	# ── Static files: the map, genjson, mothersands, data ──────────────────
+	# Revalidate on every load (ETag → cheap 304), so a deployed fix or a new
+	# spaces.geojson reaches returning visitors without a hard refresh.
+	handle {
+		header Cache-Control "no-cache"
+		file_server {
+			index maps-of-making.html index.html
+		}
+	}
+}

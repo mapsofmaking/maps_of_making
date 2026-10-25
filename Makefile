@@ -83,7 +83,7 @@ docs-build: docs-install
 ##   make mac-reset — DESTRUCTIVE: wipe data and re-init
 
 MAC_COMPOSE := docker compose -f infra/docker-compose.yml -f infra/docker-compose.mac.yml
-MAC_SERVICES := maps-nginx oxigraph mak-link-handler ohm
+MAC_SERVICES := maps-web oxigraph mak-link-handler ohm
 MAC_OHM_URL ?= http://localhost:8001/v1
 MAC_SPARQL_URL ?= http://localhost:8080/sparql/query
 MAC_SPARQL_UPDATE_URL ?= http://localhost:7878/update
@@ -91,13 +91,9 @@ MAC_SPARQL_UPDATE_URL ?= http://localhost:7878/update
 ## Start MoM + OHM services on Mac. Creates required data dirs if missing.
 mac-up:
 	@mkdir -p data/tasks data/logs/nginx data/oxigraph data/bot-keys data/ohm
-	@if [ ! -f infra/nginx/.htpasswd ]; then \
-		echo "→ generating .htpasswd (admin:devadmin)..."; \
-		printf '%s' "$$(openssl passwd -apr1 devadmin)" | xargs -I{} sh -c 'echo "admin:{}" > infra/nginx/.htpasswd'; \
-	fi
 	$(MAC_COMPOSE) up -d $(MAC_SERVICES)
 	@echo "→ waiting for services to be healthy..."
-	@timeout 60 sh -c 'until curl -sf http://localhost:8080/health > /dev/null 2>&1; do sleep 2; done' && echo "  ✅ nginx ready" || echo "  ⚠️  nginx health check timed out"
+	@timeout 60 sh -c 'until curl -sf http://localhost:8080/health > /dev/null 2>&1; do sleep 2; done' && echo "  ✅ maps-web ready" || echo "  ⚠️  maps-web health check timed out"
 	@timeout 60 sh -c 'until curl -sf http://localhost:7878/health > /dev/null 2>&1; do sleep 2; done' && echo "  ✅ oxigraph ready" || echo "  ⚠️  oxigraph health check timed out"
 	@timeout 90 sh -c 'until curl -sf http://localhost:8001/health > /dev/null 2>&1; do sleep 3; done' && echo "  ✅ ohm ready" || echo "  ⚠️  ohm health check timed out"
 	@echo "✓ stack up — map: http://localhost:8080  sparql: http://localhost:8080/sparql/query  ohm: http://localhost:8001"
