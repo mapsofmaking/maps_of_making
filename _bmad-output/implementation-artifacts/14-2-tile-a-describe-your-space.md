@@ -1,6 +1,6 @@
 # Story 14.2: Tile A — Describe Your Space (genjson tiers 0–2)
 
-Status: backlog — OD-1 resolved: home copies genjson
+Status: ready-for-dev — OD-1 resolved: home copies genjson
 
 ## Story
 

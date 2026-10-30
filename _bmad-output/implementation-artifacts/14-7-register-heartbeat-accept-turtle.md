@@ -1,6 +1,6 @@
 # Story 14.7: Register and Heartbeat Accept Turtle
 
-Status: backlog — blocks 14.4 (since 2026-10-30 the pod door writes `space.ttl`)
+Status: ready-for-dev — blocks 14.4 (since 2026-10-30 the pod door writes `space.ttl`)
 
 ## Story
 

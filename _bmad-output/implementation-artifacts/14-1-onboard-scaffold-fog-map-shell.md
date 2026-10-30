@@ -1,6 +1,6 @@
 # Story 14.1: Onboard Scaffold + Fog Map Shell (tree, done checks, words)
 
-Status: backlog
+Status: ready-for-dev
 
 ## Story
 

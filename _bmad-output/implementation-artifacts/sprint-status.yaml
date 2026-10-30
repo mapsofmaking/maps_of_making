@@ -290,15 +290,15 @@ development_status:
   # 2026-10-30 storyboard review: app renamed home.mapsofmaking.org (onboarding signed out, workbench signed in);
   #   pod door writes space.ttl (14.7 now blocks 14.4); copy SSOT = web/home/onboarding.ttl. Canvas:
   #   https://claude.ai/artifact/4XunMfUzzmjBk7PVjYfjvW
-  epic-14: backlog
-  14-0-spike-account-to-first-write-flow: backlog  # OD-2; Nicolas reviews the flow against the narration
-  14-1-onboard-scaffold-fog-map-shell: backlog
-  14-2-tile-a-describe-your-space: backlog  # copies genjson tiers 0-2
-  14-3-tile-b-pod-door-account-creation: backlog  # needs ADR 010 amendment + 14.0 report
+  epic-14: in-progress
+  14-0-spike-account-to-first-write-flow: ready-for-dev  # OD-2; Nicolas reviews the flow against the narration
+  14-1-onboard-scaffold-fog-map-shell: ready-for-dev
+  14-2-tile-a-describe-your-space: ready-for-dev  # copies genjson tiers 0-2
+  14-3-tile-b-pod-door-account-creation: backlog  # needs 14.0 report (ADR 010 amendment accepted 2026-10-30)
   14-4-tile-b-pod-door-first-publish: backlog  # line before redirect chosen in 14.0; needs 14-7
   14-5-tile-b-self-host-door: backlog
   14-6-tile-c-change-it-once: backlog
-  14-7-register-heartbeat-accept-turtle: backlog  # blocks 14-4 (pod door writes space.ttl)
+  14-7-register-heartbeat-accept-turtle: ready-for-dev  # blocks 14-4 (pod door writes space.ttl)
   14-8-retire-genjson: backlog  # after 14.2 is live
   epic-14-retrospective: optional
 

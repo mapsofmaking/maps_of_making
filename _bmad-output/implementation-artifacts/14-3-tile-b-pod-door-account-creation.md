@@ -1,6 +1,6 @@
 # Story 14.3: Tile B, Pod Door — One-Step Account, Password, WebID and Pod
 
-Status: backlog — needs the solid-kit ADR 010 amendment accepted and the 14.0 spike report
+Status: backlog — needs the 14.0 spike report (solid-kit ADR 010 amendment accepted 2026-10-30)
 
 ## Story
 
@@ -44,14 +44,15 @@ yes. Exact wording follows the 14.0 report.
 
 ### AC3 — One step, resumable
 **When** they submit
-**Then** the app calls the account API in order (create account → password → pod) with the same-site
-`css-account` cookie, keeps the pending state per pod name so a retry resumes rather than duplicates, and
-never stores, shows or resends the passphrase
+**Then** the app calls the account API in order (create account → password → pod) with the account token
+CSS returns at creation (the same-site cookie matters for the sign-in that follows, 14.0), keeps the half-built account for the session (not per pod name: after "taken", the
+retry uses another name on the same account; pocpod0 keys it per pod name, which orphans an account) so a
+retry resumes rather than duplicates, and never stores, shows or resends the passphrase
 **And** an empty pod name never reaches the network (CSS treats it as "claim the pod root", found live
 2026-07-22).
 
 ### AC4 — The provider says whether it takes accounts
-**Given** kit ADR 010 point 1 and the proposed `register` entry
+**Given** kit ADR 010 point 1 and the `register` entry (amendment point 9)
 **When** the instance does not offer account creation
 **Then** tile B says so before any field, and offers the self-host door.
 
