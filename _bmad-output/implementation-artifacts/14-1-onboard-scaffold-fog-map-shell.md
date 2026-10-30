@@ -20,9 +20,10 @@ shows its preview, labelled. Stories 14.2–14.6 turn tiles real one at a time.
 ### AC1 — App scaffold from solid-kit
 **Given** solid-kit is copied, not packaged (kit ADR 004)
 **When** the app is created
-**Then** it is routed like genjson is today: a host rule in `infra/web/Caddyfile` (keeping `/api/` on its
-own host) and a gateway vhost modelled on `08-genjson-mapsofmaking.conf`, so the page calls `/api/` on
-`home.` and no CORS is added to link_handler
+**Then** it lives in its own repo, `mapsofmaking/mom-home` (decided 2026-10-30, kit ADR 011: one image per
+app), ships as its own image and container, and the gateway vhost (hetzner-gateway) sends
+`home.mapsofmaking.org/` to it and `/api/` to maps-web, so the page calls `/api/` on `home.` and no CORS is
+added to link_handler
 **And** `SESSION_ID` is unique to this app (kit CLAUDE.md: shared ids clobber tokens)
 **And** a Client ID Document is served at `https://home.mapsofmaking.org/id.jsonld` listing the app's
 redirect URI (kit ADR 010 point 6), for the sign-in in 14.4
@@ -39,7 +40,7 @@ as <space name>" and "Sign out"
 ### AC2 — The tree is Turtle, and lives with the app
 **Given** the tile tree drafted in the session
 **When** the app loads
-**Then** it reads `web/home/onboarding.ttl` (published with the app) and builds tiles, requirements
+**Then** it reads `onboarding.ttl` (mom-home `public/`, published with the app) and builds tiles, requirements
 (`onb:requiresAll` / `onb:requiresAny`), cues, Bernard's lines and words from it
 **And** that file is the single source of every Bernard line the app speaks, tile A's form copy included
 (decided 2026-10-30): forking the app for another vertical means swapping one file
@@ -100,9 +101,14 @@ tiles carry their `TilePicto` (named by `onb:icon`), the tile name shows on hove
 the tile; a tile's first open (its tutorial) keeps the full view, its tool opens folded.
 
 ## Tasks
-- [ ] Scaffold from solid-kit; config, Client ID Document, vhost, compose service
-- [ ] `web/home/onboarding.ttl` + namespace note; parse with N3 (pinned) at load
+- [ ] Scaffold mom-home from solid-kit; config, Client ID Document, image + CI, compose service, gateway vhost
+- [ ] `public/onboarding.ttl` + namespace note; parse with N3 (pinned) at load
 - [ ] Hex view, workbench, words: port from the storyboard (looks, copy) and the dry run (behaviour)
+- [ ] Words you've met, checked with Nicolas: for each `onb:Word`, which tile unlocks it
+  (`onb:unlocksWord`), every place the word already shows in copy before and after it unlocks (Bernard
+  lines, tile A/B forms, previews), and the meaning shown in its tip (`onb:meaning`). One table in Dev
+  Notes; copy fixes go in `onboarding.ttl`. Already seen: "pod" and "account" are used at B2 but unlock
+  later (keep, handover); "endpoint", "linked data", "WebID" appear in no copy yet
 - [ ] `done.ts` registry with a stub per tile; tests for the fog rules (kit: add the test with the code)
 - [ ] Live check: loads on a phone, light and dark, keyboard only
 

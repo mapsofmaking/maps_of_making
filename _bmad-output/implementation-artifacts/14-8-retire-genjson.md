@@ -26,7 +26,7 @@ home imports it once and clears the fragment
 **And** `infra/web/Caddyfile` and the gateway vhost drop genjson's host rules (keeping the redirect)
 **And** `infra/web/smoke-test.sh` checks home instead of genjson, plus the redirect
 **And** the Makefile's `deploy-genjson` target points at the home app, and `bernard-copy` (YAML → JSON)
-is removed: the app's copy lives in `web/home/onboarding.ttl` (14.1 AC2)
+is removed: the app's copy lives in `onboarding.ttl` (mom-home repo, `public/`) (14.1 AC2)
 **And** `CREDITS.md` lists the font's new location.
 
 ## Dev Notes

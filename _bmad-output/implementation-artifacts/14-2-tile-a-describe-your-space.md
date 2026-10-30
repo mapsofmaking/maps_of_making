@@ -38,7 +38,7 @@ with "Publish it →" and a plain "Fix something first"
 as it does in genjson today.
 
 ### AC5 — One copy of Bernard
-**Then** genjson's `bernard_copy.yaml` is carried into `web/home/onboarding.ttl` (14.1 AC2: the app's single
+**Then** genjson's `bernard_copy.yaml` is carried into `onboarding.ttl` (mom-home repo, `public/`) (14.1 AC2: the app's single
 source for Bernard's lines); no YAML or generated JSON copy remains in the app
 **And** `tests/test_bernard_voice_completeness.py` reads the Turtle
 **And** the Playwright gate from Story 9.3 (`test_wizard_tier0_tier1_export`) runs against home.

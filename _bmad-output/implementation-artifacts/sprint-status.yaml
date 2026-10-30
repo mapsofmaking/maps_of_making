@@ -288,7 +288,7 @@ development_status:
   # OD-1 resolved 2026-10-29: home copies genjson; genjson retired (14.8).
   # OD-2 open: assessed live in the 14.0 spike before 14.3 is built.
   # 2026-10-30 storyboard review: app renamed home.mapsofmaking.org (onboarding signed out, workbench signed in);
-  #   pod door writes space.ttl (14.7 now blocks 14.4); copy SSOT = web/home/onboarding.ttl. Canvas:
+  #   pod door writes space.ttl (14.7 now blocks 14.4); copy SSOT = mom-home public/onboarding.ttl. Canvas:
   #   https://claude.ai/artifact/4XunMfUzzmjBk7PVjYfjvW
   epic-14: in-progress
   14-0-spike-account-to-first-write-flow: ready-for-dev  # OD-2; Nicolas reviews the flow against the narration

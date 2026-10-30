@@ -10,7 +10,7 @@
 
 ## Where the positions live
 
-Every tile is a subject in `web/home/onboarding.ttl`. Its place is two axial
+Every tile is a subject in `onboarding.ttl` (mom-home repo, `public/`). Its place is two axial
 hex coordinates written by hand:
 
 ```turtle
@@ -71,6 +71,6 @@ in a band (that needs an `onb:lane` value, not in the tree yet).
 
 ## See also
 
-- `web/home/onboarding.ttl` — the tree: positions, requirements, cues, Bernard's lines, words, pictos (`onb:icon`)
+- [`mapsofmaking/mom-home`](https://github.com/mapsofmaking/mom-home) `public/onboarding.ttl` — the tree: positions, requirements, cues, Bernard's lines, words, pictos (`onb:icon`)
 - Stories 14.1 (AC3 fog rules, AC7 the hex view as drawn) in `_bmad-output/implementation-artifacts/`
 - The Maps of Making design system, Workbench group: `HexTile`, `HexRow`, `TilePicto`
