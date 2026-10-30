@@ -43,11 +43,12 @@ drawer.
 ### AC4b — The threshold: "You're on the map"
 **Then** the workbench shows, signed in (the account was just made): Bernard, "There you are. Anyone looking
 for a workshop in <locality> can find you now."; the pin and its popup **read back from the map** (live,
-labelled so, never a drawing); the file's address as plain text (not boxed like a field) with an optional
-Copy link; and one button, "See it on the map ↗", opening `https://mapsofmaking.org/?space=<id>` in a new
+labelled so, never a drawing); the file's address as plain text (not boxed like a field), a design-system
+`Copyable` (the text is the button, with the copy icon); and one button, "See it on the map ↗", opening `https://mapsofmaking.org/?space=<id>` in a new
 tab, focused on the pin with its card open
-**And** Bernard closes: "That's the hard part done. The rest can wait. When you want to change something,
-come back to home.mapsofmaking.org and sign in."
+**And** Bernard closes by pointing at the next tile: "That's the hard part done. But hours change, stuff happen:
+when something's different, update it once. Here, or later at home.mapsofmaking.org." with "Update it
+once →" as the primary button to tile C ("See it on the map ↗" steps back to a plain button) (decided 2026-10-30: "come back and sign in" gave no cue what to do next).
 **And** the word "pod" unlocks.
 
 ### AC5 — Each step can fail on its own

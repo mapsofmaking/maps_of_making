@@ -10,7 +10,7 @@ So that I start with one obvious step and discover the rest by doing, not by rea
 
 ## Context
 
-The "Onboard Storyboard" design canvas (https://claude.ai/artifact/4XunMfUzzmjBk7PVjYfjvW) is the reference for layout, copy and tile looks; the dry-run artifact ("Maps of Making Dry
+The "Onboard Storyboard" design canvas (https://claude.ai/artifact/4XunMfUzzmjBk7PVjYfjvW) is the reference for layout, copy and tile looks, built from the Maps of Making design system (https://claude.ai/artifact/XmBwSPHVtcMzxgWUgsmprN, v10: Workbench group); the dry-run artifact ("Maps of Making Dry
 Run") stays the reference for behaviour. This story builds the shell for real: the map, the workbench, the
 words strip, the tree. No tile does anything real yet; each
 shows its preview, labelled. Stories 14.2–14.6 turn tiles real one at a time.
@@ -65,11 +65,21 @@ pod, not from stored progress
 **And** `onb:doneWhen` stays in the tree as documentation; SPARQL/SHACL evaluation is out of scope
 **And** with nobody signed in, state lives in memory and in genjson's draft (per OD-1)
 **And** every tile after B follows one cycle (Part 2): first open = a short tutorial, plus setup if the tile
-needs it; done is written in the pod; reopened later, the tile opens straight onto its tool.
+needs it; done is written in the pod; reopened later, the tile opens straight onto its tool
+**And** "done" is derived from the space's own data wherever a `doneWhen` can say it (no flag, no badge);
+what can't be derived (a tutorial dismissed, a hint closed) goes in one owner-only file,
+`settings/home.ttl`, created on first need with `settings/README.md` (never over one already there),
+written by conditional whole-document writes, the solid-backoffice pattern (`settings/collectives.ttl`);
+if the profile has a private Type Index, the file is registered there for other apps; `pim:preferencesFile`
+is left to the pod (decided 2026-10-30).
 
 ### AC5 — Words you've met
 **Then** the words strip is hidden until a first word unlocks, and a word unlocks right after the tile that
-shows what it names (`onb:unlocksWord`).
+shows what it names (`onb:unlocksWord`)
+**And** words are design-system `WordChip`s (status-label sized; met = done-tint under an ink rule, not met
+= dashed dots), the meaning in a tip after 1 s hover, at once on keyboard focus, on tap; never the
+browser's `title`
+**And** the words live under the full hex view and are hidden when it folds.
 
 ### AC6 — Previews are labelled
 **Then** every tile not yet real renders its preview with "Preview · nothing is published" and the chip
@@ -84,7 +94,10 @@ shadow. Riso red only for errors and focus
 column holds still and only the workbench scrolls (one screen at 1600×900)
 **And** on a phone, and in the signed-in workbench, the hex view folds into a row of small hexes with "+ N
 to discover" (also where new features appear as they are built), "Now: <step>" and "See all ›", which opens
-the full view as a sheet.
+the full view as a sheet
+**And** signed in, the folded row is the design system's `HexRow` toolbar: one 52px line, done and open
+tiles carry their `TilePicto` (named by `onb:icon`), the tile name shows on hover or focus, a click opens
+the tile; a tile's first open (its tutorial) keeps the full view, its tool opens folded.
 
 ## Tasks
 - [ ] Scaffold from solid-kit; config, Client ID Document, vhost, compose service

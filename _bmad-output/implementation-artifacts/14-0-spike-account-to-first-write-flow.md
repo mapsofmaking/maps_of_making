@@ -52,3 +52,6 @@ treat the cookie differently):
   for the home origin. If the cookie is never stored, that is the first thing to check.
 - A Flow B result is not a failure. It is one more page to write well, and the provider's own login is
   where the address bar names the server (kit ADR 010 point 3).
+- Also record how to ask whether a pod name is free without creating anything (Story 14.3 AC2 checks it
+  live): what a HEAD on `https://<name>.pod.mapsofmaking.org/` answers for a free and a taken name, or
+  whether the account API offers a check. Note any rate limit the gateway would need for it.

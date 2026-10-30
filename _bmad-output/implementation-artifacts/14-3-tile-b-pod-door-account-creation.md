@@ -31,6 +31,13 @@ editable, the full `https://<name>.pod.mapsofmaking.org` shown live), the email 
 with a Show toggle (eight characters minimum, no spaces; example `Rock-Paper-Scissors-Lizard-Spock`; hint:
 "A few ordinary words joined by dashes beat one clever password.")
 **And** nothing else is asked
+**And** the address is checked as it is typed (after a short pause) and when the field is left, and the
+suggested one as soon as the form opens: "taken" or a bad format shows on that field before the
+passphrase is reached, and a free address says so beside the live URL (decided 2026-10-30: a taken name
+found only after "Create it" makes the coordinator redo the passphrase). How CSS answers "is this name
+free" without creating anything is to settle in 14.0 (e.g. a HEAD on the pod's URL); "Create it" still
+handles a name taken in between
+**And** no error clears a field: errors update in place, the passphrase fields keep what was typed.
 **And** before "Create it", Bernard warns about the consent page: the pod's own page will ask whether
 `home.mapsofmaking.org` may use the pod; that is this app asking to write the profile, and the answer is
 yes. Exact wording follows the 14.0 report.
