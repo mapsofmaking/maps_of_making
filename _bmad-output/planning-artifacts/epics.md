@@ -2425,3 +2425,96 @@ So that we stop maintaining a bespoke bot runtime, gain E2EE/multi-platform/dura
 - **`networks/*.yaml` manifest system, persona packs, marketplace** — same trap flagged in 6-11; not this epic.
 
 **Depends on:** Epic 6 (frozen as parity benchmark), Hermes runtime (live locally — manny/bianca profiles exist), MoM data plane (Epic 3.5 freshness contract, oxigraph reachable). **Blocks nothing** — parallel, post-demo. **Cross-ref:** ADR-018; Epic 10 (data-plane white-label + WebID sovereignty — the latter now decoupled from Bernard retirement, see 2026-07-07 re-scope note); Epic 11 (crosswalk cartridges = the vocabulary layer of the archetype); Epic 12 (adapter sub-track superseded here).
+
+---
+
+## Epic 14: Onboard — Progressive Onboarding on Pods *(slice 1: describe, keep, change once; 2026-10-29)*
+
+> **Added 2026-10-29** from the personas × journeys session (solid-kit `docs/personas-journeys.md`) and the
+> dry-run sketch ("Maps of Making Dry Run" artifact, tile tree `web/home/onboarding.ttl`). This is the
+> "WebID/Solid pod storage" epic that the Epic 13 re-scope (2026-07-07) left as a genuine future epic: a
+> space's JSON in its own pod, as a second door beside the GitLab one. It does not touch Bernard's
+> deploy-key write path.
+
+As a space coordinator who has never heard of a pod,
+I want to put my space on the map, keep it somewhere that is mine, and change it once to see it change everywhere,
+So that "don't repeat yourself" is something I have watched happen, before anyone asks me to learn a word for it.
+
+**The promise this slice must prove:** update once, seen everywhere. Tiles A, B and C carry it alone. Every
+other tile stays in the onboarding map as a labelled preview ("coming") until its own story.
+
+**Shape (from the session):**
+- **One app, one subdomain, two modes:** `home.mapsofmaking.org` (renamed from `onboard.` on 2026-10-30).
+  Signed out, it is onboarding (tiles A, B, the threshold); signed in through the pod, it is the workbench.
+  Same-site with `pod.mapsofmaking.org`, never a subdomain of it (every subdomain there is a pod).
+  `home.<domain>` becomes the solid-kit convention once this slice is built and tested.
+- **Fog map:** tiles clear as they are done; at most three open; cues name outcomes; veteran tiles stay
+  cues. **The pod is the map:** "done" is read from the pod, not stored. The tree (requirements, cues,
+  Bernard's lines, words) is Turtle in `web/home/onboarding.ttl`, with the app.
+- **Two equal doors at tile B** ("Either's fine", bible §3): keep it at Maps of Making (account + pod in
+  one step), or take the file and host it yourself (Story 9.8 path). Tiles that need a pod say so honestly
+  on the self-host branch.
+- **Bernard narrates** (full voice, bible §5 wizard rules). Every line the app speaks lives in
+  `web/home/onboarding.ttl`, tile A's form copy included: one file, so another vertical forks the app by
+  swapping it. Adjusted from real feedback.
+- **Commodity → vocabulary → sovereignty.** Words ("pod", "endpoint"…) unlock right after the thing they
+  name has been seen.
+
+**Cross-repo prerequisites:**
+- solid-kit **ADR 010 amendment** accepted: a same-site onboarding app may *create* an account (password
+  set once, at creation); signing in always happens on the provider's pages.
+- solid-css-overlay: open registration enabled on the MoM instance; proposed `register` entry in
+  `/.well-known/css/provider.json`; consent and login page copy reviewed with the onboarding copy (ADR 009).
+
+**Discipline:**
+- **link_handler stays the sole Oxigraph writer** (NFR-S7 / ADR-015). The home app writes to the pod and
+  calls `/api/register-url`; it never writes the graph.
+- **Live verification is the DoD** (Epic 13 lesson). Each story's done gate is a run against the live
+  `pod.mapsofmaking.org`, not a passing suite.
+- **Graceful failure** (solid-kit `ux-principles.md`): every error names what refused and offers one way
+  forward. Pod failures are routine, never the coordinator's fault.
+
+**Decisions and open points:**
+- **OD-1 — genjson and home: resolved 2026-10-29.** home copies genjson (its tiers, Bernard's copy,
+  geocoding, draft), and `genjson.mapsofmaking.org` is retired by redirect (Story 14.8). The workshop's role
+  as the threshold (bible §5) moves to `home.` with it.
+- **OD-2 — first publish without retyping the passphrase: to test first (Story 14.0).** Account creation
+  sets the `css-account` cookie (pocpod0 `pod-api.js` l.103). Whether CSS honours it at the OIDC login
+  decides what the coordinator meets after creating the account: the consent page alone, or the login page
+  then consent. Nicolas assesses both against the narration before 14.3 is built; the story ships with the
+  line that fits the observed flow.
+- **Decided 2026-10-30 (storyboard review):** the reference for layout, copy and tile looks is the "Onboard
+  Storyboard" design canvas (https://claude.ai/artifact/4XunMfUzzmjBk7PVjYfjvW); the dry run stays the
+  behaviour reference.
+  - The narrative is Part 1 of a hero's journey: Bernard steps in as the guide at the end of tile A (the
+    card only lives in this browser), tile B ("Publish it") offers two equal doors and a real "Not now",
+    and the threshold is the pin live on the map. Everything after is the workbench (Part 2).
+  - The pod door writes `space.ttl` at the pod root (not the WebID document); the self-host door stays
+    `.json`. Story 14.7 therefore blocks 14.4.
+  - Registration from the pod door is automatic (14.4 AC4); "See it on the map ↗" opens `?space=<id>`.
+  - Tile C drops the "any SpaceAPI app" reader; a Turtle → SpaceAPI JSON export is low priority.
+  - Every tile after B follows one cycle: first open = short tutorial (+ setup), done written in the pod,
+    reopened = the tool. Each is a mini-app with its own canvas before dev; C1, W1 and S1 on the storyboard
+    are placeholders.
+  - Workbench (vertical, intent-led) vs backoffice (horizontal file manager): two UIs over one write layer.
+    Business direction, not in this slice: first tiles free, more open through network membership, the
+    network as buyer.
+  - Tile labels: the cue (shown before a tile opens) is the benefit, readable with no context; the title
+    is the action, following the previous tile ("it" = your space). Read cue → title, they go why → how
+    and never repeat each other. "Join your network" needs its own session (who says yes, what each side
+    gets) before its labels settle.
+
+**Stories:**
+- **14.0** Spike — the flow from account creation to first write, observed live (OD-2)
+- **14.1** Onboard scaffold + fog map shell (tree, done checks, words; every tile a preview)
+- **14.2** Tile A — Describe your space (genjson tiers 0–2, copied into home)
+- **14.3** Tile B, pod door — one-step account, password, WebID and pod
+- **14.4** Tile B, pod door — first publish: sign in, write `space.ttl`, make it public, register it
+- **14.5** Tile B, self-host door — the file, the 9.8 walkthrough, honest limits
+- **14.6** Tile C — Update it once, seen everywhere
+- **14.7** Register and heartbeat accept Turtle *(blocks 14.4 since 2026-10-30)*
+- **14.8** Retire genjson (redirect, links, tests, deploy target)
+
+**Measure:** the analytics design (2026-08-15) found 338 index loads → 2 validate-url → 1 register in 7
+days. Slice 1 is worth having when coordinators reach tile B, whichever door they take. Instrumentation
+follows `design-analytics-minimum-instrumentation` (no third-party analytics).

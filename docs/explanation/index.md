@@ -6,6 +6,7 @@ way, not how to operate it.
 - [Field lifecycle](field-lifecycle.md) — SpaceAPI payload → map card
 - [Mother Sands — concept](mother-sands-concept.md) — the canary, conceptually
 - [OHM integration](ohm-integration.md) — OpenHardwareMap × Maps of Making
+- [The hex view](home-hex-view.md) — where each tile sits in the home app, and why
 
 ## Architecture
 
