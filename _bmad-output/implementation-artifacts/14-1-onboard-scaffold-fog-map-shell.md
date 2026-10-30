@@ -21,7 +21,7 @@ shows its preview, labelled. Stories 14.2–14.6 turn tiles real one at a time.
 **Given** solid-kit is copied, not packaged (kit ADR 004)
 **When** the app is created
 **Then** it lives in its own repo, `mapsofmaking/mom-home` (decided 2026-10-30, kit ADR 011: one image per
-app), ships as its own image and container, and the gateway vhost (hetzner-gateway) sends
+app), ships as its own image and container, and the gateway site (mapsofmaking/vps-infra, `gateway/sites/mom-home.caddy`) sends
 `home.mapsofmaking.org/` to it and `/api/` to maps-web, so the page calls `/api/` on `home.` and no CORS is
 added to link_handler
 **And** `SESSION_ID` is unique to this app (kit CLAUDE.md: shared ids clobber tokens)
@@ -101,7 +101,7 @@ tiles carry their `TilePicto` (named by `onb:icon`), the tile name shows on hove
 the tile; a tile's first open (its tutorial) keeps the full view, its tool opens folded.
 
 ## Tasks
-- [ ] Scaffold mom-home from solid-kit; config, Client ID Document, image + CI, compose service, gateway vhost
+- [ ] Scaffold mom-home from solid-kit; config, Client ID Document, image + CI, compose service, gateway site in vps-infra
 - [ ] `public/onboarding.ttl` + namespace note; parse with N3 (pinned) at load
 - [ ] Hex view, workbench, words: port from the storyboard (looks, copy) and the dry run (behaviour)
 - [ ] Words you've met, checked with Nicolas: for each `onb:Word`, which tile unlocks it
