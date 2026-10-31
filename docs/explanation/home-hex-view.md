@@ -64,10 +64,12 @@ from what it needs, because the band mattered more:
 
 A layout computed from the requirements (depth = longest path, lane = band)
 would move existing tiles every time one is added. People find their tiles by
-place as much as by name, so a tile, once placed, stays put. The cost is a
-check nobody runs yet; a small validator would do it: no two tiles on one
-hex, every tile touching a requirement or carrying its exception, every tile
-in a band (that needs an `onb:lane` value, not in the tree yet).
+place as much as by name, so a tile, once placed, stays put. Two of the
+checks run in mom-home's tests: no two tiles on one hex (the parser refuses it),
+and every tile touches a requirement, except the two named in the table above
+(`second`, `handover`); a third exception is a decision, made in that test. Not
+checked yet: every tile in a band. That needs an `onb:lane` value, not in the
+tree yet.
 
 ## See also
 
