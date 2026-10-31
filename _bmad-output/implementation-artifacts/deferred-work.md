@@ -898,3 +898,15 @@ Two real gaps surfaced, not fixed here — need their own decision/story:
 ## Deferred from: code review of quick-dev-zoom-legibility-register-timeout (2026-08-15)
 
 - **`BackgroundTasks` in `register_url` is fire-and-forget — no durability, no retry, no visibility.** `infra/link_handler/main.py:1036`. Commit `5b5e748` moved `run_space_pipeline` + `_rematerialize_geojson` into a `BackgroundTask` to get `/api/register-url` under the nginx timeout — correct move, but the deferred work now has no safety net. A container stop, redeploy, or crash between the flushed response and the task completing loses both the initial heartbeat tick and the geojson rematerialize: the space stays out of `spaces.geojson` with no record and no retry, *after* the client has told the coordinator it is live. `asyncio.CancelledError` is not an `Exception` subclass, so the existing `except Exception` handlers log nothing on cancellation. Proper fix: mark the slug dirty (snapshot DB) before returning and have the existing APScheduler heartbeat drain pending markers; catch `BaseException`/`CancelledError` to at least log. Story-sized — needs a decision on where the pending state lives. → new story, Epic 6 or an ops story.
+
+## Deferred from: code review of story-14.1 (2026-10-31)
+
+- **`keep` and `describe` done checks are identical stubs (`ctx.space !== null`)** and ignore their `doneWhen`. Latent while `space` is always null. Real checks with 14.2/14.3/14.4. `src/tiles/done.ts`.
+- **`locality()` preview shows street or country for addresses without a comma.** Placeholder until 14.2. `src/workbench/previews.ts`.
+- **Unused until 14.6:** `HomeSettings.seen`/`seenTutorial`, `currentTree`/`currentPod` exports, `PageHandle.foldForFirstTime`.
+- **`clientIdFor` uses `new URL("/id.jsonld", redirectUrl)`**, which breaks under a sub-path deploy. App is at origin root today. `src/lib/auth.ts`.
+- **`/skin.css` render-blocking link; SPA fallback may serve HTML with a MIME warning.** Deploy mount lives in vps-infra, unverified. `index.html`.
+- **`n3` adds ~100 KB to the bundle; blank `#app` until the tree loads.** Measure before acting.
+- **Design-system copy pin has no CI integrity check; DEV-only `?done=`/`?workbench=` params untested.**
+- **Comments cite story/session/person dates that will rot; no tests for `renderPage` or `main.ts` flows.**
+- **Blank tile A form marks "describe" done (decided 2026-10-31: leave).** Placeholder until 14.2 adds validation. `src/workbench/page.ts`.
