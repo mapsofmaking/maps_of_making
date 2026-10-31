@@ -90,7 +90,8 @@ COMING.
 **Then** the hex view is titled "What you can do" (not "map": that is mapsofmaking.org) and draws tiles in
 riso style: done = green tint printed slightly off an ink outline, with ✓; open = white, bold ink outline;
 coming = dashed muted outline on paper; still to discover = halftone dots; selected = 4px outline, no
-shadow. Riso red only for errors and focus
+shadow. Riso red only for errors; focus is riso blue (cobalt), so a focused field never reads as an error
+(design system, decided 2026-10-31)
 **And** desktop is 50/50: hex view and workbench side by side, both panels with the hard shadow; the hex
 column holds still and only the workbench scrolls (one screen at 1600×900)
 **And** on a phone, and in the signed-in workbench, the hex view folds into a row of small hexes with "+ N
