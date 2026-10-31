@@ -8,3 +8,4 @@ topology. Look things up here; don't expect a narrative.
 - [Semantic layer](semantic-layer.md) — the triplestore, the ontologies, the crosswalk
 - [Supplier list schema](supplier-list-schema.md) — what a space publishes for MoM to ingest
 - [VPS topology](vps-topology.md) — the production deployment layout
+- [Home settings file](home-settings-file.md) — what the home app keeps in `settings/mom-home.ttl`

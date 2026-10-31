@@ -68,11 +68,16 @@ pod, not from stored progress
 **And** every tile after B follows one cycle (Part 2): first open = a short tutorial, plus setup if the tile
 needs it; done is written in the pod; reopened later, the tile opens straight onto its tool
 **And** "done" is derived from the space's own data wherever a `doneWhen` can say it (no flag, no badge);
-what can't be derived (a tutorial dismissed, a hint closed) goes in one owner-only file,
-`settings/home.ttl`, created on first need with `settings/README.md` (never over one already there),
+what can't be derived (a tutorial dismissed, a hint closed, the fold) goes in one owner-only file,
+`settings/mom-home.ttl` (named after the app's `SESSION_ID`, renamed 2026-10-31), created on first need with `settings/README.md` (never over one already there),
 written by conditional whole-document writes, the solid-backoffice pattern (`settings/collectives.ttl`);
 if the profile has a private Type Index, the file is registered there for other apps; `pim:preferencesFile`
 is left to the pod (decided 2026-10-30).
+**And** settings follow the person, done follows a space (decided 2026-10-31): the signer may be a person
+(coordinating several spaces, or none yet) or a space's own account, never assumed to be the space. Every
+done check takes the space as input (a `mom:Space` registered in a Type Index; the lookup comes with
+14.3/14.4); having a pod proves nothing. Memberships, roles, representation and delegation are kept open,
+not built: `docs/explanation/home-people-and-spaces.md`
 
 ### AC5 — Words you've met
 **Then** the words strip is hidden until a first word unlocks, and a word unlocks right after the tile that
