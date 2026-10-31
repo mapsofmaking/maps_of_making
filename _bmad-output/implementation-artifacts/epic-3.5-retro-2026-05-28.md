@@ -22,7 +22,7 @@
 | 3.11 | Unify SpaceAPI Payload Extractor (core / mom / fab bundle) | done |
 | 3.12 | Seeding Model + VPS Ops Pass (Paths A & B, claim-merge) | done |
 
-**Epic done-condition (acceptance test):** _“An operator loads the map; a space whose endpoint has stopped updating past the staleness threshold visibly renders as stale, and a space still fetching fresh renders confirmed — demonstrated live against the operator-controlled Mother Sands canary, not a mock.”_ ✅ Met (Story 3.10 operator confirmation).
+**Epic done-condition (acceptance test):** _“An operator loads the map; a space whose endpoint has stopped updating past the staleness threshold visibly renders as stale, and a space still fetching fresh renders confirmed — demonstrated live against the operator-controlled Mother Sand canary, not a mock.”_ ✅ Met (Story 3.10 operator confirmation).
 
 ---
 

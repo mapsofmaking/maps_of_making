@@ -23,7 +23,7 @@ There are two layers of styling, and keeping them separate is the whole point:
 | `--font-hand` | `Caveat, cursive` | the deliberate hand-drawn accent (map "hand" notes) — use sparingly |
 
 *(Note: `maps-of-making.html` also declares a `--font-mono: 'Courier New'…` var that is unused/overridden by JetBrains Mono in practice — reconcile during extraction.)*
-*(admin/index.html currently falls back to the system font stack `-apple-system, …` — align to `--font-display` during extraction. genjson/mothersands typography: TODO extract.)*
+*(admin/index.html currently falls back to the system font stack `-apple-system, …` — align to `--font-display` during extraction. genjson/mothersand typography: TODO extract.)*
 
 ## 2. Base surfaces & neutrals (SHARED — authoritative)
 
@@ -73,13 +73,13 @@ Owner: `web/genjson/index.html`. TODO extract palette.
 ### 3d. admin — operator tool chrome
 Owner: `web/admin/index.html` (Epic 4). Currently system-font + minimal palette. TODO extract; Epic-4 build is the natural trigger to formalize.
 
-### 3e. mothersands — diagnostic canary surface
-Owner: `web/mothersands/index.html`. TODO extract palette.
+### 3e. mothersand — diagnostic canary surface
+Owner: `web/mothersand/index.html`. TODO extract palette.
 
 ---
 
 ## 4. Open actions
 - [ ] Re-font `state-colour-ladder.html` from DM Sans/DM Mono → Inter Tight/JetBrains Mono.
-- [ ] Extract genjson / mothersands / admin token blocks into §1–§3 (they have no `:root` vars yet — inline styles need promoting).
+- [ ] Extract genjson / mothersand / admin token blocks into §1–§3 (they have no `:root` vars yet — inline styles need promoting).
 - [ ] Reconcile the dead `--font-mono: 'Courier New'` declaration in the map surface.
 - [ ] When a 2nd surface needs the shared layer for real → promote this doc into `tokens.css` (the actual extraction; this doc is its spec) [per-surface palette strategy].

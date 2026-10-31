@@ -38,7 +38,7 @@ SpaceAPI-directory-imported spaces show `last-fetched ~5h ago` yet remain stuck 
 
 | Hypothesis | Description | Root Cause | Detection Method |
 |---|---|---|---|
-| **(a) Write path broken** | HTTP 200 received, JSON valid, but `mom:lastUpdated` never written to Oxigraph | `content_changed=False` passed to `transform_to_sparql()`, skipping line 433 | Inject via Mother Sands, query Oxigraph directly for `mom:lastUpdated` triple |
+| **(a) Write path broken** | HTTP 200 received, JSON valid, but `mom:lastUpdated` never written to Oxigraph | `content_changed=False` passed to `transform_to_sparql()`, skipping line 433 | Inject via Mother Sand, query Oxigraph directly for `mom:lastUpdated` triple |
 | **(b) Lifecycle misread** | `mom:lastUpdated` written correctly, but `classify_lifecycle()` or rendering reads the wrong timestamp | Stale/missing heartbeat_log.db column, or SPARQL query returns null for `mom:lastUpdated`, defaulting to unknown age → `seeded` | Query heartbeat_log directly; query Oxigraph with explicit `OPTIONAL` to show nulls |
 | **(c) Diff detection false-negative** | First-fetch always compares against an empty baseline and skips the write (legacy issue) | `detect_diff()` or `has_meaningful_change()` has a bug that returns False on first fetch | Trace the diff logic with canary scenarios; check baseline comparison |
 
@@ -62,11 +62,11 @@ SpaceAPI-directory-imported spaces show `last-fetched ~5h ago` yet remain stuck 
 
 ### AC 2: Root Cause Discriminated and Documented
 
-**Given** the Story 3.3 diagnostic canary (Mother Sands endpoint + coherence_report.py)  
+**Given** the Story 3.3 diagnostic canary (Mother Sand endpoint + coherence_report.py)  
 **When** the developer runs `make canary-b-confirmed` and manually triggers a heartbeat fetch  
 **Then** the coherence-diff report from `scripts/canary_coherence_report.py` clearly shows which layer diverges:
 1. **Baseline (expected):** `lifecycle_state = confirmed, lastUpdated = now`
-2. **Endpoint file:** ✅ (verified: Mother Sands serves correct SpaceAPI)
+2. **Endpoint file:** ✅ (verified: Mother Sand serves correct SpaceAPI)
 3. **Heartbeat record (heartbeat_log.db):** ⚠️ or ✅ (reveals if DB column missing or stale)
 4. **Oxigraph query result:** ⚠️ or ✅ (shows if SPARQL query returns null/stale)
 5. **Rendered card:** ❌ (stuck in `seeded`, visible on live map)
@@ -101,7 +101,7 @@ The canary's three-axis model is the primary tool for discrimination:
 - **Coherence report:** `scripts/canary_coherence_report.py` queries all four layers and flags divergence
 
 **Key files (already created by Story 3.3):**
-- `data/canary/baseline.json` — canonical baseline (healthy + confirmed + open Mother Sands)
+- `data/canary/baseline.json` — canonical baseline (healthy + confirmed + open Mother Sand)
 - `data/canary/served.json` — live-mutated copy (what endpoint serves)
 - `scripts/canary_scenarios.py` — pure scenario functions with `simulatedAge` injection
 - `scripts/canary_coherence_report.py` — per-layer report querying endpoint, heartbeat_log, Oxigraph, rendered GeoJSON
@@ -163,7 +163,7 @@ def test_regression_stuck_seeded_first_fetch():
     
     This test FAILS before the fix, PASSES after.
     """
-    # Setup: Mother Sands baseline
+    # Setup: Mother Sand baseline
     old_snap = None  # first fetch
     new_snap = {...}  # valid SpaceAPI v15 JSON
     
@@ -203,8 +203,8 @@ Should show all four columns. If missing, Story 3.3 may not have completed fully
 ## Tasks / Subtasks
 
 - [ ] **Task 1: Reproduce the bug with Story 3.3 canary**
-  - [ ] Run `make canary-b-confirmed` (Mother Sands with `simulatedAge=0` → confirmed)
-  - [ ] Manually trigger heartbeat fetch for Mother Sands (or wait for scheduled fetch)
+  - [ ] Run `make canary-b-confirmed` (Mother Sand with `simulatedAge=0` → confirmed)
+  - [ ] Manually trigger heartbeat fetch for Mother Sand (or wait for scheduled fetch)
   - [ ] Run `make canary-report` (coherence-diff report)
   - [ ] Document which layer diverges (endpoint file ✅ → heartbeat_log ⚠️ or ❌ → Oxigraph ❌ → card ❌)
 
@@ -218,7 +218,7 @@ Should show all four columns. If missing, Story 3.3 may not have completed fully
   - [ ] Document expected failure reason (hypothesis a/b/c)
 
 - [ ] **Task 3: Diagnose root cause**
-  - [ ] Trace the diff-detection code path with Mother Sands scenario
+  - [ ] Trace the diff-detection code path with Mother Sand scenario
   - [ ] Add debug logging if needed to see why `content_changed` is False (or why SPARQL doesn't write lastUpdated)
   - [ ] Check heartbeat_log schema: do `last_open_now` and `last_effective_marker` exist and are populated?
   - [ ] Query Oxigraph directly:
@@ -248,7 +248,7 @@ Should show all four columns. If missing, Story 3.3 may not have completed fully
   - [ ] Run `pytest tests/test_regression_stuck_seeded.py -v` — should **PASS**
   - [ ] Run `pytest infra/link_handler/test_transformer.py -v` — verify no regressions (83 tests should pass)
   - [ ] Run all canary targets: `make canary-all`
-  - [ ] Manually verify on live map: Mother Sands card shows `confirmed` (not `seeded`)
+  - [ ] Manually verify on live map: Mother Sand card shows `confirmed` (not `seeded`)
 
 - [ ] **Task 6: Update tests and documentation**
   - [ ] Add docstring to regression test explaining the bug and fix
@@ -306,7 +306,7 @@ under a bounded semaphore (`heartbeat_concurrency: 8`, new config knob).
 
 **Verified live:** revival writes return 204; VoidWarranties recovered to
 confirmed; Zeus WPI recovered via heartbeat_log fallback; 304 spaces show fresh
-`lastFetched`; Mother Sands materializes to `spaces.geojson` with
+`lastFetched`; Mother Sand materializes to `spaces.geojson` with
 `confirmed/healthy` and live timestamps. 158 tests pass.
 
 **STILL OPEN (resume next session):** valid SpaceAPI spaces still showing as
@@ -376,15 +376,15 @@ First fetch (no previous snapshot) is treated as a material change, correctly tr
 1. ✅ Ran `make canary-reset` and `make canary-b-confirmed` to inject simulatedAge=0 scenario
 2. ✅ Triggered heartbeat via `/api/heartbeat/run` endpoint
 3. ✅ Ran `make canary-report` — showed Oxigraph has operationalState:confirmed
-4. **CONFIRMED BUG:** Mother Sands in Oxigraph is **missing `mom:lastUpdated`**
+4. **CONFIRMED BUG:** Mother Sand in Oxigraph is **missing `mom:lastUpdated`**
    - Endpoint file: ✅ (correct JSON)
-   - Heartbeat log: ⚠️ No entry for mother-sands (never fetched by heartbeat)
+   - Heartbeat log: ⚠️ No entry for mother-sand (never fetched by heartbeat)
    - Oxigraph: ❌ Has operationalState=confirmed but NO lastUpdated
    - GeoJSON: ⚠️ Not materialized
 
 **Root Cause Leading Hypothesis:**
-- Mother Sands was seeded into Oxigraph during Story 3.3 WITHOUT `mom:lastUpdated`
-- The heartbeat never processes Mother Sands (no proper endpoint URL + discovery)
+- Mother Sand was seeded into Oxigraph during Story 3.3 WITHOUT `mom:lastUpdated`
+- The heartbeat never processes Mother Sand (no proper endpoint URL + discovery)
 - Manual testing needed to determine if `content_changed` logic is the issue
 
 ### Task 2: Created Regression Test ✅
@@ -407,16 +407,16 @@ First fetch (no previous snapshot) is treated as a material change, correctly tr
 
 **Current Status:**
 - Regression test written and failing ✅
-- Mother Sands endpoint running locally on port 9191 ✅
+- Mother Sand endpoint running locally on port 9191 ✅
 - Oxigraph accessible (confirmed with multiple queries) ✅
-- Need to: Trace why heartbeat doesn't fetch Mother Sands OR manually process through transformer
+- Need to: Trace why heartbeat doesn't fetch Mother Sand OR manually process through transformer
 
 ## Dev Notes
 
 ### Previous Story Intelligence (Story 3.3)
 
 **What 3.3 built:**
-1. Mother Sands endpoint: lightweight HTTP server serving `data/canary/served.json`
+1. Mother Sand endpoint: lightweight HTTP server serving `data/canary/served.json`
 2. Three-axis truth model: reachability (Axis A), lifecycle freshness (Axis B), open/close (Axis C)
 3. Scenario library (`canary_scenarios.py`): pure functions returning payloads + HTTP overrides
 4. Makefile targets: `canary-a-*`, `canary-b-*`, `canary-c-*`, `canary-report`, `canary-reset`, `canary-demo-cycle`
@@ -468,7 +468,7 @@ First fetch (no previous snapshot) is treated as a material change, correctly tr
 
 1. **Diff detection is the only gate:** If `detect_diff()` returns None (no-diff) on the first meaningful fetch, `content_changed` becomes False, and `mom:lastUpdated` is never written.
 
-2. **First-fetch scenario:** If Mother Sands is seeded with an old/empty baseline, then fetched with valid data:
+2. **First-fetch scenario:** If Mother Sand is seeded with an old/empty baseline, then fetched with valid data:
    - Line 857: `last_content_updated_ts is not None` — true if baseline already exists (which it does)
    - Line 860: `_fetch_last_snapshot()` retrieves the previous state
    - Line 864: `detect_diff()` compares old vs new
@@ -559,7 +559,7 @@ sqlite3 infra/heartbeat_log.db "SELECT space_id, last_lifecycle_state, last_effe
 - [ ] Regression test **PASSES** after fix
 - [ ] All existing transformer tests pass (no regressions)
 - [ ] Story 3.3 canary still works: `make canary-all` shows all green
-- [ ] Manual verification: Mother Sands card on live map shows `confirmed` (not `seeded`)
+- [ ] Manual verification: Mother Sand card on live map shows `confirmed` (not `seeded`)
 - [ ] Commit message documents the root cause and the fix
 
 ---

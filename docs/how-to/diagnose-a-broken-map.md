@@ -1,10 +1,10 @@
-# Mother Sands Canary — Operator Runbook
+# Mother Sand Canary — Operator Runbook
 
-This runbook is the **manual test surface** for the Mother Sands diagnostic canary. Run it
+This runbook is the **manual test surface** for the Mother Sand diagnostic canary. Run it
 when the public map shows something incoherent and you need to attribute the fault to a
 specific layer.
 
-See also: `set-up-mother-sands.md` (first-time setup) and `../explanation/mother-sands-concept.md`
+See also: `set-up-mother-sand.md` (first-time setup) and `../explanation/mother-sand-concept.md`
 (why the canary exists). The Makefile canary targets are the source of truth — this
 runbook documents how to drive them.
 
@@ -146,7 +146,7 @@ endpoint:
   public URL default, so set it via `canary_ops.py` explicitly). From inside the container the
   host is `host.containers.internal`, not `localhost`:
   ```bash
-  MODE=timeout python3 data/canary/mother-sands-endpoint.py   # :9191, or MODE=503
+  MODE=timeout python3 data/canary/mother-sand-endpoint.py   # :9191, or MODE=503
   podman exec maps-link-handler python3 /app/scripts/canary_ops.py \
       set-endpoint http://host.containers.internal:9191/
   make heartbeat

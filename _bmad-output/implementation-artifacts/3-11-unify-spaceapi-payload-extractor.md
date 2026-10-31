@@ -7,7 +7,7 @@ Status: done
 > **Epic 3.5 follow-up.** Story 3.10 closed the freshness pipeline. This story closes the
 > **payload extraction** half — the part that turns a fetched SpaceAPI document into the RDF
 > triples behind the card. Today four writers each hand-roll their own mapping and each emits
-> a different subset; Mother Sands' `location.address` is silently dropped on every fetch
+> a different subset; Mother Sand's `location.address` is silently dropped on every fetch
 > because the canary loader doesn't know how to map it. This story introduces a single
 > bundle-aligned extractor (core / mom), wires all four callsites to it, mints two missing
 > ontology predicates, and removes the legacy PII-warning surface (operator decision
@@ -61,8 +61,8 @@ mom ontology becomes the obvious one place to look, and adding a future communit
      `mom:lastOpenChange`) — their dedicated writers in `pipeline.py` continue to own
      them. Wired into `run_space_pipeline()` gated on `content_changed=True`.
 
-4. **Mother Sands renders its address.** After running `python3 scripts/load_canary.py` +
-   `python3 scripts/materialize_geojson.py`, the Mother Sands feature in
+4. **Mother Sand renders its address.** After running `python3 scripts/load_canary.py` +
+   `python3 scripts/materialize_geojson.py`, the Mother Sand feature in
    `web/data/spaces.geojson` has `properties.address == "Maunsell Fort, North Sea"`,
    `properties.country_code == "sol-3"`, `properties.timezone == "UTC+0"`. The card in
    `web/app.js` displays "Maunsell Fort, North Sea" — no "address not provided" placeholder.
@@ -95,7 +95,7 @@ mom ontology becomes the obvious one place to look, and adding a future communit
      assert absence of those keys.
 
 8. **Unit tests for extractors pass.** `tests/test_spaceapi_extract.py` covers:
-   - Mother Sands baseline payload → expected `mom:address`, `mom:countryCode`,
+   - Mother Sand baseline payload → expected `mom:address`, `mom:countryCode`,
      `mom:timeZone` extraction.
    - SpaceAPI v15 sample with all fields → every documented mapping.
    - v14 minimal sample → graceful absence of v15-only fields.
@@ -110,7 +110,7 @@ mom ontology becomes the obvious one place to look, and adding a future communit
    - SPARQL `SELECT ?p ?o WHERE { GRAPH <urn:mak:canary>
      { <urn:mak:canary/mother-sands> ?p ?o } }` — asserts presence of every
      expected predicate.
-   - Materialize, parse `spaces.geojson`, assert Mother Sands properties match AC 4.
+   - Materialize, parse `spaces.geojson`, assert Mother Sand properties match AC 4.
    - The heartbeat re-extract scenario from AC 5.
 
 10. **Full pytest suite remains green.** `pytest -m "not legacy"` and
@@ -226,7 +226,7 @@ Removing the warning eliminates a false guarantee without changing data flow.
 
 ### SOL-3 / non-ISO country codes
 
-Mother Sands sits in the North Sea in international waters. The operator chose
+Mother Sand sits in the North Sea in international waters. The operator chose
 `country_code: "sol-3"` (NASA designation for Earth as the third planet from the Sun) as a
 deliberate "outside any nation-state's jurisdiction" marker. `mom:countryCode` is a string
 predicate, not an enum — ISO-3166 codes are the common case, but extension codes are
@@ -275,12 +275,12 @@ python -m pytest tests/test_spaceapi_extract_e2e.py -v -m live_integration
 # End-to-end smoke
 python scripts/load_canary.py
 python scripts/materialize_geojson.py
-jq '.features[] | select(.properties.name=="Mother Sands") | .properties' \
+jq '.features[] | select(.properties.name=="Mother Sand") | .properties' \
    web/data/spaces.geojson
 
 # Operator visual confirmation
 docker-compose -f infra/docker-compose.dev.yml up -d
-# open the map, click Mother Sands marker
+# open the map, click Mother Sand marker
 # confirm address renders, country_code and timezone present in the dataset
 ```
 

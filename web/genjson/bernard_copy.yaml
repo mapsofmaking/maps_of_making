@@ -35,7 +35,7 @@
 # ============================================================================
 
 drawer_one_liner: "Two ways onto the map. Tell me about your space, or paste your endpoint URL if you've got one. Either's fine."
-wizard_intro: "Hi, I'm Bernard (they/them) from 'Mother Sands'. Let's get your space on the map."
+wizard_intro: "Hi, I'm Bernard (they/them) from 'Mother Sand'. Let's get your space on the map."
 floor_gate: "Let's define your bedrock. What does your community call this place?"  # TONE-REVIEW (Story 9.12): trimmed to a name-first opener — no longer pre-announces the address beat
 beat_name_ack: "Okay, and where do I find it?"  # TONE-REVIEW (Story 9.12): spoken, reveals with the location beat (P4 acknowledgment-not-congratulations)
 bedrock_confirm: "That's your bedrock. The rest is yours to give, or not."  # TONE-REVIEW (Story 9.12): spoken, reveals with the bedrock beat (P1 ownership)

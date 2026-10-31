@@ -23,7 +23,7 @@ Never rely on `~` or a bare relative `cd` for this repo in a root shell.
 | Touches code on VPS | Yes (rsync) | No (uses whatever is there) |
 | Touches `data/` | No | **Wipes** Oxigraph + SQLite + materialized GeoJSON |
 | Rebuilds containers | Yes | Yes |
-| Seeds canary | No | Yes (Mother Sands only) |
+| Seeds canary | No | Yes (Mother Sand only) |
 | Triggers heartbeat | No | No (next 10-min cycle picks it up) |
 | Reloads gateway | (recommended) | Yes |
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Load the Mother Sands canary into Oxigraph — clean-slate skeleton (Story 3.4b).
+"""Load the Mother Sand canary into Oxigraph — clean-slate skeleton (Story 3.4b).
 
 What it does:
   1. Read web/canary/mother-sands.json (SpaceAPI document).
@@ -90,7 +90,7 @@ def build_canary_sparql(data: dict) -> str:
     all_triples = envelope + payload_triples
 
     logger.info("stage=map_triples space=%s count=%d",
-                data.get("space", "Mother Sands"), len(all_triples))
+                data.get("space", "Mother Sand"), len(all_triples))
     for t in all_triples:
         logger.debug("triple: %s", t)
 

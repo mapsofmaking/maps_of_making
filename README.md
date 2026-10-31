@@ -84,9 +84,9 @@ This isn't proprietary. It's infrastructure you can understand, audit, and fork.
 | | | |
 |---|---|---|
 | 🧭 **Tutorial** | Learn by doing | [Publish your first space](docs/tutorial/01-publish-your-first-space.md) |
-| 🛠️ **How-to guides** | Solve a specific task | [Register your space](docs/how-to/register-your-space.md) · [Import a batch of spaces](docs/how-to/import-a-space-batch.md) · [Set up Mother Sands](docs/how-to/set-up-mother-sands.md) · [Diagnose a broken map](docs/how-to/diagnose-a-broken-map.md) · [Operate the VPS](docs/how-to/operate-the-vps.md) |
+| 🛠️ **How-to guides** | Solve a specific task | [Register your space](docs/how-to/register-your-space.md) · [Import a batch of spaces](docs/how-to/import-a-space-batch.md) · [Set up Mother Sand](docs/how-to/set-up-mother-sand.md) · [Diagnose a broken map](docs/how-to/diagnose-a-broken-map.md) · [Operate the VPS](docs/how-to/operate-the-vps.md) |
 | 📖 **Reference** | Look up the facts | [Field traceability](docs/reference/field-traceability.md) · [Semantic layer](docs/reference/semantic-layer.md) · [Freshness axes](docs/reference/freshness-axes.md) · [VPS topology](docs/reference/vps-topology.md) |
-| 💡 **Explanation** | Understand the why | [Mother Sands concept](docs/explanation/mother-sands-concept.md) · [Field lifecycle](docs/explanation/field-lifecycle.md) · [OHM integration](docs/explanation/ohm-integration.md) · [Architecture](docs/explanation/architecture/01-walking-skeleton.md) |
+| 💡 **Explanation** | Understand the why | [Mother Sand concept](docs/explanation/mother-sand-concept.md) · [Field lifecycle](docs/explanation/field-lifecycle.md) · [OHM integration](docs/explanation/ohm-integration.md) · [Architecture](docs/explanation/architecture/01-walking-skeleton.md) |
 
 ## For space operators
 

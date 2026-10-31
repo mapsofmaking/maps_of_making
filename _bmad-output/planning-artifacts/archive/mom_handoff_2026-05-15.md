@@ -13,7 +13,7 @@ Three deliverables:
 
 1. **Narrow Story 3.3** — drop continuous time-bubble, keep on-demand scenario injection via Makefile commands. Add specific acceptance: canary must reproduce the "fetched-but-stayed-seeded" production bug and `make c-revive` must resolve it.
 2. **Create Epic 8 stub** — MOM as Living Space (website, profile card, lore, easter egg, deferred time-bubble demo mode). Parallel to Epic 5, not on demo critical path.
-3. **Create `mom_lore.md`** — repo-as-source, website-as-rendered. Structured skeleton with Bernard character, Mother Sands concept, lifecycle metaphor map, milestone events.
+3. **Create `mom_lore.md`** — repo-as-source, website-as-rendered. Structured skeleton with Bernard character, Mother Sand concept, lifecycle metaphor map, milestone events.
 
 Plus a small janitorial item: `.com` → `.org` cleanup pass.
 
@@ -35,7 +35,7 @@ Plus a small janitorial item: `.com` → `.org` cleanup pass.
 - **Scope:** website at `mom.mapsofmaking.org`, wiki, contact form, Bernard lore page, time-bubble demo mode (deferred from Story 3.3)
 - **Critical path:** no — parallel to Epic 5 polish
 - **Bernard activation:** before federated PoC demo, gradual awakening as opportunities arise
-- **Logo behavior:** standard cursor (no special hover affordance), but click zooms to Mother Sands profile drawer instead of opening a new page — that's the innovation
+- **Logo behavior:** standard cursor (no special hover affordance), but click zooms to Mother Sand profile drawer instead of opening a new page — that's the innovation
 - **Changelog:** git-commits + curation in Bernard's voice (Phase 3 nanobot-generated entries, deferred)
 
 ### Domain + DNS
@@ -57,7 +57,7 @@ Plus a small janitorial item: `.com` → `.org` cleanup pass.
 ## Bernard — character bible (for `mom_lore.md`)
 
 **Pronouns:** they/them
-**Gender-play tension:** Bernard (commonly male name) + Mother (Mother Sands) — intentional, do not resolve
+**Gender-play tension:** Bernard (commonly male name) + Mother (Mother Sand) — intentional, do not resolve
 **Species:** hermit crab, TBD which species (could inform default shell-change cadence)
 
 ### Personality vector
@@ -93,7 +93,7 @@ Plus a small janitorial item: `.com` → `.org` cleanup pass.
 
 ---
 
-## Mother Sands — space concept
+## Mother Sand — space concept
 
 ### What it is
 
@@ -101,9 +101,9 @@ The **8th Maunsell fort that was never planned and never built.** Bernard didn't
 
 ### Why this framing matters
 
-This is MOM's argument made flesh. Existing directories ask "are you registered with us?" MOM asks "do you have an endpoint?" Mother Sands embodies the inversion. **A space exists because it publishes, not because anyone authorized it.**
+This is MOM's argument made flesh. Existing directories ask "are you registered with us?" MOM asks "do you have an endpoint?" Mother Sand embodies the inversion. **A space exists because it publishes, not because anyone authorized it.**
 
-The lore tension is structural, not argued. Mother Sands is unrecognized by officials. That's not a problem to solve — it's the point.
+The lore tension is structural, not argued. Mother Sand is unrecognized by officials. That's not a problem to solve — it's the point.
 
 ### Geography — fort rotation array (U2–U7)
 
@@ -159,7 +159,7 @@ The metaphor earns its keep. Each lifecycle stage maps to a federation event.
 - Caribbean hermit crabs — active house-hunters (change often)
 - Ecuadorian hermit crabs — reluctant (change only when necessary)
 
-Bernard's species TBD — could inform whether Mother Sands relocates eagerly or stubbornly.
+Bernard's species TBD — could inform whether Mother Sand relocates eagerly or stubbornly.
 
 **Mechanic mapping:**
 
@@ -168,7 +168,7 @@ Bernard's species TBD — could inform whether Mother Sands relocates eagerly or
 | Eggs released at high tide | Workshop onboarding batches | Future: RFF/VOW workshop releases batches of new coordinators |
 | Zoea (planktonic, no shell) | Pre-registration: space exists conceptually, no endpoint yet | ⚪ seeded |
 | Megalopa finds first shell | First successful registration | ⚪ → 🔵 transition |
-| Juvenile (frequent changes, 4–14d) | Early-phase instability, rapid iteration | Mother Sands demo: fast relocations during lifecycle demo |
+| Juvenile (frequent changes, 4–14d) | Early-phase instability, rapid iteration | Mother Sand demo: fast relocations during lifecycle demo |
 | Adult (slow changes, 6–18mo) | Mature canary cadence | Rare relocations, mostly stable |
 | Molting (shed exoskeleton to grow) | Schema upgrade / JSON version bump | Vulnerable moment, worth marking as milestone |
 | Shell change (move to new shell) | Endpoint relocation / host migration | Fort rotation U2–U7 |
@@ -203,7 +203,7 @@ The bug is population 1, third category: fetched successfully but never advanced
 ## Story 3.3 — Makefile interface
 
 ```makefile
-# Canary scenario injection — Mother Sands lifecycle exercises
+# Canary scenario injection — Mother Sand lifecycle exercises
 make c-open        # flip state.open true → verify lifecycle clock reset
 make c-close       # flip state.open false → no lifecycle reset (sensors-style change)
 make c-age         # set simulatedAge=45 → expect aging marker
@@ -231,7 +231,7 @@ mom_lore.md
 │   ├── Personality vector (Ron Swanson + Dredge + loup de mer)
 │   ├── Voice guide (do/don't, register, sample posts — TBD)
 │   └── Hermit crab biology (canonical reference, species notes)
-├── Mother Sands
+├── Mother Sand
 │   ├── Concept (8th fort, never planned, squatted occupation)
 │   ├── Geography (U2–U7 rotation array with coordinates)
 │   ├── Endpoint architecture (website ≠ endpoint, both on mom.mapsofmaking.org)
@@ -270,7 +270,7 @@ Mitigation: consent can be inherited via Solid POD + ACLs (next stage). If a spa
 
 Decision: worth considering for demo-pilot phase only, not a permanent ingestion path. Revisit when consent model is clearer.
 
-### Mother Sands JSON content
+### Mother Sand JSON content
 
 Deliberately weird, sea-themed, plausible. Specifics TBD pending Bernard's voice being locked. Worth a dedicated session.
 

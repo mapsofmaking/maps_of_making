@@ -4,9 +4,10 @@ Background and understanding-oriented material — why the system is built this
 way, not how to operate it.
 
 - [Field lifecycle](field-lifecycle.md) — SpaceAPI payload → map card
-- [Mother Sands — concept](mother-sands-concept.md) — the canary, conceptually
+- [Mother Sand — concept](mother-sand-concept.md) — the canary, conceptually
 - [OHM integration](ohm-integration.md) — OpenHardwareMap × Maps of Making
 - [The hex view](home-hex-view.md) — where each tile sits in the home app, and why
+- [People and spaces](home-people-and-spaces.md) — who signs in to the home app, and what they act on
 
 ## Architecture
 

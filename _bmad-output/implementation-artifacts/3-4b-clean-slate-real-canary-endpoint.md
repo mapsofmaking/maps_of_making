@@ -24,7 +24,7 @@ The 3.x bug hunt (Stories 3.2b, 3.2c, 3.3, 3.4) identified and fixed three real 
 
 **Root cause of the knot:** The pipeline was developed with 600 bulk-seeded spaces as the primary dataset. These spaces carry legacy state, inconsistent timestamps, and schema drift from multiple migration rounds. The combination of bulk data + evolving schema + successive bug fixes creates a state that is hard to reason about.
 
-**Decision:** Strip Oxigraph to a clean state, archive bulk seed data for progressive future reimport, and verify the pipeline with a single known-good reference point (Mother Sands canary). Then build 3.5 schema artifacts on this clean foundation.
+**Decision:** Strip Oxigraph to a clean state, archive bulk seed data for progressive future reimport, and verify the pipeline with a single known-good reference point (Mother Sand canary). Then build 3.5 schema artifacts on this clean foundation.
 
 **Lessons learned from 3.x (guardrails for future stories):**
 1. **SPARQL separator bug** — When prepending a revival `DELETE/WHERE` to a main `DROP+INSERT`, always join with ` ;\n`. Test: both blocks parse as valid combined SPARQL.
@@ -32,7 +32,7 @@ The 3.x bug hunt (Stories 3.2b, 3.2c, 3.3, 3.4) identified and fixed three real 
 3. **304 path must update lastFetched** — HTTP 304 skips content write by design, but `mom:lastFetched` must still be written. Test: space returning 304 shows fresh "fetched N ago" caption.
 4. **Canary endpoint must be reachable from heartbeat** — Container-local endpoints are not fetchable by the link-handler container. Real URL required. Test: `make canary-report` coherence check passes end-to-end.
 
-**Mother Sands friction resolved here:** The canary endpoint was running as a local Python HTTP server inside the container at `localhost:9191` — unreachable for real heartbeat fetch validation. This story publishes the canary JSON to the VPS static nginx, giving it a real fetchable URL: `https://mapsofmaking.org/canary/mother-sands.json`.
+**Mother Sand friction resolved here:** The canary endpoint was running as a local Python HTTP server inside the container at `localhost:9191` — unreachable for real heartbeat fetch validation. This story publishes the canary JSON to the VPS static nginx, giving it a real fetchable URL: `https://mapsofmaking.org/canary/mother-sands.json`.
 
 ---
 
@@ -44,7 +44,7 @@ The 3.x bug hunt (Stories 3.2b, 3.2c, 3.3, 3.4) identified and fixed three real 
 **When** `make reset` is run  
 **Then** Oxigraph contains only:
 - Ontology graphs (`urn:mak:ontology/*`)
-- Canary graph (`urn:mak:canary`) with Mother Sands
+- Canary graph (`urn:mak:canary`) with Mother Sand
 
 **And** `SELECT * WHERE { GRAPH ?g { ?s ?p ?o } }` returns no `urn:mak:space/*` triples from bulk seeds
 
@@ -67,10 +67,10 @@ The 3.x bug hunt (Stories 3.2b, 3.2c, 3.3, 3.4) identified and fixed three real 
 ### AC 4: Pipeline Verified End-to-End
 
 **Given** the clean Oxigraph and real canary endpoint  
-**When** a heartbeat fetch is triggered for Mother Sands  
+**When** a heartbeat fetch is triggered for Mother Sand  
 **Then** the space fetches from `https://mapsofmaking.org/canary/mother-sands.json`  
 **And** `make canary-report` shows all layers coherent (endpoint ✅ → heartbeat_log ✅ → Oxigraph ✅ → GeoJSON ✅)  
-**And** Mother Sands appears on the map with `confirmed/healthy` state
+**And** Mother Sand appears on the map with `confirmed/healthy` state
 
 ### AC 5: Tests Still Green
 
@@ -86,7 +86,7 @@ The 3.x bug hunt (Stories 3.2b, 3.2c, 3.3, 3.4) identified and fixed three real 
   - [x] Run `make reset` (manual podman compose down, data wipe)
   - [x] Query Oxigraph: confirm only ontology + canary graphs remain (3 graphs, 184 triples, no bulk space/*)
   - [x] Load ontology (scripts/load_ontology.sh: mom + iop graphs)
-  - [x] Load Mother Sands canary via new clean skeleton loader (load_canary.py)
+  - [x] Load Mother Sand canary via new clean skeleton loader (load_canary.py)
   - [x] AC 1 satisfied: `urn:mak:canary` + `urn:mak:ontology/{mom,iop}`
 
 - [x] **Task 2: Archive bulk seed data**
@@ -117,7 +117,7 @@ The 3.x bug hunt (Stories 3.2b, 3.2c, 3.3, 3.4) identified and fixed three real 
   - [x] `make endpoint` → pushed to VPS; `curl https://mapsofmaking.org/canary/mother-sands.json` ✓
   - [x] `python scripts/load_canary.py` → Oxigraph: `confirmed / healthy` · 13 triples
   - [x] `make c-report` → endpoint ✅ · Oxigraph ✅ · GeoJSON ✅ · isolation ✅ · no divergences
-  - [x] Mother Sands on map: `confirmed / open / healthy`
+  - [x] Mother Sand on map: `confirmed / open / healthy`
   - [x] `pytest tests/ -v` → 77 passed, 1 xfailed, 1 known pre-existing (heartbeat_log empty — resolves Story 3.5)
 
 ---
@@ -146,7 +146,7 @@ The 3.x bug hunt (Stories 3.2b, 3.2c, 3.3, 3.4) identified and fixed three real 
 | `scripts/canary_scenarios.py` | Write to `web/canary/mother-sands.json`; chmod 644 fix |
 | `scripts/canary_coherence_report.py` | Read from `web/canary/mother-sands.json`; isolation check tightened |
 | `scripts/load_canary.py` | Read from `web/canary/mother-sands.json` |
-| `data/canary/mother-sands-endpoint.py` | `SERVED_FILE` updated to `web/canary/mother-sands.json` |
+| `data/canary/mother-sand-endpoint.py` | `SERVED_FILE` updated to `web/canary/mother-sands.json` |
 | `data/canary/baseline.json` | `api_compatibility` simplified to `"15"` |
 | `data/canary/served.json` | Removed — superseded by `web/canary/mother-sands.json` |
 | `web/canary/mother-sands.json` | New — single source of truth for canary endpoint |

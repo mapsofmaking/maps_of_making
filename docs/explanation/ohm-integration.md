@@ -258,6 +258,6 @@ Running the full MoM test suite (`pytest tests/`) will show 12 failures unrelate
 |---|---|
 | `test_canary_three_axis_e2e` (×5), `test_materializer_three_tokens` (×2) | `apscheduler` not installed in host Python (only in container); tests import `link_handler/main.py` directly |
 | `test_geocode_proxy` (×4) | `@pytest.mark.live` tests connect to `localhost:8000` (link-handler direct port), not exposed in Mac compose; designed for Fedora/Podman stack |
-| `test_spaceapi_extract_e2e` (×1) | Looks for Mother Sands canary in `spaces.geojson`; `mac-init` seeds fabnet/test-batch, not the canary |
+| `test_spaceapi_extract_e2e` (×1) | Looks for Mother Sand canary in `spaces.geojson`; `mac-init` seeds fabnet/test-batch, not the canary |
 
 The 60 tests that were passing before this PR continue to pass.

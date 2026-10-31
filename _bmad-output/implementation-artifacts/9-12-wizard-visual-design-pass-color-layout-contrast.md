@@ -23,7 +23,7 @@ so that the tool feels trustworthy and effortless, and every later tier (9.6/9.7
 **Given** the map drawer is a **light riso/zine** world (`web/maps-of-making.html` `:root`: `--paper #f7f2e7`, riso-red `--accent oklch(62% 0.18 25)`, cobalt `--accent-2 oklch(55% 0.17 250)`, Inter Tight) and Bernard's hermit-crab **vision** sees blue/yellow/green/UV but **not red** (bernard-bible §1; UX spec §3b)
 **When** the wizard palette is built
 **Then** the wizard is **Direction B — a dark "workshop interior"** you cross into (full-voice Bernard), **grounded in Bernard's vision**:
-- **Base = liminal dusk** (deep blue-green dark), **not** pitch fort-black — the workshop is the **border crossing** between the MoM map and Mother Sands (the lair, reserved for Epic 8 lore); it reads as a threshold/antechamber, not the inner sanctum
+- **Base = liminal dusk** (deep blue-green dark), **not** pitch fort-black — the workshop is the **border crossing** between the MoM map and Mother Sand (the lair, reserved for Epic 8 lore); it reads as a threshold/antechamber, not the inner sanctum
 - it adopts the drawer's **semantic discipline** (AC2) and shared grammar: Special Elite, underline links, `2px` radius, shadow language (*Jakob's Law*)
 **And** the exact hues are an **operator-visual call** during implementation (Task 0 renders the palette for sign-off, one change at a time) — but the **direction** (dark dusk threshold + spectrum mapping) is **locked**, not re-litigated
 **And** AC2–AC9 apply within Direction B
@@ -216,7 +216,7 @@ claude-sonnet-4-6
 ### World Aesthetic Decision (AC1)
 
 **Direction B — locked by operator (Nicolas), 2026-05-31.** Dark "workshop interior" as a
-**threshold** (border crossing between the MoM map and Mother Sands; the full lair is Epic 8 lore).
+**threshold** (border crossing between the MoM map and Mother Sand; the full lair is Epic 8 lore).
 Base = **liminal dusk** (deep blue-green dark), not pitch fort-black. Palette grounded in Bernard's
 hermit-crab vision (bernard-bible §1): amber/brass = voice + CTA, blue = links, green =
 valid/confirmed, **red = errors only** (outside Bernard's spectrum), UV = sparing curiosity shimmer.

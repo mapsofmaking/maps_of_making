@@ -108,7 +108,7 @@ so that error states build trust instead of dead-ending.
    `"Your query returned no results"`; or `"I cannot help with that"` **without** also offering what he *can* do.
 
 2. **Bernard always**, on every failure path:
-   - states **what he knows first**, then **what he can't reach** (e.g. "Mother Sands is confirmed — last seen 4h ago. Your endpoint timed out just now; I'll try again next cycle.");
+   - states **what he knows first**, then **what he can't reach** (e.g. "Mother Sand is confirmed — last seen 4h ago. Your endpoint timed out just now; I'll try again next cycle.");
    - explains **why write is unavailable** with the **exact path forward** — a deploy-key setup link (Story 9.8 GitLab tutorial surface);
    - for **zero results**, offers the **seeded fallback** ("3 seeded spaces fall in range — want me to list them anyway?");
    - for **permission refusal**, points to `!mom grant` (never a bare "denied");

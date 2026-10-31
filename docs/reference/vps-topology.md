@@ -30,7 +30,7 @@ Internet ──► nginx-gateway (host: hetzner-gateway stack)
 | `mapsofmaking.com` | Active | 301 → `mapsofmaking.org` |
 | `admin.mapsofmaking.org` | Active | Admin UI |
 | `genjson.mapsofmaking.org` | Active | Bernard's Workshop JSON composer |
-| `mothersands.mapsofmaking.org` | Active | Mother Sands website |
+| `mothersand.mapsofmaking.org` | Active | Mother Sand website |
 
 Wildcard cert lives at `/etc/letsencrypt/live/mapsofmaking.org/` and covers `.org` + `.com`.
 

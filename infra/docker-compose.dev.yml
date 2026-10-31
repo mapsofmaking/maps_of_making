@@ -28,7 +28,7 @@ services:
       - ../scripts:/app/scripts:ro,z  # full scripts dir — edits propagate without rebuild
       - ../web/canary:/app/web/canary:ro,z  # served canary JSON for load_canary CANARY_FILE
       - ../data/tasks:/app/tasks:z  # persist heartbeat_log.db; :z for Fedora SELinux
-      - ../data/canary:/app/data/canary:ro,z  # for Mother Sands canary diagnostic endpoint
+      - ../data/canary:/app/data/canary:ro,z  # for Mother Sand canary diagnostic endpoint
       - ../data/bot-keys:/app/bot-keys:z  # deploy keys (Story 6.1); :z for Fedora SELinux
     environment:
       - SCRIPTS_DIR=/app/scripts

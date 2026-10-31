@@ -26,7 +26,7 @@ from load_canary import build_canary_sparql, GRAPH_URI, SPACE_URI
 def _baseline_payload() -> dict:
     return {
         "api": "0.13",
-        "space": "Mother Sands",
+        "space": "Mother Sand",
         "logo": "https://mapsofmaking.org/mother-sands-logo.png",
         "url": "https://mapsofmaking.org/canary/mother-sands.json",
         "location": {
@@ -36,7 +36,7 @@ def _baseline_payload() -> dict:
             "country_code": "sol-3",
             "timezone": "UTC+0",
         },
-        "contact": {"email": "bernard@mothersands.example.org"},
+        "contact": {"email": "bernard@mothersand.example.org"},
         "state": {"open": True, "lastchange": 1715000000, "message": "nominal"},
         "ext_canary": {"simulatedAge": None, "canary": True},
     }
@@ -48,7 +48,7 @@ def test_required_triples_present():
     """Required (non-OPTIONAL) triples the materialization query depends on."""
     sparql = build_canary_sparql(_baseline_payload())
     assert f"<{SPACE_URI}> a <https://mapsofmaking.org/ns/mom#Space>" in sparql
-    assert '"Mother Sands"' in sparql
+    assert '"Mother Sand"' in sparql
     assert "51.65" in sparql
     assert "1.7" in sparql
 
@@ -108,4 +108,4 @@ def test_missing_coordinates_raises():
 
 def test_contact_serialized_as_json():
     sparql = build_canary_sparql(_baseline_payload())
-    assert "bernard@mothersands.example.org" in sparql
+    assert "bernard@mothersand.example.org" in sparql

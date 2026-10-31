@@ -108,7 +108,7 @@ development_status:
   3-2-freshness-lifecycle-aging-zombie-dead-transitions: done  # epics.md retitled "Endpoint Health + Space Lifecycle + Open-Now"; key kept to match story file on disk
   3-2-b-mak-closed-pii-strip: done
   3-2-c-lifecycle-vocabulary-drift-fix: done
-  3-3-mother-sands-diagnostic-canary: done
+  3-3-mother-sand-diagnostic-canary: done
   3-4-stuck-seeded-root-cause-regression-test: done
   3-4b-clean-slate-real-canary-endpoint: done  # mom-demo branch; clean slate + real canary endpoint live
   3-5-core-ttl-crosswalk-csv-operationalize-the-three-layer-schema: done
@@ -207,7 +207,7 @@ development_status:
   7-1-webhook-presence-handler-badge-on-map: backlog
   epic-7-retrospective: optional
 
-  # Epic 8: MOM as a Living Space — Mother Sands Broadcast Rig (stub — no stories yet)
+  # Epic 8: MOM as a Living Space — Mother Sand Broadcast Rig (stub — no stories yet)
   epic-8: backlog
   epic-8-retrospective: optional
 

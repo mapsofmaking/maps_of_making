@@ -24,7 +24,7 @@ so that I can produce a valid SpaceAPI v15 JSON file without understanding the s
 **When** Story 9.3 lands
 **Then** `genjson.js` renders into `#wizard-root` (the scaffold from Story 9.1) a single-page flow with two tier gates visible in the UI: **Tier 0** (floor) and **Tier 1** (SpaceAPI core)
 **And** Bernard names themselves **once** on entry (full Bernard on the wizard path — bible §5):
-> *"Hi, I'm Bernard (they/them) from 'Mother Sands'. Let's get your space on the map."*
+> *"Hi, I'm Bernard (they/them) from 'Mother Sand'. Let's get your space on the map."*
 **And** no character imagery appears (no crab/fort/silhouette — bible §5 hard rule); Bernard is the voice of the copy only.
 
 ### AC2 — Tier 0 floor gate (name + address → coordinates)

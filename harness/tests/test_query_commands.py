@@ -392,13 +392,13 @@ async def test_nearby_query_requires_endpoint_url(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Live integration test (requires Oxigraph with mother-sands data)
+# Live integration test (requires Oxigraph with mother-sand data)
 # ---------------------------------------------------------------------------
 
 @pytest.mark.live
 @pytest.mark.asyncio
-async def test_live_status_mother_sands(monkeypatch):
-    """Requires Oxigraph running with mother-sands data.
+async def test_live_status_mother_sand(monkeypatch):
+    """Requires Oxigraph running with mother-sand data.
     Run with: pytest -m live harness/tests/test_query_commands.py
     """
     import os

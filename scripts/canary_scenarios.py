@@ -1,4 +1,4 @@
-"""Mother Sands canary scenario library.
+"""Mother Sand canary scenario library.
 
 Each function returns (payload: dict, http_override: dict | None).
   - payload: the JSON to write to data/canary/served.json

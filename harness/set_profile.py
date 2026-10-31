@@ -4,7 +4,7 @@ Reuses the same env vars as main_matrix.py (BERNARD_MATRIX_HOMESERVER / BERNARD_
 BERNARD_MATRIX_ACCESS_TOKEN). Idempotent — safe to re-run after swapping the image.
 
     python harness/set_profile.py
-    python harness/set_profile.py --avatar web/mothersands/bernard_front_mug.png \
+    python harness/set_profile.py --avatar web/mothersand/bernard_front_mug.png \
         --name "Bernard"
 """
 
@@ -16,7 +16,7 @@ from pathlib import Path
 
 from nio import AsyncClient, UploadResponse
 
-DEFAULT_AVATAR = "web/mothersands/bernard_front_mug.png"
+DEFAULT_AVATAR = "web/mothersand/bernard_front_mug.png"
 DEFAULT_NAME = "Bernard"
 
 

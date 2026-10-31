@@ -27,7 +27,7 @@ The rest are consumed handoffs / applied change-proposals kept for provenance.
 | File | Date | What it was | Status | Consumed into |
 |---|---|---|---|---|
 | `mom_handoff_2026-05-15.md` | 2026-05-15 | Story 3.3 narrowing + Epic 8 stub + Bernard lore | superseded by the 05-16 brief | `epics.md` Epic 8 stub; `bernard-bible.md` |
-| `mom_handoff_2026-05-16.md` | 2026-05-16 | Story 3.3 Mother Sands three-axis canary (party-mode roundtable) | consumed — Story 3.3 done | `epics.md` Epic 3.5 / Story 3.3 (done); `architecture.md` ADR-004/006 |
+| `mom_handoff_2026-05-16.md` | 2026-05-16 | Story 3.3 Mother Sand three-axis canary (party-mode roundtable) | consumed — Story 3.3 done | `epics.md` Epic 3.5 / Story 3.3 (done); `architecture.md` ADR-004/006 |
 | `mom-schema-architecture-handoff.md` | 2026-05-16 | Three/four-layer schema architecture + OMT community track | consumed; `w3id.org` IRIs were illustrative | `architecture.md` **ADR-016**; `ontology/` (`core.ttl`, `crosswalk.csv`); `schema-roleplay-personas.md` (companion, still live) |
 | `sprint-change-proposal-2026-05-19.md` | 2026-05-19 | Epic 3.5 re-architecture (snapshot-as-unit) | approved + applied | `epics.md` Epic 3.5; `architecture.md` Epic 3.5 section |
 | `sprint-change-proposal-2026-05-19b.md` | 2026-05-19 | Epic 3.5 three-token freshness model | approved + applied | three-token contract now live across `architecture.md` / `prd.md` / `epics.md` |

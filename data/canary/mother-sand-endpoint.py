@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mother Sands programmable HTTP endpoint.
+"""Mother Sand programmable HTTP endpoint.
 
 Serves data/canary/served.json (a copy of baseline.json unless mutated by a
 scenario). The MODE env var controls HTTP-level behaviour injection:
@@ -13,9 +13,9 @@ ETag / Last-Modified are computed from the served file's mtime so that
 conditional GETs (If-None-Match / If-Modified-Since) work correctly.
 
 Usage:
-  python3 data/canary/mother-sands-endpoint.py
-  MODE=timeout python3 data/canary/mother-sands-endpoint.py
-  PORT=9090 python3 data/canary/mother-sands-endpoint.py
+  python3 data/canary/mother-sand-endpoint.py
+  MODE=timeout python3 data/canary/mother-sand-endpoint.py
+  PORT=9090 python3 data/canary/mother-sand-endpoint.py
 """
 import hashlib
 import http.server
@@ -92,7 +92,7 @@ if __name__ == "__main__":
         import shutil
         shutil.copy(BASELINE_FILE, SERVED_FILE)
 
-    print(f"[canary] Mother Sands endpoint on :{PORT}  MODE={MODE}")
+    print(f"[canary] Mother Sand endpoint on :{PORT}  MODE={MODE}")
     print(f"[canary] Serving: {SERVED_FILE}")
     server = http.server.HTTPServer(("0.0.0.0", PORT), CanaryHandler)
     server.serve_forever()

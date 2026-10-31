@@ -19,7 +19,7 @@ New track sequence: **`C.X → Epic 9 → Epic 4 re-review`**.
 
 ### 1. New shared prerequisite — Cleanup Story C.X
 
-**Scope:** Rename `ext_mom` → `ext_canary` (current contents are Mother-Sands-only). Introduce `mom:` namespace fields for cross-network horizontal data: `opening_hours`, `memberOf`, `mom:sdgs` (migrated from `ext_fab.sdgs`). Update baseline.json, ontology (`mom.ttl`), transformer, materializer. Wipe + reseed using existing Makefile.
+**Scope:** Rename `ext_mom` → `ext_canary` (current contents are Mother-Sand-only). Introduce `mom:` namespace fields for cross-network horizontal data: `opening_hours`, `memberOf`, `mom:sdgs` (migrated from `ext_fab.sdgs`). Update baseline.json, ontology (`mom.ttl`), transformer, materializer. Wipe + reseed using existing Makefile.
 
 **Blocks:** Both Epic 9 AND Epic 4 re-review.
 
@@ -68,7 +68,7 @@ Assisted SpaceAPI JSON composer at `genjson.mapsofmaking.org`, with the Bernard 
 | **3** | `ext_X` | **Vertical** — silo-specific | `ext_fab.equipment`, future `ext_*` | Niche services / future service surface |
 
 **Renames:**
-- `ext_mom` → `ext_canary` (Mother-Sands-only)
+- `ext_mom` → `ext_canary` (Mother-Sand-only)
 - `ext_fab.sdgs` → `mom:sdgs` (SDGs are transversal)
 - Cross-network MoM fields like `memberOf` move into `mom:` namespace
 
@@ -94,7 +94,7 @@ Assisted SpaceAPI JSON composer at `genjson.mapsofmaking.org`, with the Bernard 
 | Moment | Line |
 |---|---|
 | Drawer one-liner | *"Two ways through. [Tell me about your space]. Or paste a URL if you already have one. Either is fine."* |
-| Wizard intro | *"Hi, I'm Bernard (they/them) from 'Mother Sands'. Let's get your space on the map."* |
+| Wizard intro | *"Hi, I'm Bernard (they/them) from 'Mother Sand'. Let's get your space on the map."* |
 | Floor gate (Tier 0) | *"Name and address. That's the floor. Everything else, I'll derive."* |
 | Tier 1 exit | *"Core's in. Other SpaceAPI apps can read this file as-is."* |
 | Tier 2 exit | *"MoM fields filled. Network features unlocked: membership, opening hours, SDGs."* |

@@ -438,11 +438,11 @@ vps-seed-bundle:
 
 ## DESTRUCTIVE: VPS analog of `make reset`. Wipes Oxigraph store + SQLite
 ## (heartbeat_log, snapshot_store) and materialized GeoJSON on the VPS, then
-## rebuilds containers and seeds only the Mother Sands canary. Use to factory-
+## rebuilds containers and seeds only the Mother Sand canary. Use to factory-
 ## reset the deployment; claim additional URLs afterwards through the admin UI.
 vps-reset:
 	@echo "⚠  This will wipe data/oxigraph/ and data/tasks/*.db on $(REMOTE)."
-	@echo "   All coordinator-registered spaces will be lost. Only the Mother Sands"
+	@echo "   All coordinator-registered spaces will be lost. Only the Mother Sand"
 	@echo "   canary will be reloaded."
 	@read -p "   Type 'vps-reset' to confirm: " ans && [ "$$ans" = "vps-reset" ] || (echo "aborted"; exit 1)
 	@echo "→ stopping containers on VPS..."
@@ -455,19 +455,19 @@ vps-reset:
 	ssh $(REMOTE) 'timeout 90 sh -c "until docker exec maps-link-handler python3 -c \"import urllib.request; urllib.request.urlopen('"'"'http://localhost:8000/health'"'"')\" 2>/dev/null; do sleep 3; done" && echo ok'
 	@echo "→ staging canary loader + ops + payload into container..."
 	ssh $(REMOTE) 'cd $(REMOTE_APP) && docker cp scripts/load_canary.py maps-link-handler:/app/scripts/load_canary.py && docker cp scripts/canary_ops.py maps-link-handler:/app/scripts/canary_ops.py && docker exec maps-link-handler mkdir -p /app/web/canary && docker cp web/canary/mother-sands.json maps-link-handler:/app/web/canary/mother-sands.json'
-	@echo "→ loading Mother Sands canary into Oxigraph..."
+	@echo "→ loading Mother Sand canary into Oxigraph..."
 	ssh $(REMOTE) 'docker exec -e OXIGRAPH_URL=http://oxigraph:7878 -e PYTHONPATH=/app maps-link-handler python3 /app/scripts/load_canary.py'
 	@echo "→ rematerializing GeoJSON..."
 	ssh $(REMOTE) 'docker exec maps-link-handler python3 -c "import httpx; r = httpx.post(\"http://localhost:8000/api/rematerialize\", timeout=30); print(\"rematerialize:\", r.status_code)"'
 	@echo "→ reloading gateway nginx (clears stale upstream cache after maps-nginx restart)..."
 	ssh $(REMOTE) 'docker exec nginx-gateway nginx -s reload'
-	@echo "✓ vps-reset complete — only Mother Sands canary in graph; claim additional URLs through the admin UI."
+	@echo "✓ vps-reset complete — only Mother Sand canary in graph; claim additional URLs through the admin UI."
 
 ## ── CANARY ───────────────────────────────────────────────────────────────────
-## Mother Sands diagnostic canary — three-axis fault attribution tool.
+## Mother Sand diagnostic canary — three-axis fault attribution tool.
 ## Single source of truth: https://mapsofmaking.org/canary/mother-sands.json
 ## Scenario cycle: make cb-zombie → writes web/canary/mother-sands.json → push to VPS → heartbeat
-## See docs/how-to/set-up-mother-sands.md and docs/how-to/diagnose-a-broken-map.md for full guide.
+## See docs/how-to/set-up-mother-sand.md and docs/how-to/diagnose-a-broken-map.md for full guide.
 
 ## Push canary JSON + logo to VPS static server
 endpoint:
@@ -624,7 +624,7 @@ c-demo-off:
 	@echo "✓ canary demo thresholds OFF (normal day-scale)"
 
 c-demo: c-reset c-activate cb-aging cb-zombie cb-dead cb-closed
-	@echo "✓ demo cycle complete — Mother Sands walked seeded → confirmed → aging → zombie → dead → closed"
+	@echo "✓ demo cycle complete — Mother Sand walked seeded → confirmed → aging → zombie → dead → closed"
 
 ## ── VPS canary twins ─────────────────────────────────────────────────────────
 ## Each vps-* twin runs the IDENTICAL recipe as its local counterpart, but directs all

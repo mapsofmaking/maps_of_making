@@ -97,7 +97,7 @@ SELECT ?graph ?subject ?endpointUrl WHERE {
         graph_uri = b["graph"]["value"]
         endpoint_url = b["endpointUrl"]["value"]
         # Derive uid from subject URI:
-        #   urn:mak:canary/mother-sands  → mother-sands
+        #   urn:mak:canary/mother-sands  → mother-sand
         #   urn:mak:space/<slug>         → <slug>
         if "/" in subject:
             uid = subject.rsplit("/", 1)[-1]

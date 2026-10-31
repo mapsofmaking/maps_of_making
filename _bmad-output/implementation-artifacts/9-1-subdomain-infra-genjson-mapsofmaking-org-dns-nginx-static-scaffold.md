@@ -257,12 +257,12 @@ ssh hetzner "..."
 | File | Action | Notes |
 |---|---|---|
 | `infra/gateway-nginx/08-genjson-mapsofmaking.conf` | NEW | nginx-gateway config for genjson subdomain |
-| `infra/gateway-nginx/09-mothersands-mapsofmaking.conf` | NEW | nginx-gateway stub for mothersands subdomain (planted early) |
-| `infra/nginx/conf.d/app.conf` | MODIFIED | Added `/genjson/`, `/mothersands/` location blocks; fixed `/admin/` to use subfolder |
+| `infra/gateway-nginx/09-mothersand-mapsofmaking.conf` | NEW | nginx-gateway stub for mothersand subdomain (planted early) |
+| `infra/nginx/conf.d/app.conf` | MODIFIED | Added `/genjson/`, `/mothersand/` location blocks; fixed `/admin/` to use subfolder |
 | `web/genjson/index.html` | NEW | Scaffold HTML per ACs |
 | `web/genjson/genjson.js` | NEW | Empty placeholder |
-| `web/mothersands/index.html` | NEW | Stub for Mother Sands website (planted early, no story yet) |
-| `web/mothersands/mothersands.js` | NEW | Empty placeholder |
+| `web/mothersand/index.html` | NEW | Stub for Mother Sand website (planted early, no story yet) |
+| `web/mothersand/mothersand.js` | NEW | Empty placeholder |
 | `web/admin/index.html` | MOVED from `web/admin.html` | Migrated to subfolder pattern; content unchanged |
 | `web/admin.html` | DELETED | Replaced by `web/admin/index.html` |
 
@@ -292,9 +292,9 @@ ssh hetzner "..."
 
 ### Scope note
 Story 9.1 was expanded at implementation time to include:
-- `web/` subfolder pattern established for all sub-apps (admin, genjson, mothersands)
+- `web/` subfolder pattern established for all sub-apps (admin, genjson, mothersand)
 - `web/admin.html` → `web/admin/index.html` (content unchanged; Epic 4 stub)
-- `web/mothersands/` stub + `09-mothersands-mapsofmaking.conf` planted (saves a story later)
+- `web/mothersand/` stub + `09-mothersand-mapsofmaking.conf` planted (saves a story later)
 - `infra/nginx/conf.d/app.conf` updated with location blocks for all three
 
 ### Checklist
@@ -307,21 +307,21 @@ Story 9.1 was expanded at implementation time to include:
 - [x] `https://genjson…/` → 200 text/html; `genjson.js` → 200 application/javascript ✓
 - [x] `http://genjson…/` → 301; CSP / X-Frame SAMEORIGIN / HSTS verified ✓
 
-**mothersands (planted early, fully live):**
-- [x] DNS A-record `mothersands.mapsofmaking.org` set and propagated
-- [x] `09-mothersands-mapsofmaking.conf` — HTTP-only → cert → full HTTPS deployed
+**mothersand (planted early, fully live):**
+- [x] DNS A-record `mothersand.mapsofmaking.org` set and propagated
+- [x] `09-mothersand-mapsofmaking.conf` — HTTP-only → cert → full HTTPS deployed
 - [x] Cert issued (exp 2026-08-28), nginx-gateway reloaded
-- [x] `web/mothersands/index.html` + `mothersands.js` created and deployed
-- [x] `https://mothersands…/` → 200 text/html; `mothersands.js` → 200 application/javascript ✓
-- [x] `http://mothersands…/` → 301 ✓
+- [x] `web/mothersand/index.html` + `mothersand.js` created and deployed
+- [x] `https://mothersand…/` → 200 text/html; `mothersand.js` → 200 application/javascript ✓
+- [x] `http://mothersand…/` → 301 ✓
 
 **admin (subfolder migration):**
 - [x] `web/admin.html` → `web/admin/index.html` (content unchanged, flat file removed on VPS)
 - [x] `https://admin…/` → 401 auth_basic intact ✓
 
 **shared:**
-- [x] `infra/nginx/conf.d/app.conf` — `/genjson/`, `/mothersands/`, `/admin/` blocks deployed, maps-nginx reloaded
+- [x] `infra/nginx/conf.d/app.conf` — `/genjson/`, `/mothersand/`, `/admin/` blocks deployed, maps-nginx reloaded
 
 **remaining:**
-- [x] **Operator:** browser check — genjson, mothersands, admin all confirmed ✓
+- [x] **Operator:** browser check — genjson, mothersand, admin all confirmed ✓
 - [x] Sprint status → `done`

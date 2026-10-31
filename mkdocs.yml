@@ -25,7 +25,7 @@ nav:
       - Register your space: how-to/register-your-space.md
       - Import a space batch: how-to/import-a-space-batch.md
       - Diagnose a broken map: how-to/diagnose-a-broken-map.md
-      - Set up Mother Sands: how-to/set-up-mother-sands.md
+      - Set up Mother Sand: how-to/set-up-mother-sand.md
       - Operate the VPS: how-to/operate-the-vps.md
   - Reference:
       - Reference: reference/index.md
@@ -37,7 +37,7 @@ nav:
   - Explanation:
       - Explanation: explanation/index.md
       - Field lifecycle: explanation/field-lifecycle.md
-      - Mother Sands concept: explanation/mother-sands-concept.md
+      - Mother Sand concept: explanation/mother-sand-concept.md
       - OHM integration: explanation/ohm-integration.md
       - Architecture:
           - Payload lifecycle: explanation/architecture/01-walking-skeleton.md

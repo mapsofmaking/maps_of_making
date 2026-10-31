@@ -18,7 +18,7 @@ so that Bernard's voice is consistent across Stories 9.2–9.8 and individual st
 
 ```yaml
 drawer_one_liner: "Two ways onto the map. Tell me about your space, or paste your endpoint URL if you've got one. Either's fine."
-wizard_intro: "Hi, I'm Bernard (they/them) from 'Mother Sands'. Let's get your space on the map."
+wizard_intro: "Hi, I'm Bernard (they/them) from 'Mother Sand'. Let's get your space on the map."
 floor_gate: "Name and address. That's the floor. Everything else, I'll derive."
 tier_1_exit: "Core's in. Other SpaceAPI apps can read this file as-is."
 tier_2_exit: "MoM fields filled. Network features unlocked: membership, opening hours, SDGs."
@@ -184,7 +184,7 @@ The following strings in `genjson.js` map to `bernard_copy.yaml` keys and must b
 
 | Current JS string (approximate) | YAML key |
 |---|---|
-| `"— Hi, I'm Bernard (they/them) from 'Mother Sands'..."` | `wizard_intro` (em-dash prepended by JS) |
+| `"— Hi, I'm Bernard (they/them) from 'Mother Sand'..."` | `wizard_intro` (em-dash prepended by JS) |
 | `"— Your progress is saved in this browser..."` | `localstorage_warning` |
 | `"— Name and address. That's the floor..."` | `floor_gate` |
 | `"— Core's in. Other SpaceAPI apps can read this file as-is."` | `tier_1_exit` |
@@ -206,7 +206,7 @@ let COPY = null;
 
 // Minimal fallback — Tier 0 essentials only; avoids blank UI if fetch fails
 const COPY_FALLBACK = {
-  wizard_intro: "Hi, I'm Bernard (they/them) from 'Mother Sands'. Let's get your space on the map.",
+  wizard_intro: "Hi, I'm Bernard (they/them) from 'Mother Sand'. Let's get your space on the map.",
   floor_gate: "Name and address. That's the floor. Everything else, I'll derive.",
   localstorage_warning: "Your progress is saved in this browser. Hard-refresh or clearing site data wipes it. Export at any point if you want a copy outside the browser.",
   localstorage_resume: "Continuing from where you left off.",
@@ -371,7 +371,7 @@ claude-sonnet-4-6 (Amelia / bmad-dev-story)
 | Date | Change |
 |---|---|
 | 2026-05-31 | Story 9.5 implemented: `bernard_copy.yaml`/`.json` voice artifact, `genjson.js` wired to COPY lookups with Tier 0 fallback, Special Elite self-hosted across both surfaces, `make bernard-copy` target, `test_bernard_voice_completeness`, CREDITS.md. Operator tone approved (AC6). Status → review. |
-| 2026-05-31 | Operator-directed copy revision (in-character review): `floor_gate` "the floor"→"the bedrock" (Mother Sands world register); `tier_2_exit` dropped "unlocked"/"network" → "the world can see…" (network was overloaded); `tier_3_exit` translated "vertical features active" → "the bits only your kind of space needs are switched on" (vertical=internal silo jargon, kept out of horizontal user-facing register). System/validation messages confirmed to stay in flat system voice, not Bernard's. |
+| 2026-05-31 | Operator-directed copy revision (in-character review): `floor_gate` "the floor"→"the bedrock" (Mother Sand world register); `tier_2_exit` dropped "unlocked"/"network" → "the world can see…" (network was overloaded); `tier_3_exit` translated "vertical features active" → "the bits only your kind of space needs are switched on" (vertical=internal silo jargon, kept out of horizontal user-facing register). System/validation messages confirmed to stay in flat system voice, not Bernard's. |
 | 2026-05-31 | `field_hints.logo` revised: dropped "square image" (logos scale by max-height respecting ratio, not square); added transparent-PNG guidance. Phrased to avoid forbidden "keep it simple" pattern. |
 | 2026-05-31 | Field-hint redundancy sweep (don't restate the label): `logo` trimmed to "We scale by height and keep your ratio — transparent PNG works best." (label already says "Logo URL"); `contact_email` → "Not a personal inbox — somewhere the space can be reached." (label already says "Contact email"). |
 | 2026-05-31 | **AC4 superseded** (operator-directed, SSOT hardening): `bernard_copy.json` is now **gitignored**, not committed — it is a build artifact of `make bernard-copy`, and committing it risked silent YAML/JSON drift ("edit the JSON not the YAML"). The YAML is now the *only* SSOT in version control. Added: SSOT header comment block in `bernard_copy.yaml`; `.gitignore` entry for the JSON; drift-guard test `test_json_matches_yaml` (asserts on-disk JSON equals regenerated YAML when present, skips on clean checkout) so a stale/hand-edited JSON cannot ship silently. `deploy-genjson` already regenerates via `make bernard-copy` before rsync (prod unaffected); fresh clones must run `make bernard-copy` once for local dev (genjson.js falls back to `COPY_FALLBACK` if absent). |

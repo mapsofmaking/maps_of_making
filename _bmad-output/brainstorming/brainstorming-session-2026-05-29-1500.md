@@ -16,7 +16,7 @@ context_file: ''
 
 ## Session Overview
 
-**Topic:** A wizard-style web tool at `genjson.mapsofmaking.org` where space coordinators fill in a form to generate a SpaceAPI-compliant JSON file, ready to self-host on GitLab Pages. Character: Bernard, the helpful wizard from the Mother Sands lore.
+**Topic:** A wizard-style web tool at `genjson.mapsofmaking.org` where space coordinators fill in a form to generate a SpaceAPI-compliant JSON file, ready to self-host on GitLab Pages. Character: Bernard, the helpful wizard from the Mother Sand lore.
 
 **Goals:**
 - Convincing, inclusive, effortless, efficient onboarding for non-tech coordinators
@@ -32,7 +32,7 @@ context_file: ''
 
 **Bernard's voice — anchored on 2026-05-15 character bible:**
 - "Ron Swanson on a North Sea fort, with notes of Dredge"
-- they/them; hermit crab; intentional male-name × Mother Sands gender tension
+- they/them; hermit crab; intentional male-name × Mother Sand gender tension
 - Short sentences. **No exclamation marks.** Observation over explanation.
 - "If something is good, they say it is fine. If something is broken, they say what broke."
 - Maintenance-log voice, not influencer voice. Does not perform enthusiasm.
@@ -165,18 +165,18 @@ The URL path needs no intermediary screen — paste IS the action. Save the clic
 
 **Seed line (Nicolas, draft):**
 
-> *"Hi, I'm Bernard (they/them) from 'Mother Sands'. Let's get your space on the map."*
+> *"Hi, I'm Bernard (they/them) from 'Mother Sand'. Let's get your space on the map."*
 
 **Why this works — the "curiosity hooks without links" pattern:**
-- "Mother Sands" and "they/them" are deliberate curiosity sparks
+- "Mother Sand" and "they/them" are deliberate curiosity sparks
 - Neither is hyperlinked. No glossary tooltip. No info icon.
-- Maëlle either ignores them and continues (fine), or gets intrigued and **goes back to the map later** to search for Mother Sands (also fine — that's lore discovery on her terms)
+- Maëlle either ignores them and continues (fine), or gets intrigued and **goes back to the map later** to search for Mother Sand (also fine — that's lore discovery on her terms)
 - Friction = mitigation: the lore can't hijack the current workflow because there's no escape hatch from the wizard *into* the lore. She must finish or abandon what she's doing first.
 - The right amount of bleed.
 
 ### Source of truth: `data/canary/baseline.json`
 
-Mother Sands' baseline is the canary master example AND the wizard's reference output. The wizard exports JSON that **looks like** baseline.json (modulo the canary-only fields).
+Mother Sand's baseline is the canary master example AND the wizard's reference output. The wizard exports JSON that **looks like** baseline.json (modulo the canary-only fields).
 
 Structure observed:
 - **SpaceAPI core fields:** `api`, `api_compatibility`, `space`, `logo`, `url`, `description`, `opening_hours`, `location {lat, lon, address, country_code, timezone}`, `contact {email, irc, twitter}`, `issue_report_channels`, `state {open, lastchange, message}`
@@ -240,7 +240,7 @@ So `ext_mom` in the wizard = essentially `{ memberOf: [...] }` for M1. Small, fo
 | **3** | `ext_X` namespace | **Vertical** — silo/community-specific | `ext_fab.equipment`, `ext_fab.space_type`, other `ext_*` for other niches | Each silo defines its own vertical fields. **Future service surface** — niche services can plug in here. |
 
 **Renames (LOCKED):**
-- `ext_mom` → **`ext_canary`** — current contents (`canary`, `simulatedAge`, `thresholdMode`) are Mother-Sands-only; "ext_mom" was a misnomer
+- `ext_mom` → **`ext_canary`** — current contents (`canary`, `simulatedAge`, `thresholdMode`) are Mother-Sand-only; "ext_mom" was a misnomer
 - Cross-network MoM fields (e.g., `memberOf`) **migrate into the `mom:` namespace** at tier 2
 - `ext_fab.sdgs` → **`mom:sdgs`** at tier 2 (SDGs are transversal, not makerspace-exclusive)
 

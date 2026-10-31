@@ -1,6 +1,6 @@
-# Mother Sands Canary — Setup Guide
+# Mother Sand Canary — Setup Guide
 
-Mother Sands is MoM's diagnostic canary: a synthetic space we control to test our own data
+Mother Sand is MoM's diagnostic canary: a synthetic space we control to test our own data
 pipeline end to end. This guide covers the moving parts; `diagnose-a-broken-map.md`
 covers driving it scenario by scenario.
 
@@ -47,7 +47,7 @@ controllable local endpoint server, which honours a `MODE` env var:
 | `503` | 503 Service Unavailable |
 
 ```bash
-MODE=timeout python3 data/canary/mother-sands-endpoint.py     # :9191
+MODE=timeout python3 data/canary/mother-sand-endpoint.py     # :9191
 # point the canary at it explicitly (host is host.containers.internal from in-container):
 podman exec maps-link-handler python3 /app/scripts/canary_ops.py \
     set-endpoint http://host.containers.internal:9191/
@@ -62,7 +62,7 @@ See the Axis A section of the operator runbook for the full caveat and the DNS-f
 |------|------|
 | `data/canary/baseline.json` | committed canonical baseline — never mutated |
 | `web/canary/mother-sands.json` | served payload — written by scenarios, pushed to the public URL |
-| `data/canary/mother-sands-endpoint.py` | programmable local HTTP server (Axis A reachability faults only) |
+| `data/canary/mother-sand-endpoint.py` | programmable local HTTP server (Axis A reachability faults only) |
 | `scripts/canary_scenarios.py` | pure scenario authoring functions (host venv) |
 | `scripts/canary_ops.py` | in-container mutation primitives (local + VPS) |
 
