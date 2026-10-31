@@ -110,7 +110,7 @@ the tile; a tile's first open (its tutorial) keeps the full view, its tool opens
   Notes; copy fixes go in `onboarding.ttl`. Already seen: "pod" and "account" are used at B2 but unlock
   later (keep, handover); "endpoint", "linked data", "WebID" appear in no copy yet
 - [ ] `done.ts` registry with a stub per tile; tests for the fog rules (kit: add the test with the code)
-- [ ] Live check: loads on a phone, light and dark, keyboard only
+- [ ] Live check: loads on a phone, Daylight (MoM is Daylight only, decided 2026-10-31: no theme switch in the app), keyboard only
 
 ## Dev Notes
 - The dry run's preview functions are the copy reference. Keep them as data where the kit pattern allows
