@@ -1,6 +1,6 @@
 # Story 14.0: Spike — From Account Creation to First Write, Observed Live (OD-2)
 
-Status: ready-for-dev — run before 14.3 is built
+Status: done (report: 14-0-spike-report.md)
 
 ## Story
 
