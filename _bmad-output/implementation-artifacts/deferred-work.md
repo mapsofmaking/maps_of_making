@@ -87,8 +87,8 @@ reshaped the freshness contract, so the old 304 semantics can't be assumed to st
   had already stopped producing 304s. Those two need reconciling before anything is wired.
 - `snapshot_store.py:110` `mark_not_modified()` is an orphan: documented *"Called on 304
   responses"*, zero callers. Decide restore-vs-retire as part of the same pass.
-- Mother Sands already serves conditional GETs correctly, so the canary is a ready-made
-  test surface (`data/canary/mother-sands-endpoint.py:71`).
+- Mother Sand already serves conditional GETs correctly, so the canary is a ready-made
+  test surface (`data/canary/mother-sand-endpoint.py:71`).
 
 **Why it matters beyond bandwidth.** The public/orientation docs want to answer the
 "you re-download everything every 10 minutes?" objection with *"we ask if it changed; a
@@ -440,7 +440,7 @@ Two candidate resolutions (pick when fresh):
 - **(a)** Keep Axis B's names but move it to the **bottom** of precedence (A and C win; B only shows when otherwise idle); null → neutral, not `dead`.
 - **(b)** Axis B stops emitting death words entirely — floor = `aging`; `dead`/`zombie` move to **Axis A** (reachability), the only signal we actually gather ourselves.
 
-Settle the doc (`docs/architecture/03-freshness-axes.md`) FIRST, then bring `computeAxisB` + `computeMarker` (`app.js:561, 590`) to match. Mother Sands HTTP-date side-issue is resolved (✅ `_to_iso_datetime` in pipeline.py, image rebuilt).
+Settle the doc (`docs/architecture/03-freshness-axes.md`) FIRST, then bring `computeAxisB` + `computeMarker` (`app.js:561, 590`) to match. Mother Sand HTTP-date side-issue is resolved (✅ `_to_iso_datetime` in pipeline.py, image rebuilt).
 
 ## Deferred: overlapping/stale directory sources — VOW & fabtafle profile-URLs as endpoints (2026-06-11)
 
@@ -491,7 +491,7 @@ This is the **core MoM problem**, not a quick fix: directory sources (VOW, fabta
 - **Registration flow does not call clean canary pipeline after rematerialization** —
   `_rematerialize_geojson()` is called at line 853 of `main.py` after a space registers.
   This overwrites `spaces.geojson` with the fat SPARQL shape (29 properties, `observed_at: None`)
-  for all spaces including Mother Sands. `_run_clean_canary_pipeline()` is only called from
+  for all spaces including Mother Sand. `_run_clean_canary_pipeline()` is only called from
   `_heartbeat_job()`, so the canary feature stays fat until the next 10-min heartbeat corrects it.
   **Story 3.9 must resolve this** by making `_rematerialize_geojson()` itself produce the clean
   shape (with `mom:observedAt` read from Oxigraph for all spaces) — at which point the canary
@@ -522,16 +522,16 @@ This is the **core MoM problem**, not a quick fix: directory sources (VOW, fabta
 - `owl:versionInfo "0.1"` with no `dcterms:created`/`dcterms:modified` in `core.ttl` — pre-existing pattern in `mom.ttl`; add provenance metadata when ontology is promoted to canonical repo
 - UTF-8 BOM not handled by `validate_crosswalk.py` — low risk for this git-tracked project; add `encoding="utf-8-sig"` if CSV editing outside of git-native tools is ever needed
 
-## Deferred from: Story 3.2 lore session (2026-05-06) — Mother Sands / Unit M canary space
+## Deferred from: Story 3.2 lore session (2026-05-06) — Mother Sand / Unit M canary space
 
 ### Concept
 A live canary makerspace used as operational proof-of-life for the full MOM backend. Appears on the public map as a real space — because it *is* real in all the ways that matter to the system. Two registers:
 
-- **Mother Sands** — public display name. The mythical eighth Maunsell sea fort that was never built. Pinned to a historically plausible gap in the Thames estuary arc between the Army group (Red Sands / Shivering Sands / Nore) and the Navy group further east.
+- **Mother Sand** — public display name. The mythical eighth Maunsell sea fort that was never built. Pinned to a historically plausible gap in the Thames estuary arc between the Army group (Red Sands / Shivering Sands / Nore) and the Navy group further east.
 - **Unit M** — operator callsign used in heartbeat logs, admin dashboard, and sprint docs. The "secret eighth fort" framing. Also the identity used for lifecycle-relocation: on each death/rebirth cycle, Unit M migrates to the next fort in the U2–U7 rotation (U1 / Roughs Tower is excluded — that's Sealand's platform; not our property to claim).
 
 ### Lore
-The Maunsell sea forts (1942–1945) were the first line of defence for the Thames estuary — anti-aircraft and naval gun platforms in international waters. In the 1960s they became pirate radio stations (Radio Caroline, Radio City, Radio Sutch): unauthorized signals of truth broadcast outside any official channel's permission. Mother Sands inherits both lineages. MOM's mission — an unofficial signal about what makerspaces *actually* are, outside any network's approved narrative — maps cleanly onto the pirate-radio metaphor. The "ask Mom" oracle feature extends it further: the fort is the thing you radio when you need an honest answer.
+The Maunsell sea forts (1942–1945) were the first line of defence for the Thames estuary — anti-aircraft and naval gun platforms in international waters. In the 1960s they became pirate radio stations (Radio Caroline, Radio City, Radio Sutch): unauthorized signals of truth broadcast outside any official channel's permission. Mother Sand inherits both lineages. MOM's mission — an unofficial signal about what makerspaces *actually* are, outside any network's approved narrative — maps cleanly onto the pirate-radio metaphor. The "ask Mom" oracle feature extends it further: the fort is the thing you radio when you need an honest answer.
 
 The space's declared specialties: AI systems, linked open data, geography/cartography, offshore engineering, pirate-radio history. Spirit: anarchist-creative, open-source, international-waters freedom-of-information. Vibe: second-hand offshore platform, solar-powered, satellite uplink, dry-erase ontology diagrams on the bulkhead walls.
 
@@ -547,7 +547,7 @@ The space's declared specialties: AI systems, linked open data, geography/cartog
   - U5 Nore: 51.4431° N, 0.7441° E
   - U6 Red Sands: 51.4656° N, 0.9725° E
   - U7 Shivering Sands: 51.5261° N, 1.0814° E
-  - (Mother Sands fixed home: approx. 51.60° N, 1.15° E — the gap in the arc)
+  - (Mother Sand fixed home: approx. 51.60° N, 1.15° E — the gap in the arc)
 - The `mom.mapsofmaking.org` subdomain can host the MOM explainer wiki alongside the SpaceAPI JSON endpoint. The space's website field points there; the wiki explains what MOM is and why the canary exists. → Coordinate with nginx/subdomain setup in Epic 4.
 
 ### Dependencies
@@ -721,12 +721,12 @@ Generating a real openfab.jsonld against the `space-jsonld-generator` skill expo
 
 - **Heartbeat sequential write bottleneck** — `run_heartbeat_cycle` fetches endpoints concurrently (seed_spaceapi.py uses concurrency=20) but writes to Oxigraph one SPARQL UPDATE per space, sequentially. With 197 SpaceAPI endpoints this runs visibly slow on manual trigger. Two complementary fixes: (1) batch Oxigraph writes into a single UPDATE per cycle, (2) process endpoint fetches concurrently using the same asyncio pattern already in `seed_spaceapi.py`. Meaningful refactor of `process_one_space` — worth its own story once pilot traffic justifies it. → Epic 5 / Pilot phase.
 
-## Deferred from: code review of 3-3-mother-sands-diagnostic-canary (2026-05-16)
+## Deferred from: code review of 3-3-mother-sand-diagnostic-canary (2026-05-16)
 
-- **`If-Modified-Since` header unused in canary endpoint** — `data/canary/mother-sands-endpoint.py`: clients without `If-None-Match` always get 200. Diagnostic tool only; ETag path covers production use.
-- **TOCTOU race on `SERVED_FILE.read_bytes()`** — `data/canary/mother-sands-endpoint.py`: `FileNotFoundError` if file deleted between exists-check and read. Low-probability in operator context.
-- **ETag mtime-only: sub-second collision** — `data/canary/mother-sands-endpoint.py`: two writes within same mtime tick produce colliding ETag. Operator workflow is slow manual steps; acceptable risk.
-- **`MODE=timeout` TCP connection FD leak** — `data/canary/mother-sands-endpoint.py`: 120-second hold without explicit close leaks FD in tight loops. Acceptable for diagnostic use.
+- **`If-Modified-Since` header unused in canary endpoint** — `data/canary/mother-sand-endpoint.py`: clients without `If-None-Match` always get 200. Diagnostic tool only; ETag path covers production use.
+- **TOCTOU race on `SERVED_FILE.read_bytes()`** — `data/canary/mother-sand-endpoint.py`: `FileNotFoundError` if file deleted between exists-check and read. Low-probability in operator context.
+- **ETag mtime-only: sub-second collision** — `data/canary/mother-sand-endpoint.py`: two writes within same mtime tick produce colliding ETag. Operator workflow is slow manual steps; acceptable risk.
+- **`MODE=timeout` TCP connection FD leak** — `data/canary/mother-sand-endpoint.py`: 120-second hold without explicit close leaks FD in tight loops. Acceptable for diagnostic use.
 - **Isolation test uses string assertion, not live ASK query** — `tests/test_canary_scenarios.py`: spec says "ASK query pattern"; hermetic CI has no live Oxigraph. ASK path covered by live coherence report layer.
 - **`CANARY_SPACE_ID="mother-sands"` hardcoded in coherence report** — mismatch risk if DB slug derivation differs. Verify during live operator poke before Epic 4.
 

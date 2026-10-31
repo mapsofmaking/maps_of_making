@@ -130,7 +130,7 @@ first wave of coordinator outreach has something to point at.
   not run yet.
 - **Logo-as-shortcut UI** — was the original quick-dev request that started the
   session; landed early as a small `web/app.js` + `maps-of-making.html` change
-  (logo `#logo-shortcut` opens Mother Sands).
+  (logo `#logo-shortcut` opens Mother Sand).
 
 ## Acceptance (retro-validated against live VPS)
 
@@ -142,7 +142,7 @@ first wave of coordinator outreach has something to point at.
    populates from VOW's structured addresses.
 4. Ko-Lab and other Cloudflare-fronted SpaceAPI endpoints heartbeat
    successfully under the new UA.
-5. Logo click opens the Mother Sands canary card.
+5. Logo click opens the Mother Sand canary card.
 6. `docs/host-your-space.md` and `docs/vps-operations.md` are present and
    self-contained.
 

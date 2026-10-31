@@ -223,9 +223,9 @@ def _free_port() -> int:
 
 @pytest.fixture
 def canary_endpoint():
-    """Launch data/canary/mother-sands-endpoint.py, allow MODE switching."""
+    """Launch data/canary/mother-sand-endpoint.py, allow MODE switching."""
     port = _free_port()
-    script = REPO_ROOT / "data" / "canary" / "mother-sands-endpoint.py"
+    script = REPO_ROOT / "data" / "canary" / "mother-sand-endpoint.py"
     assert script.exists(), f"canary endpoint missing: {script}"
 
     processes: list[subprocess.Popen] = []

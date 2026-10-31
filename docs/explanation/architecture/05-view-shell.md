@@ -91,6 +91,6 @@ input, and otherwise manage their own `state`.
 - **Filter status ≡ marker kind.** Any new status facet must route through `computeMarker` / the
   axes in [03](../../reference/freshness-axes.md) — never a parallel re-derivation.
 - **Palettes are surface-scoped.** The map's `:root` is not shared with `admin`/`genjson`/
-  `mothersands` (each owns its own; see [04](04-design-rules.md)). Don't merge them into one file
+  `mothersand` (each owns its own; see [04](04-design-rules.md)). Don't merge them into one file
   without renaming tokens — collisions would silently repaint. (Extraction to a shared `tokens.css`
   is an Epic-4 task, when admin reuses the map palette.)

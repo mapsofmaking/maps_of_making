@@ -22,13 +22,13 @@ _SCHEMA_NS = "https://schema.org/"
 
 # ── Shared test payloads ──────────────────────────────────────────────────────
 
-def _mother_sands_payload() -> dict:
+def _mother_sand_payload() -> dict:
     return {
         "api": "0.13",
         "api_compatibility": "15",
-        "space": "Mother Sands",
+        "space": "Mother Sand",
         "logo": "https://mapsofmaking.org/mother-sands-logo.png",
-        "url": "https://mothersands.example.org",
+        "url": "https://mothersand.example.org",
         "location": {
             "lat": 51.65,
             "lon": 1.7,
@@ -37,8 +37,8 @@ def _mother_sands_payload() -> dict:
             "timezone": "UTC+0",
         },
         "contact": {
-            "email": "bernard@mothersands.example.org",
-            "irc": "#mothersands",
+            "email": "bernard@mothersand.example.org",
+            "irc": "#mothersand",
         },
         "state": {"open": False, "lastchange": 1715000000},
         "ext_mom": {"canary": True, "simulatedAge": None},
@@ -92,42 +92,42 @@ def test_escape_literal_escapes_backslash():
     assert escape_literal("back\\slash") == '"back\\\\slash"'
 
 
-# ── extract_core: Mother Sands ────────────────────────────────────────────────
+# ── extract_core: Mother Sand ────────────────────────────────────────────────
 
-def test_extract_core_mother_sands_name():
-    assert extract_core(_mother_sands_payload())["schema:name"] == "Mother Sands"
+def test_extract_core_mother_sand_name():
+    assert extract_core(_mother_sand_payload())["schema:name"] == "Mother Sand"
 
 
-def test_extract_core_mother_sands_geo():
-    geo = extract_core(_mother_sands_payload())["schema:geo"]
+def test_extract_core_mother_sand_geo():
+    geo = extract_core(_mother_sand_payload())["schema:geo"]
     assert geo == {"lat": 51.65, "lon": 1.7}
 
 
-def test_extract_core_mother_sands_url():
-    assert extract_core(_mother_sands_payload())["schema:url"] == "https://mothersands.example.org"
+def test_extract_core_mother_sand_url():
+    assert extract_core(_mother_sand_payload())["schema:url"] == "https://mothersand.example.org"
 
 
-def test_extract_core_mother_sands_logo():
-    assert extract_core(_mother_sands_payload())["schema:logo"] == "https://mapsofmaking.org/mother-sands-logo.png"
+def test_extract_core_mother_sand_logo():
+    assert extract_core(_mother_sand_payload())["schema:logo"] == "https://mapsofmaking.org/mother-sands-logo.png"
 
 
-def test_extract_core_mother_sands_contact_json():
-    cj = extract_core(_mother_sands_payload()).get("schema:contactJson", "")
-    assert "bernard@mothersands.example.org" in cj
+def test_extract_core_mother_sand_contact_json():
+    cj = extract_core(_mother_sand_payload()).get("schema:contactJson", "")
+    assert "bernard@mothersand.example.org" in cj
 
 
-# ── extract_mom: Mother Sands ─────────────────────────────────────────────────
+# ── extract_mom: Mother Sand ─────────────────────────────────────────────────
 
-def test_extract_mom_mother_sands_address():
-    assert extract_mom(_mother_sands_payload())["mom:address"] == "Maunsell Fort, North Sea"
-
-
-def test_extract_mom_mother_sands_country_code():
-    assert extract_mom(_mother_sands_payload())["mom:countryCode"] == "sol-3"
+def test_extract_mom_mother_sand_address():
+    assert extract_mom(_mother_sand_payload())["mom:address"] == "Maunsell Fort, North Sea"
 
 
-def test_extract_mom_mother_sands_timezone():
-    assert extract_mom(_mother_sands_payload())["mom:timeZone"] == "UTC+0"
+def test_extract_mom_mother_sand_country_code():
+    assert extract_mom(_mother_sand_payload())["mom:countryCode"] == "sol-3"
+
+
+def test_extract_mom_mother_sand_timezone():
+    assert extract_mom(_mother_sand_payload())["mom:timeZone"] == "UTC+0"
 
 
 # ── extract_core: v15 full ────────────────────────────────────────────────────
@@ -187,7 +187,7 @@ def test_extract_mom_empty_payload():
 # ── Freshness predicates NEVER in extractor output (AC 8 final bullet) ────────
 
 @pytest.mark.parametrize("payload_fn", [
-    _mother_sands_payload, _v15_full_payload, _v14_minimal_payload,
+    _mother_sand_payload, _v15_full_payload, _v14_minimal_payload,
 ])
 def test_freshness_predicates_absent_from_extractors(payload_fn):
     p = payload_fn()
@@ -258,10 +258,10 @@ def test_triples_for_empty_geo_skipped():
     assert t == []
 
 
-# ── Round-trip: Mother Sands through full extractor + triples_for ─────────────
+# ── Round-trip: Mother Sand through full extractor + triples_for ─────────────
 
-def test_mother_sands_round_trip_address_and_country():
-    p = _mother_sands_payload()
+def test_mother_sand_round_trip_address_and_country():
+    p = _mother_sand_payload()
     core = extract_core(p)
     mom = extract_mom(p)
     all_triples = triples_for("urn:mak:canary/mother-sands", core) + \
@@ -270,7 +270,7 @@ def test_mother_sands_round_trip_address_and_country():
     assert "Maunsell Fort, North Sea" in triple_str
     assert "sol-3" in triple_str
     assert "UTC+0" in triple_str
-    assert "Mother Sands" in triple_str
+    assert "Mother Sand" in triple_str
 
 
 # ── parse_locality_from_free_address (city/tag search fix, project_spaceapi_missing_locality_knowsabout) ──

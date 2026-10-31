@@ -46,7 +46,7 @@ flowchart TD
 
     subgraph oxigraph ["Oxigraph named graphs"]
         ox_onto["urn:mak:ontology/mom\nurn:mak:ontology/iop\nload_ontology.sh"]
-        ox_canary["urn:mak:canary\nMother Sands diagnostic\nDROP+INSERT"]
+        ox_canary["urn:mak:canary\nMother Sand diagnostic\nDROP+INSERT"]
         ox_space["urn:mak:space/{slug}\nregistered spaces\nheartbeat · DROP+INSERT"]
         ox_ledger["urn:mak:public_ledger\nreserved · TBD IPFS-IPLD\nappend-only · never DROP"]
     end
@@ -110,7 +110,7 @@ During the transition **two pipelines run side by side**:
 
 | | Legacy pipeline | Clean snapshot pipeline |
 |---|---|---|
-| Serves | Registered spaces (`urn:mak:space/*`) | Mother Sands canary (`urn:mak:canary`) |
+| Serves | Registered spaces (`urn:mak:space/*`) | Mother Sand canary (`urn:mak:canary`) |
 | Fetch store | `heartbeat_log.db` (noisy — derived columns) | New clean snapshot store, keyed by UID |
 | Transform | `transformer.py` `_build_sparql_update` (fat) | Clean transform — copies `observed_at`, no re-stamp |
 | GeoJSON | Full-payload feature | Minimal feature — geoloc + UID + `observed_at` |

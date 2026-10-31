@@ -482,7 +482,7 @@ Per `feedback_integration_testing`: no mocking protocol surface. Tests must hit 
 - `test_seeded_fallback_offered_on_empty_confirmed` — mock returns 0 confirmed + 3 seeded; assert seeded note in response
 
 **Live integration test** (marked `@pytest.mark.live`):
-- `test_live_status_mother_sands` — requires Oxigraph running with mother-sands data; `!mom status` from mother-sands room returns non-empty lifecycle line
+- `test_live_status_mother_sand` — requires Oxigraph running with mother-sand data; `!mom status` from mother-sand room returns non-empty lifecycle line
 
 ---
 

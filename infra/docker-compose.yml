@@ -11,7 +11,7 @@ services:
   # ─────────────────────────────────────────────────────────────────
   # maps-web — the app's web server (Caddy, infra/web/Caddyfile).
   # Serves web/ (baked into the image), routes /api, /claim, /sparql and
-  # the admin login, and maps admin./genjson./mothersands. hosts to their
+  # the admin login, and maps admin./genjson./mothersand. hosts to their
   # sections. Joins the gateway network: the host's gateway sends every
   # Maps of Making hostname here, unchanged, and does TLS.
   # ─────────────────────────────────────────────────────────────────

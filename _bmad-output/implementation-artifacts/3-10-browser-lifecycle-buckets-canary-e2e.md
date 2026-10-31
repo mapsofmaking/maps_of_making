@@ -6,7 +6,7 @@ Status: done
 
 > **Epic 3.5 done-condition story.** This is the final story of Epic 3.5. When it closes, the
 > freshness propagation contract is demonstrably live: a stale endpoint visibly renders stale,
-> a fresh one renders confirmed — proven on the operator-controlled Mother Sands canary, not a
+> a fresh one renders confirmed — proven on the operator-controlled Mother Sand canary, not a
 > mock. This story also performs the **dead-code sweep**: every stored bucket/status field that
 > the browser now computes live is deleted from the pipeline (operator request 2026-05-19 —
 > "clean and lean, too much left-over").
@@ -79,7 +79,7 @@ bucket-computation paths.
    handler, chip filtering (`#chips-status`). No dead reference to a removed field remains.
 
 9. **Gating test `tests/test_canary_three_axis_e2e.py` passes** (`@pytest.mark.live_integration`,
-    full stack, operator-controlled Mother Sands canary):
+    full stack, operator-controlled Mother Sand canary):
     - Compress `thresholds` to seconds-scale values so axes move within the test.
     - Make the canary unreachable (`MODE=503` / `MODE=timeout`) → assert Axis A degrades to
       `broken` while Axis B is unaffected.
@@ -169,7 +169,7 @@ done-condition from false to true, demonstrably and live:
 
 > An operator loads the map; a space whose endpoint has stopped updating past the staleness
 > threshold visibly renders as **stale** (aging/zombie/dead), and a space still fetching fresh
-> renders **confirmed** — demonstrated live against the operator-controlled Mother Sands
+> renders **confirmed** — demonstrated live against the operator-controlled Mother Sand
 > canary, not a mock.
 
 Epic 3.5 test gate (both required, non-negotiable): (1) **real seams only** — no mocked
@@ -277,7 +277,7 @@ sweep (AC 7) must touch both or it breaks the contract.
 
 ### Canary control surface for the e2e test
 
-`data/canary/mother-sands-endpoint.py` — `MODE` env var injects HTTP behaviour:
+`data/canary/mother-sand-endpoint.py` — `MODE` env var injects HTTP behaviour:
 `ok` (default, 200 + JSON), `timeout` (accept, never reply), `404`, `503`. `PORT` defaults to
 `9191`. Drive Axis A by switching `MODE`. Drive Axis B by keeping `MODE=ok` with unchanged
 content across fetches (no diff → `updated_at` does not advance → age grows). Drive Axis C by
@@ -305,7 +305,7 @@ freshness *consumption* end and removes the dead bucket-computation code. Nothin
 - `scripts/materialize_geojson.py` — `binding_to_space` (drop hardcoded `status`),
   `_load_thresholds_from_config` (fail-loud fix)
 - `tests/test_canary_three_axis_e2e.py` — new gating test
-- `data/canary/mother-sands-endpoint.py` — canary control surface (no change, used by test)
+- `data/canary/mother-sand-endpoint.py` — canary control surface (no change, used by test)
 - `infra/link_handler/config.yaml` — threshold source (no change)
 
 ### Running the Stack
@@ -406,7 +406,7 @@ claude-opus-4-7 (Claude Code / bmad-dev-story)
 
 **Outstanding — operator confirmation required to close Epic 3.5**
 
-AC 11 (and Epic 3.5 test gate rule 2) requires Nicolas to load the map, drive the Mother Sands canary through unreachable / stale-content / closed states, and visually confirm the marker glyph and freshness text update live. A green pytest exit code alone is not done. This is the only AC not satisfied; the story is in `review` pending that demo. Suggested demo flow is documented in the story's "Running the Stack" section.
+AC 11 (and Epic 3.5 test gate rule 2) requires Nicolas to load the map, drive the Mother Sand canary through unreachable / stale-content / closed states, and visually confirm the marker glyph and freshness text update live. A green pytest exit code alone is not done. This is the only AC not satisfied; the story is in `review` pending that demo. Suggested demo flow is documented in the story's "Running the Stack" section.
 
 ### File List
 

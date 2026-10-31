@@ -328,7 +328,7 @@ re-running the wizard.
 
 **Bernard always says:**
 - What he knows first, then what he can't reach:
-  > *"Mother Sands is confirmed — last seen 4 hours ago. Your endpoint
+  > *"Mother Sand is confirmed — last seen 4 hours ago. Your endpoint
   > timed out just now; I'll try again on the next cycle."*
 
 - Why write is unavailable, with the exact path forward:

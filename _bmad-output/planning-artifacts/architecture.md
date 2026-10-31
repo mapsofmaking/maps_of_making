@@ -789,7 +789,7 @@ Three live graph families (`space`, `canary`, `public_ledger`) plus read-only on
 | Named graph | Owner | Contents |
 |---|---|---|
 | `<urn:mak:space/{id}>` | Ingestion pipeline (`infra/link_handler`) | Current space triples + tokens `mom:updatedAt`, `mom:lastOpenChange`, `mom:endpointUrl`. `{id}` = `sha256(name\|endpoint)[:12]` (Path A) or `name-slug-city-slug` (Path B) |
-| `<urn:mak:canary/{id}>` | Canary tools (`scripts/canary_*.py`) | Synthetic "Mother Sands" diagnostic space — isolated from real-space graphs |
+| `<urn:mak:canary/{id}>` | Canary tools (`scripts/canary_*.py`) | Synthetic "Mother Sand" diagnostic space — isolated from real-space graphs |
 | `<urn:mak:public_ledger>` | Ledger writer *(future epic)* | Append-only, immutable, IPFS/IPLD-anchored space life-events (registration, relocation, schema upgrade, `closed`, `dead`). Name + append-only principle locked 2026-05-16; event schema deferred. **Never DROP.** |
 | `<urn:mak:presence>` | Webhook handler *(Epic 7, parked)* | Ephemeral open-now signals — schema slot reserved, not implemented |
 | `<urn:mak:notifications>` | Dispatch worker *(Epic 4b, planned)* | Pending notification queue |
@@ -955,7 +955,7 @@ maps_of_making/                          # 🟢 live · 🟡 dormant (planned) �
 │   │   └── vow_workshops.json           # VOW seed reference
 │   ├── admin/index.html                 # operator dashboard (Epic 4)
 │   ├── genjson/                         # Bernard wizard / SpaceAPI composer (Epic 9) — index.html + genjson.js
-│   ├── mothersands/                     # MOM-as-a-space broadcast (Epic 8) — index.html + mothersands.js
+│   ├── mothersand/                     # MOM-as-a-space broadcast (Epic 8) — index.html + mothersand.js
 │   ├── canary/mother-sands.json         # served canary endpoint
 │   └── test-fixtures/                   # SpaceAPI/JSON-LD validation fixtures
 │
@@ -972,7 +972,7 @@ maps_of_making/                          # 🟢 live · 🟡 dormant (planned) �
 │   │   ├── Dockerfile · requirements.txt · conftest.py · test_*.py
 │   ├── nanobot-config/config.json       # 🟡 Nanobot agent config (Epic 6)
 │   ├── nginx/                           # 🟢 app-layer nginx (.htpasswd, conf.d)
-│   └── gateway-nginx/                   # 🟢 VPS gateway vhosts (06–09: map/admin/genjson/mothersands)
+│   └── gateway-nginx/                   # 🟢 VPS gateway vhosts (06–09: map/admin/genjson/mothersand)
 │
 ├── ontology/                            # 🟢 MOM vocabulary + IoP reference (working copies)
 │   ├── mom.ttl                          # canonical: mapsofmaking.org/ns/mom#
@@ -1046,7 +1046,7 @@ networks:
   internal: { driver: bridge }
 ```
 
-**Two-layer nginx:** `infra/nginx/` is the app-layer vhost inside this stack; `infra/gateway-nginx/` (06–09) are the VPS gateway vhosts for map/admin/genjson/mothersands. **Nanobot (Epic 6)** is deliberately a *separate* compose project (the `hkuds/nanobot` image is built from source, not embedded here) — kept isolated; its CronService + tasks join `maps_of_making_internal` when Epic 6 lands.
+**Two-layer nginx:** `infra/nginx/` is the app-layer vhost inside this stack; `infra/gateway-nginx/` (06–09) are the VPS gateway vhosts for map/admin/genjson/mothersand. **Nanobot (Epic 6)** is deliberately a *separate* compose project (the `hkuds/nanobot` image is built from source, not embedded here) — kept isolated; its CronService + tasks join `maps_of_making_internal` when Epic 6 lands.
 
 ---
 

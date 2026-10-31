@@ -10,7 +10,7 @@
 # mapsofmaking.org, the .com, a test subdomain and localhost:
 #   admin.*        → /admin/        (login)
 #   genjson.*      → /genjson/      (+ its /api/)
-#   mothersands.*  → /mothersands/
+#   mothersand.*  → /mothersand/
 #   anything else  → the map
 # =============================================================================
 
@@ -39,7 +39,7 @@
 
 	@admin_host expression {host}.startsWith("admin.")
 	@genjson_host expression {host}.startsWith("genjson.")
-	@mothersands_host expression {host}.startsWith("mothersands.")
+	@mothersand_host expression {host}.startsWith("mothersand.")
 
 	# ── Host → section ───────────────────────────────────────────────────────
 	# A section host shows its folder at its root. Top-level `rewrite` runs
@@ -48,7 +48,7 @@
 	# Not inside a `route` block: `route` sorts after `handle` and would
 	# never run.
 	rewrite @admin_host /admin{uri}
-	rewrite @mothersands_host /mothersands{uri}
+	rewrite @mothersand_host /mothersand{uri}
 	# genjson's page calls /api/ on its own host: keep that path as is.
 	@genjson_page {
 		expression {host}.startsWith("genjson.")
@@ -63,11 +63,11 @@
 		X-Frame-Options "SAMEORIGIN"
 		Content-Security-Policy "default-src 'self' 'unsafe-inline'"
 	}
-	header @mothersands_host {
+	header @mothersand_host {
 		X-Frame-Options "SAMEORIGIN"
 		Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval'"
 	}
-	@map_host not expression {host}.startsWith("admin.") || {host}.startsWith("genjson.") || {host}.startsWith("mothersands.")
+	@map_host not expression {host}.startsWith("admin.") || {host}.startsWith("genjson.") || {host}.startsWith("mothersand.")
 	header @map_host Content-Security-Policy "frame-ancestors *"
 
 	# ── Health check (compose healthcheck) ─────────────────────────────────
@@ -160,7 +160,7 @@
 		file_server
 	}
 
-	# ── Static files: the map, genjson, mothersands, data ──────────────────
+	# ── Static files: the map, genjson, mothersand, data ──────────────────
 	# Revalidate on every load (ETag → cheap 304), so a deployed fix or a new
 	# spaces.geojson reaches returning visitors without a hard refresh.
 	handle {

@@ -26,7 +26,7 @@ so that the four-tier schema is internally consistent before building Epic 9's w
 | **3** | `ext_X` | **Vertical** — silo-specific | `ext_canary.*` (was `ext_mom`), `ext_fab.*`, future `ext_*` |
 
 **Renames in this story:**
-- `ext_mom` → `ext_canary` (Mother-Sands-only canary control fields belong in a canary silo, not a "mom" silo)
+- `ext_mom` → `ext_canary` (Mother-Sand-only canary control fields belong in a canary silo, not a "mom" silo)
 - `ext_fab.sdgs` → `mom:sdgs` (SDGs are transversal across networks, not FabLab-specific)
 - `memberOf` stays in Tier 2 (`mom:memberOf`) — already correctly placed in extractor
 
@@ -153,7 +153,7 @@ After load_canary succeeds, trigger rematerialize and confirm canary pin appears
 curl -s http://localhost:8000/api/rematerialize
 ```
 
-The Mother Sands pin must appear on the map with correct name, position, and lifecycle marker. No regression in other map features.
+The Mother Sand pin must appear on the map with correct name, position, and lifecycle marker. No regression in other map features.
 
 ---
 

@@ -1,7 +1,7 @@
 """Gating test for Story 3.6 — walking skeleton end-to-end.
 
 Full-stack, live canary, real seams only:
-  1. Fetch the live Mother Sands canary endpoint.
+  1. Fetch the live Mother Sand canary endpoint.
   2. Read observed_at from the snapshot store → T.
   3. SPARQL-SELECT mom:observedAt from urn:mak:canary → assert == T exactly.
   4. Read canary feature's properties.observed_at from spaces.geojson → assert == T exactly.
@@ -75,7 +75,7 @@ def _materialize_canary_geojson(geojson_path: str, db_path: str) -> str:
         "properties": {
             "id": CANARY_UID,
             "uri": CANARY_SUBJECT,
-            "name": payload.get("space") or payload.get("name") or "Mother Sands",
+            "name": payload.get("space") or payload.get("name") or "Mother Sand",
             "observed_at": observed_at,
             "last_fetch_status": snap["fetch_status"],
         },

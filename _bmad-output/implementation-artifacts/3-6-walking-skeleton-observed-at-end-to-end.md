@@ -10,7 +10,7 @@ Status: done
 ## Story
 
 As the operator of the Maps of Making ingestion pipeline,
-I want a new, clean snapshot pipeline built end-to-end on the Mother Sands canary — `{payload + observed_at + UID}` minted at fetch, carried byte-identical through Oxigraph and a minimal GeoJSON to a live age in the browser — running *alongside* the existing pipeline,
+I want a new, clean snapshot pipeline built end-to-end on the Mother Sand canary — `{payload + observed_at + UID}` minted at fetch, carried byte-identical through Oxigraph and a minimal GeoJSON to a live age in the browser — running *alongside* the existing pipeline,
 so that the propagation contract is proven on day one against clean code rather than grafted onto the noisy `heartbeat_log` / fat-transformer pipeline, and Stories 3.7–3.10 migrate registered spaces onto a working clean target.
 
 ## Context
@@ -19,7 +19,7 @@ This is the **first story of Epic 3.5 — Freshness Propagation Contract** (`epi
 
 Epic 3 shipped a five-stage chain for one fact about a space — endpoint JSON → `heartbeat_log.db` (SQLite) → Oxigraph named graph → `web/data/spaces.geojson` → browser. Every retro bug lived at a *seam* where a stage stamped its own "now," and `heartbeat_log.db` accumulated independently-stamped derived columns (`last_fetched`, `last_content_updated`, `last_endpoint_health`, `last_lifecycle_state`, `is_closed`…). That is the retro-3 bug class.
 
-**Corrected approach (operator decision 2026-05-19, `sprint-change-proposal-2026-05-19.md`).** Earlier the plan was to carry a clean `observed_at` token through that *existing* pipeline. Operator review rejected it: building a clean token on a noisy foundation builds on noise. Story 3.6 instead builds a **new, clean snapshot pipeline alongside the existing one**, exercised on the Mother Sands canary only. The old `heartbeat_log` / transformer path is **not touched** and keeps serving registered spaces — zero regression risk during 3.6. Stories 3.7–3.10 then migrate registered spaces onto the clean path and *delete* the old code wholesale.
+**Corrected approach (operator decision 2026-05-19, `sprint-change-proposal-2026-05-19.md`).** Earlier the plan was to carry a clean `observed_at` token through that *existing* pipeline. Operator review rejected it: building a clean token on a noisy foundation builds on noise. Story 3.6 instead builds a **new, clean snapshot pipeline alongside the existing one**, exercised on the Mother Sand canary only. The old `heartbeat_log` / transformer path is **not touched** and keeps serving registered spaces — zero regression risk during 3.6. Stories 3.7–3.10 then migrate registered spaces onto the clean path and *delete* the old code wholesale.
 
 **The model — the snapshot is the unit.** A successful fetch of a reachable endpoint produces one **snapshot**: the JSON payload + the UTC instant it was observed (`observed_at`) + the space UID. The snapshot is the single source of truth; every lifecycle fact is *derived* from it, never independently stamped.
 
@@ -27,7 +27,7 @@ Epic 3 shipped a five-stage chain for one fact about a space — endpoint JSON �
 
 ## Acceptance Criteria
 
-1. **Snapshot minted once.** On a successful (HTTP 200) Mother Sands canary heartbeat fetch, one snapshot is created — JSON payload + `observed_at` (UTC ISO instant generated at fetch time) + space UID — and stored in the new clean snapshot store. `observed_at` is minted exactly once, here.
+1. **Snapshot minted once.** On a successful (HTTP 200) Mother Sand canary heartbeat fetch, one snapshot is created — JSON payload + `observed_at` (UTC ISO instant generated at fetch time) + space UID — and stored in the new clean snapshot store. `observed_at` is minted exactly once, here.
 2. **Clean store, not `heartbeat_log`.** The snapshot store is a new, dedicated store keyed by space UID. It does **not** add columns to `heartbeat_log.db`. Minimal fields only: UID, `observed_at`, payload, `etag`/`last_modified`.
 3. **Carried to Oxigraph.** The clean transform reads `observed_at` from the snapshot — never regenerates it — and writes a single `mom:observedAt` triple into the `urn:mak:canary` graph.
 4. **Carried to GeoJSON, minimal.** The canary feature in `web/data/spaces.geojson` carries only render-critical fields — geolocation, UID, `properties.observed_at`. `observed_at` is copied, not regenerated.
@@ -42,7 +42,7 @@ Epic 3 shipped a five-stage chain for one fact about a space — endpoint JSON �
 ## Gating Test — `test_observed_at_skeleton_e2e`
 
 Full-stack, live canary, **real seams only — no mocked snapshot store, no mocked Oxigraph, no mocked HTTP**:
-1. Run one clean fetch cycle against the live Mother Sands canary endpoint.
+1. Run one clean fetch cycle against the live Mother Sand canary endpoint.
 2. Read `observed_at` from the snapshot store row → call it `T`.
 3. SPARQL-SELECT `mom:observedAt` from `urn:mak:canary` → assert `== T` exactly.
 4. Read the canary feature's `properties.observed_at` from `spaces.geojson` → assert `== T` exactly.
@@ -82,7 +82,7 @@ Place the test in `infra/link_handler/` alongside the existing `test_*.py` suite
 
 | May shortcut in 3.6 | May NOT shortcut |
 |---|---|
-| One space only (Mother Sands canary) | Re-minting `observed_at` at any stage |
+| One space only (Mother Sand canary) | Re-minting `observed_at` at any stage |
 | Happy path only — HTTP 200 (304/unreachable = Story 3.7) | Letting the value drift between stages |
 | Raw age display, no buckets (buckets = Story 3.10) | Skipping any of the pipeline stages |
 | Crude `mom:observedAt` write, full hardening later | Mocking a seam in the gating test |

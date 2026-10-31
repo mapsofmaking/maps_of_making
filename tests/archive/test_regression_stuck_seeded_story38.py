@@ -5,7 +5,7 @@ but their freshness token is never written to Oxigraph, causing them to remain
 stuck in seeded state instead of transitioning to confirmed.
 
 Story 3.8: mom:lastUpdated replaced by mom:observedAt (snapshot-minted token).
-Tests use the Mother Sands diagnostic canary and live Oxigraph integration.
+Tests use the Mother Sand diagnostic canary and live Oxigraph integration.
 """
 import json
 import sqlite3
@@ -40,7 +40,7 @@ MOM = "https://mapsofmaking.org/ns/mom#"
 
 
 def _read_baseline() -> dict:
-    """Load Mother Sands baseline SpaceAPI payload."""
+    """Load Mother Sand baseline SpaceAPI payload."""
     return json.loads(BASELINE_FILE.read_text())
 
 
@@ -501,7 +501,7 @@ class TestHeartbeatLogState:
 
 
 class TestCanaryCoherence:
-    """Integration tests using the Mother Sands canary."""
+    """Integration tests using the Mother Sand canary."""
 
     def test_canary_payload_has_simulatedage(self):
         """Verify that the served.json canary payload includes simulatedAge for lifecycle testing."""

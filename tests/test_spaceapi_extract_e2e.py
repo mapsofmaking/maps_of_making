@@ -144,7 +144,7 @@ class TestMaterializerExposesMom:
     """AC 7: materializer SELECT now includes countryCode/timeZone; feature props exposed."""
 
     def test_materialize_geojson_includes_country_code_and_timezone(self, monkeypatch, tmp_path):
-        """Run the live materializer; check Mother Sands feature has country_code/timezone.
+        """Run the live materializer; check Mother Sand feature has country_code/timezone.
 
         Repointed 2026-07-01: scripts/materialize_geojson.py was deleted 2026-06-03
         (commit 6ddf9db, honest-inventory triage) as a hand-synced duplicate of the
@@ -180,9 +180,9 @@ class TestMaterializerExposesMom:
         canary_features = [
             f for f in features
             if "mother-sands" in f.get("properties", {}).get("uri", "").lower()
-            or "Mother Sands" in f.get("properties", {}).get("name", "")
+            or "Mother Sand" in f.get("properties", {}).get("name", "")
         ]
-        assert canary_features, "Mother Sands not found in materialized GeoJSON"
+        assert canary_features, "Mother Sand not found in materialized GeoJSON"
         props = canary_features[0]["properties"]
         assert "country_code" in props, "country_code key missing from feature properties"
         assert "timezone" in props, "timezone key missing from feature properties"
@@ -194,7 +194,7 @@ class TestHeartbeatWritePayloadFields:
     """AC 6: heartbeat write_payload_fields re-extracts address/contact/etc. on content_changed."""
 
     def test_write_payload_fields_writes_mom_address(self):
-        """write_payload_fields on a Mother Sands payload writes mom:address to test graph."""
+        """write_payload_fields on a Mother Sand payload writes mom:address to test graph."""
         import asyncio
         from pipeline import write_payload_fields
 

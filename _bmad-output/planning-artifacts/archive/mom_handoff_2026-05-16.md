@@ -1,4 +1,4 @@
-# Handoff Brief: Story 3.3 — Mother Sands Diagnostic Canary (Three-Axis Model)
+# Handoff Brief: Story 3.3 — Mother Sand Diagnostic Canary (Three-Axis Model)
 
 **Date:** 2026-05-16
 **From:** Nicolas + planning roundtable (party-mode: PM, Architect, Dev, UX, Analyst)
@@ -19,7 +19,7 @@ below states exactly what changed and what carries forward.
 |---|---|---|
 | Story 3.3 acceptance | "Canary must reproduce the production bug; `c-revive` resolves it" | The bug is the **motivation, not an AC**. An AC that depends on a bug existing cannot be completed once the bug is fixed. Bug is pinned by a separate regression test / root-cause story. |
 | Lifecycle model | Flat list (`seeded → confirmed → aging → zombie → dead`) | **Three orthogonal signal axes** (Reachability / Lifecycle freshness / Open-Close). The marker is resolved by `effective_marker()` from all three. |
-| Mother Sands serving | Static JSON file edited per scenario | **Programmable HTTP endpoint** with controllable serving modes. Axis-A faults (404/503/timeout) cannot be produced by editing JSON. |
+| Mother Sand serving | Static JSON file edited per scenario | **Programmable HTTP endpoint** with controllable serving modes. Axis-A faults (404/503/timeout) cannot be produced by editing JSON. |
 | Canary output | Implied pass/fail | **Per-layer coherence-diff report**, never a boolean. |
 | Makefile targets | Flat `c-*` list | **Axis-prefixed** targets (`canary-a-*`, `canary-b-*`, `canary-c-*`) + group runners. |
 | Third Oxigraph graph name | `tombstone` | Renamed `public_ledger` (append-only event ledger). `tombstone` survives only as a UI marker style. |
@@ -29,7 +29,7 @@ below states exactly what changed and what carries forward.
 
 - **Bernard — character bible** (pronouns, personality vector, voice guide, reference
   inspirations). Still valid. See 05-15 brief §"Bernard — character bible".
-- **Mother Sands lore** (8th never-built Maunsell fort, squatted-gap framing, U2–U7 fort
+- **Mother Sand lore** (8th never-built Maunsell fort, squatted-gap framing, U2–U7 fort
   rotation array with coordinates, salvage/dredge JSON content frame). See 05-15 §"Mother
   Sands — space concept".
 - **Hermit-crab biology** (zoea → megalopa → juvenile → adult, molt/shell-change cadence,
@@ -47,7 +47,7 @@ below states exactly what changed and what carries forward.
 
 ## TL;DR
 
-Story 3.3 builds the **Mother Sands diagnostic canary**: a programmable synthetic endpoint
+Story 3.3 builds the **Mother Sand diagnostic canary**: a programmable synthetic endpoint
 plus an operator harness that drives it through controlled state changes, **one signal axis
 at a time**, so that when the map shows something incoherent the operator can attribute the
 fault to a specific layer — MOM's pipeline vs. the space's own endpoint.
@@ -68,7 +68,7 @@ Three things to internalise:
 
 ### Single job
 
-> Give the MOM operator a programmatic way to drive the MOM-owned "Mother Sands" synthetic
+> Give the MOM operator a programmatic way to drive the MOM-owned "Mother Sand" synthetic
 > endpoint through controlled state changes, so that an incoherent map can be attributed to a
 > specific layer/axis.
 
@@ -264,15 +264,15 @@ The third Oxigraph named graph (was `tombstone` in the 05-15 brief) is **renamed
 
 | Component | Detail |
 |---|---|
-| **Mother Sands endpoint** | A **programmable HTTP endpoint**, not a static JSON file. Needs a controllable serving mode, e.g. `MODE=ok\|404\|503\|timeout`. Axis-A faults cannot be produced by editing JSON. |
-| **True canary path** | The **real MOM heartbeat** fetches the live Mother Sands endpoint — tests the real pipeline path. **Not** a direct store write. |
+| **Mother Sand endpoint** | A **programmable HTTP endpoint**, not a static JSON file. Needs a controllable serving mode, e.g. `MODE=ok\|404\|503\|timeout`. Axis-A faults cannot be produced by editing JSON. |
+| **True canary path** | The **real MOM heartbeat** fetches the live Mother Sand endpoint — tests the real pipeline path. **Not** a direct store write. |
 | **`effective_marker()` as oracle** | Inject a known `(health, lifecycle, open)` triple; assert the resolved public marker `== effective_marker(health, lifecycle, open)`. |
-| **`c-reset` baseline** | A single canonical `data/canary/baseline.json` checked into git (healthy + confirmed + open Mother Sands). `c-reset` copies it over the live served file. Every scenario = baseline + one mutation. |
+| **`c-reset` baseline** | A single canonical `data/canary/baseline.json` checked into git (healthy + confirmed + open Mother Sand). `c-reset` copies it over the live served file. Every scenario = baseline + one mutation. |
 | **`heartbeat_log.db`** | Already persists `last_endpoint_health` and `last_lifecycle_state`. **ADD** `last_open_now` and `last_effective_marker` so the coherence report is a clean 3-column diff (injected / stored / rendered). |
 | **Named graph isolation** | Canary data lives in its own graph `<urn:mak:canary>`, isolated from real-space graphs. Include a SPARQL `ASK` isolation test proving no canary triples leak into production queries. |
 | **`simulatedAge` seam** | The lifecycle injection seam must **override the classifier INPUT** (inject a synthetic last-update), **never** add an `if canary:` branch inside the classifier. |
 
-### Mother Sands has a dual identity
+### Mother Sand has a dual identity
 
 - **(a) Synthetic diagnostic canary** — **Story 3.3 scope.**
 - **(b) MOM's own "broadcast" rig / comms platform** — conveys real info about MOM state, new
@@ -280,7 +280,7 @@ The third Oxigraph named graph (was `tombstone` in the 05-15 brief) is **renamed
 
 Story 3.3 ships **one** truthfulness requirement here: an honest **"synthetic reference
 space"** label in the drawer (one line). The broadcast *content* is Epic 8. ("Broadcast" +
-the pirate-radio vibe matches the Mother Sands sea-fort lore.)
+the pirate-radio vibe matches the Mother Sand sea-fort lore.)
 
 ### Scenario library — Option A (code-defined pure functions)
 
@@ -360,7 +360,7 @@ make canary-axis-c
 make canary-all
 
 # Lifecycle utilities
-make canary-reset                # restore Mother Sands to baseline.json
+make canary-reset                # restore Mother Sand to baseline.json
 make canary-demo-cycle           # thin recipe chaining scenarios across a lifecycle
 ```
 
@@ -379,7 +379,7 @@ make canary-demo-cycle           # thin recipe chaining scenarios across a lifec
 | `mom.ttl` / `effective_marker` drift fix | **Pre-3.3 cleanup story** (decided — split out, done before 3.3) |
 | Persisted/replayable scenario library (Option B) | **Epic 4+**, only if needed |
 | Axis C opt-out UX — `openingHours` CTA, "no live status" tag, events-feed liveness derivation | **Epic 5** (add backlog placeholder: "Axis C: liveliness sovereignty & opt-out UX") |
-| Mother Sands as broadcast rig — changelog, feature comms, lore content, website, Bernard activation, time-bubble ambient demo | **Epic 8** (parallel, non-critical-path) |
+| Mother Sand as broadcast rig — changelog, feature comms, lore content, website, Bernard activation, time-bubble ambient demo | **Epic 8** (parallel, non-critical-path) |
 | Event schema, IPFS pinning mechanics, minting authority, relocation UX flow | **Dedicated future "public ledger / relocation" Epic** |
 
 ---
@@ -405,7 +405,7 @@ These are **not re-derived here**. They remain authoritative as written in
 | Section | Where (05-15 brief) | Status |
 |---|---|---|
 | Bernard — character bible (pronouns, personality vector, voice guide, references) | §"Bernard — character bible" | Valid — Epic 8 input |
-| Mother Sands lore (8th never-built fort, squatted gap, U2–U7 rotation array, salvage frame) | §"Mother Sands — space concept" | Valid — Epic 8 input |
+| Mother Sand lore (8th never-built fort, squatted gap, U2–U7 rotation array, salvage frame) | §"Mother Sand — space concept" | Valid — Epic 8 input |
 | Hermit-crab biology (zoea → megalopa → juvenile → adult, molt/shell cadence) | §"Hermit crab lifecycle → MOM mechanics map" | Valid — Epic 8 input |
 | `mom_lore.md` skeleton | §"`mom_lore.md` skeleton" | Valid — Epic 8 scaffold target |
 | Epic 8 — MOM as Living Space | §"Epic 8 — MOM as Living Space" | Valid — parallel, non-critical-path |

@@ -150,7 +150,7 @@ violated P2. **This is now fixed (9.12).**
 **BUILT (9.12) — Bernard discovers your space with you:**
 
 ```
-   — Hi, I'm Bernard (they/them) from 'Mother Sands'.        ← shows ~2s, then recedes
+   — Hi, I'm Bernard (they/them) from 'Mother Sand'.        ← shows ~2s, then recedes
      Let's get your space on the map.                           and Tier 0 slides in
    ─────────────────────────────────────────────────────
 
@@ -192,7 +192,7 @@ a *threshold*, not the lair. Grounded in Bernard's hermit-crab vision (blue/yell
 red** — bernard-bible §1):
 
 - **Base = liminal dusk** (deep blue-green dark), **not** pitch fort-black. The workshop is the
-  **border crossing** between the bright MoM map and Mother Sands (the lair — reserved for Epic 8
+  **border crossing** between the bright MoM map and Mother Sand (the lair — reserved for Epic 8
   lore). It reads as an antechamber, not the inner sanctum.
 - **Amber / brass** (yellow band — Lagavulin, lamplight): Bernard's voice, warmth, **primary CTA**.
 - **Blue** (in-spectrum; rhymes with the drawer's cobalt + water): **links / navigation**.

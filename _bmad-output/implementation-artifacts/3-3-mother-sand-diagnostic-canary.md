@@ -1,11 +1,11 @@
-# Story 3.3: Mother Sands Diagnostic Canary
+# Story 3.3: Mother Sand Diagnostic Canary
 
 Status: done
 
 ## Story
 
 As MOM (operator),
-I want a programmatic way to drive a MOM-owned synthetic endpoint ("Mother Sands") through controlled states on each of the three signal axes,
+I want a programmatic way to drive a MOM-owned synthetic endpoint ("Mother Sand") through controlled states on each of the three signal axes,
 so that when the public map shows something incoherent I can attribute the fault to a specific layer — MOM's pipeline vs the space's own endpoint — instead of guessing.
 
 ## Acceptance Criteria
@@ -39,7 +39,7 @@ Every space's public marker is resolved by `effective_marker()` from **three ind
 ### Axis A — Reachability
 
 **Given** the operator runs `make canary-a-reachable`, `make canary-a-timeout`, `make canary-a-dns-fail`, or `make canary-a-http-error`
-**When** the real heartbeat fetches Mother Sands
+**When** the real heartbeat fetches Mother Sand
 **Then** the endpoint serves the injected HTTP behavior and `classify_endpoint_health()` resolves to the expected rung
 
 **And** a scenario where the last successful fetch was older than `heartbeat_period × warning_multiplier` (e.g., "fetched 15 min ago; period=10min; multiplier=1.5") resolves health to `warning` regardless of body validity
@@ -51,7 +51,7 @@ Every space's public marker is resolved by `effective_marker()` from **three ind
 ### Axis B — Lifecycle Freshness
 
 **Given** the operator runs `make canary-b-seeded`, `make canary-b-confirmed`, `make canary-b-aging`, `make canary-b-zombie`, or `make canary-b-closed`
-**When** the real heartbeat fetches Mother Sands and the transformer classifies lifecycle
+**When** the real heartbeat fetches Mother Sand and the transformer classifies lifecycle
 **Then** the lifecycle state resolves to the expected value per the injected days-since-update (via `simulatedAge` seam, not an `if canary:` branch)
 
 **And** a fetch whose only delta from the previous snapshot is a `sensors.*` field change does NOT advance the lifecycle last-update timestamp (field-scoped diff test)
@@ -67,7 +67,7 @@ Every space's public marker is resolved by `effective_marker()` from **three ind
 ### Axis C — Open/Close Boolean
 
 **Given** the operator runs `make canary-c-openclose-open` or `make canary-c-openclose-shut`
-**When** the real heartbeat fetches the Mother Sands endpoint
+**When** the real heartbeat fetches the Mother Sand endpoint
 **Then** the `openNow` boolean propagates end-to-end: injected → `heartbeat_log.db` → Oxigraph → rendered card open/closed pill
 
 **And** a scenario with **no `open` field** in the SpaceAPI payload does not break the pipeline and does not produce a false "closed" — absence reads as "no live signal"
@@ -84,7 +84,7 @@ Every space's public marker is resolved by `effective_marker()` from **three ind
 
 ```
 1. Baseline: expected state from injected triple
-2. Endpoint file: what Mother Sands endpoint served
+2. Endpoint file: what Mother Sand endpoint served
 3. Heartbeat record: what heartbeat_log.db persisted (endpoint_health, lifecycle_state, open_now, last_effective_marker)
 4. Oxigraph: what the SPARQL query returned (mom:operationalState, mom:dynamicState, resolved marker in GeoJSON)
 5. Rendered card: what the frontend renders (status pill, "updated X ago", "fetched Y ago", open/closed pill)
@@ -109,7 +109,7 @@ Each row shows: injected value → stored value → rendered value. The report *
 ### Baseline & Reset
 
 **Given** the repository is cloned and `make canary-reset` is run
-**When** the operator queries Mother Sands
+**When** the operator queries Mother Sand
 **Then** the endpoint serves the canonical baseline (`data/canary/baseline.json`): healthy + confirmed + open, matching SpaceAPI v15 schema with `space`, `logo`, `url`, `contact`, `location.lat/lon` populated
 
 **And** every scenario is baseline + one mutation. Baseline is checked into git and never mutated directly.
@@ -177,10 +177,10 @@ make canary-demo-cycle
 
 ### Truthfulness Requirement
 
-**Given** Mother Sands appears on the public map
+**Given** Mother Sand appears on the public map
 **Then** its drawer carries an honest **"Synthetic reference space"** label (one line) explaining it is a diagnostic instrument. The broadcast *content*, lore, persona, and website are Epic 8 — not this story.
 
-**And** the drawer states the purpose: *"Mother Sands is MOM's diagnostic canary — a reference space we control to test our own data pipeline."*
+**And** the drawer states the purpose: *"Mother Sand is MOM's diagnostic canary — a reference space we control to test our own data pipeline."*
 
 ---
 
@@ -197,9 +197,9 @@ make canary-demo-cycle
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Mother Sands endpoint — programmable HTTP server (AC: Axis A injections, safe write protocol)
+- [x] Task 1: Mother Sand endpoint — programmable HTTP server (AC: Axis A injections, safe write protocol)
   - [x] Create `data/canary/baseline.json` — SpaceAPI v15 canonical baseline (healthy + confirmed + open) with space, logo, url, contact, location.lat/lon
-  - [x] Create `data/canary/mother-sands-endpoint.py` — a lightweight HTTP server (Flask or stdlib) that serves the file + supports controllable HTTP behavior (`MODE=ok|timeout|404|503`)
+  - [x] Create `data/canary/mother-sand-endpoint.py` — a lightweight HTTP server (Flask or stdlib) that serves the file + supports controllable HTTP behavior (`MODE=ok|timeout|404|503`)
   - [x] Implement safe write protocol: temp file → fsync → atomic os.rename → invalidate ETag/Last-Modified in `heartbeat_log.db` for that URL
   - [x] Document the endpoint in `docs/canary-setup.md` (how to start it, what it serves, how injection works)
 
@@ -245,8 +245,8 @@ make canary-demo-cycle
   - [x] No event schema implementation (deferred to future epic)
 
 - [x] Task 9: Truthfulness label + documentation (AC: drawer copy, documentation of diagnostic intent)
-  - [x] Mother Sands drawer: add "Synthetic reference space — MOM diagnostic canary" label + one-line purpose (app.js, conditional on `s.id === 'mother-sands'`)
-  - [x] Create `docs/mother-sands-concept.md` (Epic 8 will expand this to full broadcast/lore content) — this story documents the diagnostic intent only
+  - [x] Mother Sand drawer: add "Synthetic reference space — MOM diagnostic canary" label + one-line purpose (app.js, conditional on `s.id === 'mother-sands'`)
+  - [x] Create `docs/mother-sand-concept.md` (Epic 8 will expand this to full broadcast/lore content) — this story documents the diagnostic intent only
   - [x] Clarify in comments: Bernard activation, broadcast content, website, time-bubble demo = Epic 8 (not this story)
 
 - [x] Task 10: Regression suite — all transformer tests still pass (AC: no regression)
@@ -261,7 +261,7 @@ make canary-demo-cycle
 
 **This is a diagnostic instrument story.** The goal is to give the MOM operator a **programmable way to drive all three signal axes independently** so that when the map shows something incoherent, the operator can narrow down whether the fault is in the endpoint, MOM's pipeline, or the frontend. **It is not a bug-fix story.** The production bug (stuck-`seeded`) is the motivation; the actual root cause + fix lives in Story 3.4, which comes after 3.3 builds the diagnostic tools.
 
-**Epic 8 owns the storytelling/broadcast/lore side.** Mother Sands is a true sea fort (Maunsell sea fort concept, never-built eighth fort, squatted-gap framing) with a persona (Bernard, pronouns they/them) and a broadcast rig (changelog, feature comms, website). **That is not this story.** This story builds the technical canary instrument; Epic 8 dresses it in lore.
+**Epic 8 owns the storytelling/broadcast/lore side.** Mother Sand is a true sea fort (Maunsell sea fort concept, never-built eighth fort, squatted-gap framing) with a persona (Bernard, pronouns they/them) and a broadcast rig (changelog, feature comms, website). **That is not this story.** This story builds the technical canary instrument; Epic 8 dresses it in lore.
 
 **Story 3.2c (lifecycle vocabulary drift fix) must land before this story.** This story depends on the ontology/code alignment being correct.
 
@@ -297,23 +297,23 @@ Every space's marker is resolved by `effective_marker(endpoint_health, lifecycle
 | `infra/link_handler/transformer.py` | No change — existing `effective_marker()` is correct | Returns one resolved marker given three inputs; lifecycle supersedes endpoint health |
 | `infra/link_handler/test_transformer.py` | ADD tests for canary scenarios | Existing 71 tests must stay green |
 | `heartbeat_log.db` schema | ADD `last_open_now`, `last_effective_marker` columns | Currently tracks `endpoint_health`, `lifecycle_state`; add two more for coherence report |
-| (NEW) `data/canary/baseline.json` | Create canonical baseline | Healthy + confirmed + open Mother Sands, SpaceAPI v15 shape |
-| (NEW) `data/canary/mother-sands-endpoint.py` | Create HTTP server | Serves baseline.json or scenario payload; MODE env var controls HTTP behavior |
+| (NEW) `data/canary/baseline.json` | Create canonical baseline | Healthy + confirmed + open Mother Sand, SpaceAPI v15 shape |
+| (NEW) `data/canary/mother-sand-endpoint.py` | Create HTTP server | Serves baseline.json or scenario payload; MODE env var controls HTTP behavior |
 | (NEW) `scripts/canary_scenarios.py` | Create scenario functions | Pure functions: each returns payload + optional HTTP overrides; docstring contract (INJECT/STATE/EXPECT MARKER/EXPECT CARD) |
 | (NEW) `scripts/canary_coherence_report.py` | Create report generator | Query four layers; flag divergences; integrate with Makefile |
 | (NEW) `Makefile` | ADD canary targets | `canary-a-*`, `canary-b-*`, `canary-c-*`, group runners, utilities |
 | (NEW) `tests/test_canary_scenarios.py` | Create hermetic test suite | Parametrized, mocked, CI-runnable; includes regression-pin test |
 | (NEW) `docs/canary-setup.md` | Create endpoint setup docs | How to start the endpoint, what it serves, how injection works |
 | (NEW) `docs/canary-operator-runbook.md` | Create manual poke-loop guide | Step-by-step: run scenario, check live map, verify card |
-| (NEW) `docs/mother-sands-concept.md` | Create concept doc | Diagnostic intent; lore/broadcast/website deferred to Epic 8 |
+| (NEW) `docs/mother-sand-concept.md` | Create concept doc | Diagnostic intent; lore/broadcast/website deferred to Epic 8 |
 
 ---
 
 ### Safe Write Protocol (Non-Negotiable)
 
-The canary mutates the Mother Sands JSON file in a way that is safe under concurrent heartbeat fetches. **Do this exactly:**
+The canary mutates the Mother Sand JSON file in a way that is safe under concurrent heartbeat fetches. **Do this exactly:**
 
-1. Write scenario payload to a **temp file** (e.g., `/tmp/mother-sands-new-XXXX.json`)
+1. Write scenario payload to a **temp file** (e.g., `/tmp/mother-sand-new-XXXX.json`)
 2. **`fsync`** the temp file to ensure it hits disk
 3. **Atomic `os.rename`** the temp file over the live served file (`data/canary/served.json`)
 4. **Immediately invalidate the ETag/Last-Modified for that URL in `heartbeat_log.db`** — delete the cached ETag row so the next fetch is not served a stale 304
@@ -382,7 +382,7 @@ Current `effective_marker()` logic (from transformer.py:157):
 ### Baseline & Scenarios
 
 **Baseline** (`data/canary/baseline.json`):
-- Canonical healthy + confirmed + open Mother Sands
+- Canonical healthy + confirmed + open Mother Sand
 - SpaceAPI v15 shape: `api_compatibility: ["14", "15"]`, `space`, `logo`, `url`, `contact`, `location: {lat, lon}`
 - Checked into git; never mutated directly
 - `make canary-reset` restores from it
@@ -458,10 +458,10 @@ Create a test case that reproduces the stuck-`seeded` bug: directory-imported sp
 
 ### References
 
-- [Source: _bmad-output/planning-artifacts/epics.md#Story 3.3: Mother Sands Diagnostic Canary]
+- [Source: _bmad-output/planning-artifacts/epics.md#Story 3.3: Mother Sand Diagnostic Canary]
 - [Source: _bmad-output/planning-artifacts/mom_handoff_2026-05-16.md] — **Authoritative. Full design record. Read it in full before starting.**
 - [Source: _bmad-output/planning-artifacts/mom_handoff_2026-05-15.md#Bernard — character bible] — Bernard persona (pronouns, voice, reference inspirations); Epic 8 owns activation
-- [Source: _bmad-output/planning-artifacts/mom_handoff_2026-05-15.md#Mother Sands — space concept] — Maunsell sea fort lore; Epic 8 owns storytelling
+- [Source: _bmad-output/planning-artifacts/mom_handoff_2026-05-15.md#Mother Sand — space concept] — Maunsell sea fort lore; Epic 8 owns storytelling
 - [Source: infra/link_handler/transformer.py#effective_marker (line 157), #classify_endpoint_health (line 103), #classify_lifecycle (line 130)]
 - [Source: infra/link_handler/test_transformer.py] — 71 existing tests; canary tests are new parametrized additions
 
@@ -480,7 +480,7 @@ claude-sonnet-4-6
 
 ### Completion Notes List
 
-- **Three-axis diagnostic instrument**: Mother Sands endpoint programmable via MODE env var (Axis A) and `simulatedAge`/payload mutations (Axis B/C)
+- **Three-axis diagnostic instrument**: Mother Sand endpoint programmable via MODE env var (Axis A) and `simulatedAge`/payload mutations (Axis B/C)
 - **Safe write protocol**: temp→fsync→atomic rename→ETag invalidation — implemented in `scripts/canary_scenarios.py:apply_scenario()`
 - **Shared field-scoped diff**: `has_meaningful_change()` added to transformer.py wraps existing `detect_diff()`; excludes sensors/extensions; includes open-flip; single definition, two callers (transformer + tests)
 - **Heartbeat log schema**: two new columns (`last_open_now`, `last_effective_marker`) added with backward-compat ALTER TABLE migration; all three write paths (304, error, 200-success) updated
@@ -492,21 +492,21 @@ claude-sonnet-4-6
 ### File List
 
 - `data/canary/baseline.json` — NEW: SpaceAPI v15 canonical baseline (healthy + confirmed + open)
-- `data/canary/mother-sands-endpoint.py` — NEW: programmable HTTP server (MODE env var)
+- `data/canary/mother-sand-endpoint.py` — NEW: programmable HTTP server (MODE env var)
 - `scripts/canary_scenarios.py` — NEW: pure scenario functions + apply_scenario() with safe write protocol
 - `scripts/canary_coherence_report.py` — NEW: four-layer coherence-diff report
 - `tests/test_canary_scenarios.py` — NEW: 49 hermetic tests + 1 xfail regression pin
 - `docs/canary-setup.md` — NEW: endpoint setup guide
 - `docs/canary-operator-runbook.md` — NEW: manual poke-loop guide
-- `docs/mother-sands-concept.md` — NEW: diagnostic intent + public_ledger stub documentation
+- `docs/mother-sand-concept.md` — NEW: diagnostic intent + public_ledger stub documentation
 - `infra/link_handler/transformer.py` — MODIFIED: added `has_meaningful_change()`, `last_open_now`/`last_effective_marker` schema columns + migration, all three write paths updated
 - `Makefile` — MODIFIED: added all canary targets (a/b/c axes, group runners, utilities)
-- `web/app.js` — MODIFIED: added truthfulness label for Mother Sands drawer (conditional on `s.id === 'mother-sands'`)
+- `web/app.js` — MODIFIED: added truthfulness label for Mother Sand drawer (conditional on `s.id === 'mother-sands'`)
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — MODIFIED: 3-3 → review
 
 ### Change Log
 
-- 2026-05-16: Story 3.3 implemented — Mother Sands Diagnostic Canary complete
+- 2026-05-16: Story 3.3 implemented — Mother Sand Diagnostic Canary complete
 
 ---
 
@@ -514,7 +514,7 @@ claude-sonnet-4-6
 
 ### Decision Needed
 
-- [x] [Review][Decision] Canary named graph routing gap — resolved: option 1, transformer routes mother-sands to urn:mak:canary — `canary_coherence_report.py:read_oxigraph()` queries `GRAPH <urn:mak:canary>` but no code in transformer.py routes Mother Sands writes to that graph (it would write to `urn:mak:space/mother-sands` like any other space). Layer 3 of the coherence report will always show "not seeded". **Options:** (a) transformer detects canary space_id and routes writes to `<urn:mak:canary>`, (b) separate seed step writes Mother Sands directly to `<urn:mak:canary>`, (c) coherence report queries `urn:mak:space/mother-sands` instead — AC5/AC4
+- [x] [Review][Decision] Canary named graph routing gap — resolved: option 1, transformer routes mother-sand to urn:mak:canary — `canary_coherence_report.py:read_oxigraph()` queries `GRAPH <urn:mak:canary>` but no code in transformer.py routes Mother Sand writes to that graph (it would write to `urn:mak:space/mother-sands` like any other space). Layer 3 of the coherence report will always show "not seeded". **Options:** (a) transformer detects canary space_id and routes writes to `<urn:mak:canary>`, (b) separate seed step writes Mother Sand directly to `<urn:mak:canary>`, (c) coherence report queries `urn:mak:space/mother-sands` instead — AC5/AC4
 
 ### Patch
 
@@ -528,9 +528,9 @@ claude-sonnet-4-6
 
 ### Defer
 
-- [x] [Review][Defer] `If-Modified-Since` header read but never evaluated — clients without `If-None-Match` always get 200 [data/canary/mother-sands-endpoint.py:71] — deferred, diagnostic tool only; ETag path covers production use
-- [x] [Review][Defer] `SERVED_FILE.read_bytes()` TOCTOU race — FileNotFoundError propagates unhandled if file deleted between exists-check and read [data/canary/mother-sands-endpoint.py:68] — deferred, low-probability in operator context
-- [x] [Review][Defer] ETag computed from mtime only — sub-second double-write produces colliding ETag [data/canary/mother-sands-endpoint.py:~200] — deferred, diagnostic tool; operator workflow is slow manual steps
-- [x] [Review][Defer] `MODE=timeout` holds TCP connection 120s without explicit close — potential FD leak in tight test loops [data/canary/mother-sands-endpoint.py:~215] — deferred, acceptable for diagnostic use
+- [x] [Review][Defer] `If-Modified-Since` header read but never evaluated — clients without `If-None-Match` always get 200 [data/canary/mother-sand-endpoint.py:71] — deferred, diagnostic tool only; ETag path covers production use
+- [x] [Review][Defer] `SERVED_FILE.read_bytes()` TOCTOU race — FileNotFoundError propagates unhandled if file deleted between exists-check and read [data/canary/mother-sand-endpoint.py:68] — deferred, low-probability in operator context
+- [x] [Review][Defer] ETag computed from mtime only — sub-second double-write produces colliding ETag [data/canary/mother-sand-endpoint.py:~200] — deferred, diagnostic tool; operator workflow is slow manual steps
+- [x] [Review][Defer] `MODE=timeout` holds TCP connection 120s without explicit close — potential FD leak in tight test loops [data/canary/mother-sand-endpoint.py:~215] — deferred, acceptable for diagnostic use
 - [x] [Review][Defer] Isolation test uses structural string assertion not live SPARQL ASK query — spec says "ASK query pattern" [tests/test_canary_scenarios.py:~1622] — deferred; hermetic CI has no live Oxigraph; ASK path covered by coherence report live layer
 - [x] [Review][Defer] `CANARY_SPACE_ID="mother-sands"` hardcoded in coherence report — slug mismatch if DB uses different derivation [scripts/canary_coherence_report.py:783] — deferred, low risk if naming stays consistent; verify during live operator poke

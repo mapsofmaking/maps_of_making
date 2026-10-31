@@ -10,7 +10,7 @@ so that the noisy `heartbeat_log.db` columns this data has polluted since Epic 3
 
 ## Context
 
-Story 3.6 proved the propagation contract on the Mother Sands canary via a walking skeleton (`canary_pipeline.py`, `snapshot_store.py`). The old `heartbeat_log` / transformer path for registered spaces was deliberately untouched.
+Story 3.6 proved the propagation contract on the Mother Sand canary via a walking skeleton (`canary_pipeline.py`, `snapshot_store.py`). The old `heartbeat_log` / transformer path for registered spaces was deliberately untouched.
 
 Story 3.7 is the **fetch-seam migration**: every registered-space heartbeat fetch now goes through a new `space_pipeline.py` (analogous to `canary_pipeline.py`) that writes to the snapshot store and enforces the `observed_at` rules for all three HTTP outcomes. After this story, five columns in `heartbeat_log.db` that tracked fetch timing are deleted — replaced by the snapshot store.
 

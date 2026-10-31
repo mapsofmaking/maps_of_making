@@ -408,8 +408,8 @@ Originally a webhook-driven presence layer. As of Story 3.2, the heartbeat polls
 
 ---
 
-### Epic 8: MOM as a Living Space — Mother Sands Broadcast Rig *(parallel, non-blocking; post-demo)*
-Mother Sands stops being only a diagnostic canary (Story 3.3) and becomes MOM's self-representation on its own map: a public website at `mom.mapsofmaking.org`, a wiki/lore page, Bernard the hermit-crab admin persona, a curated changelog/feature "broadcast", and relocation/fort-rotation as ambient narrative. Parallel to Epic 5 polish; not on the demo critical path. Stub only — stories created post-demo. Design seeds: `mom_handoff_2026-05-16.md`, `mom_handoff_2026-05-15.md` (Bernard character bible, lore skeleton).
+### Epic 8: MOM as a Living Space — Mother Sand Broadcast Rig *(parallel, non-blocking; post-demo)*
+Mother Sand stops being only a diagnostic canary (Story 3.3) and becomes MOM's self-representation on its own map: a public website at `mom.mapsofmaking.org`, a wiki/lore page, Bernard the hermit-crab admin persona, a curated changelog/feature "broadcast", and relocation/fort-rotation as ambient narrative. Parallel to Epic 5 polish; not on the demo critical path. Stub only — stories created post-demo. Design seeds: `mom_handoff_2026-05-16.md`, `mom_handoff_2026-05-15.md` (Bernard character bible, lore skeleton).
 
 ### Epic 9: Bernard's Workshop — Assisted SpaceAPI JSON Composer *(parallel, post-C.X; post-demo non-blocker)*
 Assisted SpaceAPI JSON composer at `genjson.mapsofmaking.org` with Bernard's voice as the UX anchor. Goal: convincing, inclusive, effortless onboarding for non-technical coordinators, with data sovereignty and self-hosting as the end state. **Tier 1 first-user slice (9.1–9.5, 9.8, 9.12):** subdomain infra, drawer UX, wizard Tiers 0+1, Nominatim proxy, voice copy, GitLab raw-URL tutorial, visual design pass — compose JSON → host on GitLab → see pin on map. **Superseded by Epic 6 (2026-06-16):** 9.6 (`mom:` fields), 9.7 (`state.open` FSM), 9.9 (three-mode unification), 9.10 (Tier 3 `ext_fab`) — once a coordinator has a live file, the bot's write skillset (Epic 6.2) updates these fields conversationally, no wizard re-run. 9.11 (validator error UX) deferred, still valid. **Depends on:** Story C.X. **Defers Epic 4 re-review** until Tier 1 in flight.
@@ -422,7 +422,7 @@ Assisted SpaceAPI JSON composer at `genjson.mapsofmaking.org` with Bernard's voi
 - Openfab Brussels (Nicolas) = live acceptance test — real URL, real pin flip, embed on openfab.be validates end-to-end delay
 
 **Demo critical path:** Epic 1 → Epic 0 → Epic 2 → Epic 3 → Epic 4 (+ Epic 5 as rolling polish)
-**Parallel non-blocking:** Epic 4b (magic link) // Epic 6 (NL bot) // Epic 8 (Mother Sands broadcast rig) — none block demo
+**Parallel non-blocking:** Epic 4b (magic link) // Epic 6 (NL bot) // Epic 8 (Mother Sand broadcast rig) — none block demo
 **Reserved post-demo side quest:** Epic 7 (🟢 open-now presence layer)
 **Post-C.X parallel track:** `Story C.X → Epic 9 (Bernard's Workshop) → Epic 4 re-review`. Epic 9 is expected to surface small schema course-corrections; Epic 4 AC re-review is deferred until Epic 9 M1+ is in flight.
 
@@ -887,16 +887,16 @@ As MOM, I want the lifecycle vocabulary consistent across the ontology, the tran
 
 ---
 
-### Story 3.3: Mother Sands Diagnostic Canary
+### Story 3.3: Mother Sand Diagnostic Canary
 
 > **Reframed 2026-05-16** by the Story 3.3 planning roundtable. Supersedes the prior "Canary Space — Virtual Space Seed + Lifecycle Demo" scope (continuous time-bubble, fort-rotation automation — moved to Epic 8 lore / a future ledger epic). Full design record: `mom_handoff_2026-05-16.md`.
 
-As MOM (operator), I want a programmatic way to drive a MOM-owned synthetic endpoint ("Mother Sands") through controlled states on each of the three signal axes, so that when the public map shows something incoherent I can attribute the fault to a specific layer — MOM's pipeline vs the space's own endpoint — instead of guessing.
+As MOM (operator), I want a programmatic way to drive a MOM-owned synthetic endpoint ("Mother Sand") through controlled states on each of the three signal axes, so that when the public map shows something incoherent I can attribute the fault to a specific layer — MOM's pipeline vs the space's own endpoint — instead of guessing.
 
 **Single job:** a diagnostic instrument. This story is **not** "reproduce the stuck-`seeded` bug" — that bug is the motivation; pinning and fixing it is **Story 3.4**.
 
 **Concept:**
-- **Mother Sands** — the eighth Maunsell sea fort that was never built; a synthetic space MOM owns. Its drawer carries an honest "synthetic reference space" label (one-line truthfulness requirement). Lore, persona (Bernard), and the "broadcast rig" content are **Epic 8** — not this story.
+- **Mother Sand** — the eighth Maunsell sea fort that was never built; a synthetic space MOM owns. Its drawer carries an honest "synthetic reference space" label (one-line truthfulness requirement). Lore, persona (Bernard), and the "broadcast rig" content are **Epic 8** — not this story.
 - It is a **true canary**: a **programmable HTTP endpoint** the real heartbeat fetches — not a static file, not a direct store write. Axis-A faults (404/503/timeout) require the endpoint to actually misbehave.
 
 **The three axes** (the canary perturbs exactly **one at a time** — see Story 3.2's truth model):
@@ -937,7 +937,7 @@ As MOM (operator), I want a programmatic way to drive a MOM-owned synthetic endp
 
 **Deferred:**
 - Relocation modelling / fort rotation U2–U7 → Epic 8 lore + the future `public_ledger` epic
-- Mother Sands broadcast/comms content, Bernard activation → Epic 8
+- Mother Sand broadcast/comms content, Bernard activation → Epic 8
 - Persisted/replayable scenario library (Option B) → Epic 4+, only if needed
 
 ---
@@ -1059,7 +1059,7 @@ only content changes; open/closed flips count toward Axis C via `state.lastchang
 **Epic-level done-condition (acceptance test — must flip false→true, demonstrably, live):**
 > An operator loads the map; a space whose endpoint has stopped updating past the staleness
 > threshold visibly renders as **stale** (aging/zombie/dead), and a space still fetching fresh
-> renders **confirmed** — demonstrated live against the operator-controlled Mother Sands canary,
+> renders **confirmed** — demonstrated live against the operator-controlled Mother Sand canary,
 > not a mock.
 
 **Decisions owed before story creation:**
@@ -1077,7 +1077,7 @@ gatekeeping, ontology work. This epic re-architects the freshness path around th
 and nothing else.
 
 **Sequencing — clean skeleton first, then migrate-and-delete.** Story 3.6 builds the clean
-snapshot pipeline end-to-end on the Mother Sands canary — proving the propagation contract works
+snapshot pipeline end-to-end on the Mother Sand canary — proving the propagation contract works
 *on day one* against new code, not grafted onto the old noise. Stories 3.7–3.10 then each
 migrate one seam's worth of the old pipeline onto the clean path and delete the code it
 replaces.
@@ -1091,7 +1091,7 @@ done.
 
 ### Story 3.6: Walking Skeleton — Clean Snapshot Pipeline on the Canary
 
-Build a **new, clean snapshot pipeline end-to-end on the Mother Sands canary, alongside the
+Build a **new, clean snapshot pipeline end-to-end on the Mother Sand canary, alongside the
 existing one**. A reachable (HTTP 200) fetch produces one snapshot — `{payload + observed_at +
 UID}` — stored in a new clean snapshot store (NOT `heartbeat_log.db`), transformed to triples in
 `urn:mak:canary`, materialized into a minimal GeoJSON feature, and rendered as a live age in the
@@ -1103,7 +1103,7 @@ clean path. The skeleton may hardcode or shortcut anything *except* the token's 
 `observed_at` is minted exactly once and is byte-identical at every stage.
 
 **Acceptance Criteria:**
-**Given** a successful (HTTP 200) heartbeat fetch of the Mother Sands canary
+**Given** a successful (HTTP 200) heartbeat fetch of the Mother Sand canary
 **Then** one snapshot is created — JSON payload + `observed_at` (UTC, minted once at fetch) +
 space UID — and stored in the new clean snapshot store
 **And** `observed_at` is copied unchanged into Oxigraph as `mom:observedAt` on `urn:mak:canary`,
@@ -1196,7 +1196,7 @@ the three axes, not from a stored bucket.
 **And** `freshnessText()` is rewired to display the three-axis state; `timeAgo()` is unchanged
 **And** thresholds are read from the GeoJSON header `thresholds` block — not hardcoded
 **And** coordinator notification fires on bucket transition (aging→zombie→dead) — human safety net
-**Gating test** — `test_canary_three_axis_e2e` (full stack, operator-controlled Mother Sands canary):
+**Gating test** — `test_canary_three_axis_e2e` (full stack, operator-controlled Mother Sand canary):
 compress thresholds to seconds; make canary unreachable → Axis A degrades; leave content unchanged
 → Axis B ages independently; `open_now` flip → Axis C updates. Operator confirms all three axes
 render correctly and independently. **+ operator visual confirmation** — this IS the epic
@@ -1220,7 +1220,7 @@ As the MOM developer,
 I want the schema namespace model aligned with the four-tier architecture before Epic 9 and Epic 4 re-review begin,
 So that both tracks build against a stable, correctly-partitioned vocabulary and neither accumulates `ext_mom` debt that would need a second cleanup pass.
 
-**Context:** The current `ext_mom` namespace contains Mother-Sands-only canary fields — it should be `ext_canary`. Cross-network horizontal fields (`opening_hours`, `memberOf`, SDGs) belong in `mom:` (Tier 2), not in `ext_fab` (Tier 3 vertical). `ext_fab.sdgs` in particular is transversal across network types and must move up. The four-tier schema (locked in the 2026-05-29 sprint change proposal):
+**Context:** The current `ext_mom` namespace contains Mother-Sand-only canary fields — it should be `ext_canary`. Cross-network horizontal fields (`opening_hours`, `memberOf`, SDGs) belong in `mom:` (Tier 2), not in `ext_fab` (Tier 3 vertical). `ext_fab.sdgs` in particular is transversal across network types and must move up. The four-tier schema (locked in the 2026-05-29 sprint change proposal):
 
 | Tier | Namespace | Scope |
 |---|---|---|
@@ -1231,10 +1231,10 @@ So that both tracks build against a stable, correctly-partitioned vocabulary and
 
 **Acceptance Criteria:**
 
-**Given** `ontology/mom.ttl` currently defines `ext_mom:` fields used only by the Mother Sands canary
+**Given** `ontology/mom.ttl` currently defines `ext_mom:` fields used only by the Mother Sand canary
 **When** Story C.X lands
 **Then** `ext_mom:` is renamed to `ext_canary:` throughout `mom.ttl`, `transformer.py`, `ingest.py`, `baseline.json`, and all SPARQL strings — `grep -rn "ext_mom" infra/ scripts/ ontology/ data/` returns zero results outside `CHANGELOG` or historical comments
-**And** `rdfs:comment` on the `ext_canary:` namespace reads: "Namespace for Mother Sands canary-specific fields. Not for production spaces."
+**And** `rdfs:comment` on the `ext_canary:` namespace reads: "Namespace for Mother Sand canary-specific fields. Not for production spaces."
 
 **Given** `opening_hours`, `memberOf`, and `sdgs` are currently in `ext_fab:` or absent
 **When** Story C.X lands
@@ -1428,11 +1428,11 @@ So that test fixtures, broken self-registrations, and obsolete entries can be cl
 **Then** a confirmation dialog displays the space name, URI, endpoint URL, and `observed_at` so the operator confirms they're targeting the right row
 **And** confirming triggers `DELETE /api/admin/space/{slug}` on `mak-link-handler`, which:
   - Runs `DROP GRAPH <urn:mak:space/{slug}>` against Oxigraph.
-  - Runs `DROP SILENT GRAPH <urn:mak:canary/{slug}>` (no-op for non-canary spaces; covers the Mother Sands cleanup case).
+  - Runs `DROP SILENT GRAPH <urn:mak:canary/{slug}>` (no-op for non-canary spaces; covers the Mother Sand cleanup case).
   - Deletes all rows for `{slug}` from `snapshot_store.db`.
   - Triggers a rematerialization so the public map no longer shows the pin.
 **And** the deletion is written to the operator action log: `{ action: "space_deleted", space_uri, space_name, observed_at_at_deletion, timestamp }` (FR33b) — append-only per Story 4.4 (no undo through the UI; restore requires re-seeding or re-registering)
-**And** **canary spaces** (Mother Sands / Unit M) are protected: the API returns `409 Conflict` if `{slug}` matches the configured canary slug, and the UI hides the Delete button for that row — the canary is operationally load-bearing
+**And** **canary spaces** (Mother Sand / Unit M) are protected: the API returns `409 Conflict` if `{slug}` matches the configured canary slug, and the UI hides the Delete button for that row — the canary is operationally load-bearing
 **And** **seeded-only rows** can be deleted (566+ VOW spaces include some bad-data rows the operator may want to prune); the action log captures the bundle source from `mom:seededAt` provenance so a re-seed can restore intentionally
 **And** the endpoint is gated by the existing `/admin` nginx basic-auth (no separate auth layer)
 **And** rate-limiting: at most one delete per second per session (defensive — prevents an accidental click-storm from cascading)
@@ -1899,19 +1899,19 @@ So that I can identify spaces that are live right now — not just confirmed at 
 
 ---
 
-## Epic 8: MOM as a Living Space — Mother Sands Broadcast Rig *(parallel, non-blocking; post-demo)*
+## Epic 8: MOM as a Living Space — Mother Sand Broadcast Rig *(parallel, non-blocking; post-demo)*
 
-> **Added 2026-05-16** from the Story 3.3 planning roundtable. **Stub only** — no stories created yet. Design seeds live in `mom_handoff_2026-05-16.md` and `mom_handoff_2026-05-15.md` (Bernard character bible, Mother Sands lore, hermit-crab lifecycle map, `mom_lore.md` skeleton).
+> **Added 2026-05-16** from the Story 3.3 planning roundtable. **Stub only** — no stories created yet. Design seeds live in `mom_handoff_2026-05-16.md` and `mom_handoff_2026-05-15.md` (Bernard character bible, Mother Sand lore, hermit-crab lifecycle map, `mom_lore.md` skeleton).
 
-Story 3.3 builds Mother Sands as a **diagnostic canary**. This epic gives it its **second identity**: MOM's self-representation on its own map — a meta "broadcast rig" that carries real, purposeful information (MOM's current state, new features, key changelog events, recent real-space activity) wrapped in deliberate sea-fort/pirate-radio lore.
+Story 3.3 builds Mother Sand as a **diagnostic canary**. This epic gives it its **second identity**: MOM's self-representation on its own map — a meta "broadcast rig" that carries real, purposeful information (MOM's current state, new features, key changelog events, recent real-space activity) wrapped in deliberate sea-fort/pirate-radio lore.
 
 **Scope sketch (post-demo, not on critical path):**
 - Public website at `mom.mapsofmaking.org` (MOM explainer, wiki) — distinct from the SpaceAPI endpoint `mom.mapsofmaking.org/mom_v15status.json`.
-- `mom_lore.md` (repo-as-source, website-as-rendered) — Bernard character bible, Mother Sands concept, hermit-crab lifecycle → MOM mechanics map.
+- `mom_lore.md` (repo-as-source, website-as-rendered) — Bernard character bible, Mother Sand concept, hermit-crab lifecycle → MOM mechanics map.
 - Bernard — the hermit-crab lead-admin persona (they/them; "Ron Swanson on a North Sea fort, with notes of *Dredge*"); voice activated gradually via curated changelog entries.
 - Curated changelog / feature "broadcast" in Bernard's voice.
 - Relocation / fort-rotation U2–U7 as ambient narrative (the slow lifecycle demo; the 30–60s `canary-demo-cycle` is the Story 3.3 artifact).
-- Logo-click-to-drawer interaction (zoom to Mother Sands profile rather than open a page) — prototype before enshrining.
+- Logo-click-to-drawer interaction (zoom to Mother Sand profile rather than open a page) — prototype before enshrining.
 
 **Open product concerns carried here:** disclosed "synthetic reference space" framing (a clean one-liner ships in Story 3.3; fine-tuning is this epic); community contribution governance for Bernard's narration; possible salvage-art monetisation (Phase 3+).
 
@@ -2087,7 +2087,7 @@ So that Bernard's voice is consistent across Stories 9.2–9.8 and individual st
 
 ```yaml
 drawer_one_liner: "Two ways through. [Tell me about your space]. Or paste a URL if you already have one. Either is fine."
-wizard_intro: "Hi, I'm Bernard (they/them) from 'Mother Sands'. Let's get your space on the map."
+wizard_intro: "Hi, I'm Bernard (they/them) from 'Mother Sand'. Let's get your space on the map."
 floor_gate: "Name and address. That's the floor. Everything else, I'll derive."
 tier_1_exit: "Core's in. Other SpaceAPI apps can read this file as-is."
 tier_2_exit: "MoM fields filled. Network features unlocked: membership, opening hours, SDGs."

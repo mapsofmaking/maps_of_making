@@ -57,7 +57,7 @@ status 401 -u admin:wrong -H Host:admin.mapsofmaking.org $W/
 status 200 -u admin:smoke -H Host:admin.mapsofmaking.org $W/
 status 200 -u admin:smoke $W/admin/
 status 200 -H Host:genjson.mapsofmaking.org $W/
-status 200 -H Host:mothersands.mapsofmaking.org $W/
+status 200 -H Host:mothersand.mapsofmaking.org $W/
 status 403 -X POST $W/sparql/update
 status 204 -X OPTIONS $W/sparql/update
 body 'oxigraph /query?query=ASK' "$W/sparql/query?query=ASK"
@@ -68,7 +68,7 @@ body 'genjson' -H Host:genjson.mapsofmaking.org $W/
 header 'Content-Security-Policy: frame-ancestors *' -H Host:test.mapsofmaking.org $W/
 header 'X-Frame-Options: DENY' -u admin:smoke -H Host:admin.mapsofmaking.org $W/
 header 'X-Frame-Options: SAMEORIGIN' -H Host:genjson.mapsofmaking.org $W/
-header "'unsafe-eval'" -H Host:mothersands.mapsofmaking.org $W/
+header "'unsafe-eval'" -H Host:mothersand.mapsofmaking.org $W/
 header 'Access-Control-Allow-Origin: *' $W/sparql/query
 header 'X-Content-Type-Options: nosniff' $W/
 
