@@ -291,7 +291,7 @@ development_status:
   #   pod door writes space.ttl (14.7 now blocks 14.4); copy SSOT = mom-home public/onboarding.ttl. Canvas:
   #   https://claude.ai/artifact/4XunMfUzzmjBk7PVjYfjvW
   epic-14: in-progress
-  14-0-spike-account-to-first-write-flow: ready-for-dev  # OD-2; Nicolas reviews the flow against the narration
+  14-0-spike-account-to-first-write-flow: done  # report 14-0-spike-report.md
   14-1-onboard-scaffold-fog-map-shell: review
   14-2-tile-a-describe-your-space: ready-for-dev  # copies genjson tiers 0-2
   14-3-tile-b-pod-door-account-creation: backlog  # needs 14.0 report (ADR 010 amendment accepted 2026-10-30)

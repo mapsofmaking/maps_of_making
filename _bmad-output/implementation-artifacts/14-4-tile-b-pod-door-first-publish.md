@@ -1,7 +1,7 @@
 # Story 14.4: Tile B, Pod Door — First Publish (sign in, write, make public, register)
 
 Status: backlog — depends on 14.2, 14.3 and 14.7 (the map must read Turtle); its sign-in step follows the
-flow observed in 14.0
+flow observed in 14.0 (`14-0-spike-report.md`)
 
 ## Story
 
@@ -16,8 +16,9 @@ So that I leave tile B with my space live on the map.
 **Then** the app signs in with Solid-OIDC using its Client ID Document; the provider's consent page names
 `home.mapsofmaking.org` (kit ADR 010 point 6). The consent is for this app, which writes the profile; the
 map never asks, it only reads the public file
-**And** OD-2 is verified live: if the creation cookie spares the passphrase, the coordinator sees only
-consent; if not, the copy before the redirect says they will type it once more.
+**And** OD-2 (14.0, 2026-10-31): with the account-API login of 14.3 AC3, the coordinator sees only the
+consent page (Authorize); a coordinator who comes back later, or a browser that drops the cookie (Safari
+unverified), sees the provider's login first. Bernard's line before the redirect covers both (14.3 AC2).
 
 ### AC2 — The file
 **Then** the app writes `space.ttl` at the pod root from the tile A draft (decided 2026-10-30: the pod is

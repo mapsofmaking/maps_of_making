@@ -1,6 +1,6 @@
 # Story 14.3: Tile B, Pod Door — One-Step Account, Password, WebID and Pod
 
-Status: backlog — needs the 14.0 spike report (solid-kit ADR 010 amendment accepted 2026-10-30)
+Status: backlog — 14.0 spike done (report `14-0-spike-report.md`, 2026-10-31)
 
 ## Story
 
@@ -34,18 +34,26 @@ with a Show toggle (eight characters minimum, no spaces; example `Rock-Paper-Sci
 **And** the address is checked as it is typed (after a short pause) and when the field is left, and the
 suggested one as soon as the form opens: "taken" or a bad format shows on that field before the
 passphrase is reached, and a free address says so beside the live URL (decided 2026-10-30: a taken name
-found only after "Create it" makes the coordinator redo the passphrase). How CSS answers "is this name
-free" without creating anything is to settle in 14.0 (e.g. a HEAD on the pod's URL); "Create it" still
-handles a name taken in between
+found only after "Create it" makes the coordinator redo the passphrase). **14.0 found CSS 7.2 cannot
+answer "is this name free" without creating anything**: a HEAD on `https://<name>.pod.mapsofmaking.org/`
+answers `401` for free and taken names alike (wildcard), and the account API has no check. Until the
+provider offers one (solid-css-overlay), the format is checked live and "taken" shows after "Create it",
+on the address field, with the passphrase kept (the next line); "Create it" handles a name taken in
+between either way
 **And** no error clears a field: errors update in place, the passphrase fields keep what was typed.
 **And** before "Create it", Bernard warns about the consent page: the pod's own page will ask whether
 `home.mapsofmaking.org` may use the pod; that is this app asking to write the profile, and the answer is
-yes. Exact wording follows the 14.0 report.
+yes. Wording (Nicolas, 2026-10-31, after 14.0), `onb:sayConsent`: "Your pod opens its own page now. If it asks for your passphrase, use the one you just made. Then press Authorize for home.mapsofmaking.org." It holds for both flows 14.0
+observed (consent only, or log in then consent); the pod's pages say "passphrase" too
+(solid-css-overlay #27).
 
 ### AC3 — One step, resumable
 **When** they submit
 **Then** the app calls the account API in order (create account → password → pod) with the account token
-CSS returns at creation (the same-site cookie matters for the sign-in that follows, 14.0), keeps the half-built account for the session (not per pod name: after "taken", the
+CSS returns at creation, then **logs in through the account API** (`controls.password.login`, with
+`credentials: "include"`): that login, not the creation, sets the `css-account` cookie, which spares the
+coordinator the provider's login page (14.0: flow A in Chromium, Firefox and WebKit with it, flow B without),
+keeps the half-built account for the session (not per pod name: after "taken", the
 retry uses another name on the same account; pocpod0 keys it per pod name, which orphans an account) so a
 retry resumes rather than duplicates, and never stores, shows or resends the passphrase
 **And** an empty pod name never reaches the network (CSS treats it as "claim the pod root", found live
