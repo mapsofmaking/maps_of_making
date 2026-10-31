@@ -94,12 +94,16 @@ shadow. Riso red only for errors; focus is riso blue (cobalt), so a focused fiel
 (design system, decided 2026-10-31)
 **And** desktop is 50/50: hex view and workbench side by side, both panels with the hard shadow; the hex
 column holds still and only the workbench scrolls (one screen at 1600×900)
-**And** on a phone, and in the signed-in workbench, the hex view folds into a row of small hexes with "+ N
-to discover" (also where new features appear as they are built), "Now: <step>" and "See all ›", which opens
-the full view as a sheet
-**And** signed in, the folded row is the design system's `HexRow` toolbar: one 52px line, done and open
-tiles carry their `TilePicto` (named by `onb:icon`), the tile name shows on hover or focus, a click opens
-the tile; a tile's first open (its tutorial) keeps the full view, its tool opens folded.
+**And** the hex view folds into a row of small hexes with "+ N to discover" (also where new features appear
+as they are built) and "Now: <step>"; signed in, the folded row is the design system's `HexRow` toolbar: one
+52px line, done and open tiles carry their `TilePicto` (named by `onb:icon`), the tile name shows on hover
+or focus, a click opens the tile
+**And** fold is one state of the page, never of a tile (decided 2026-10-31; the dry run's fold followed the
+selected tile and the page seemed to move by itself): picking a tile never moves the layout. It changes
+once on purpose, at the end of tile C's tutorial (14.6), with a Bernard line naming the toggle, and
+otherwise only by the toggle, "Fold" / "Show all", in the same corner of the hex panel. The fold is
+remembered: for the tab signed out, in `settings/home.ttl` signed in (AC4). Never set, a desktop arrives
+unfolded and a phone folded. Unfolding is in place (50/50, or stacked on a phone), not an overlay
 
 ## Tasks
 - [ ] Scaffold mom-home from solid-kit; config, Client ID Document, image + CI, compose service, gateway site in vps-infra
