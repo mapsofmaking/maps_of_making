@@ -105,7 +105,7 @@ the tile; a tile's first open (its tutorial) keeps the full view, its tool opens
 - [ ] Scaffold mom-home from solid-kit; config, Client ID Document, image + CI, compose service, gateway site in vps-infra
 - [ ] `public/onboarding.ttl` + namespace note; parse with N3 (pinned) at load
 - [ ] Hex view, workbench, words: port from the storyboard (looks, copy) and the dry run (behaviour)
-- [ ] Words you've met, checked with Nicolas: for each `onb:Word`, which tile unlocks it
+- [x] Words you've met (table in Dev Notes; endpoint → 14.6, pod for self-hosters → 14.3), checked with Nicolas: for each `onb:Word`, which tile unlocks it
   (`onb:unlocksWord`), every place the word already shows in copy before and after it unlocks (Bernard
   lines, tile A/B forms, previews), and the meaning shown in its tip (`onb:meaning`). One table in Dev
   Notes; copy fixes go in `onboarding.ttl`. Already seen: "pod" and "account" are used at B2 but unlock
@@ -114,6 +114,24 @@ the tile; a tile's first open (its tutorial) keeps the full view, its tool opens
 - [ ] Live check: loads on a phone, Daylight (MoM is Daylight only, decided 2026-10-31: no theme switch in the app), keyboard only
 
 ## Dev Notes
+
+### Words you've met: where each word is met (S4, 2026-10-31; for Nicolas)
+
+The rule (AC5): a word unlocks right after the tile that *shows* what it names. The tile's own copy
+need not say the word; the chip names what was just experienced. What matters is a word met in copy
+*before* its chip unlocks. Scanned: every line in `onboarding.ttl`, the app's strings
+(`src/workbench/`, `src/main.ts`), and the pod server's pages a coordinator passes through.
+
+| Word | Unlocked by | Shown in copy before it unlocks | Shown at/after | Tip (`onb:meaning`) | Proposal |
+|---|---|---|---|---|---|
+| pod | keep (B, "Publish it") | B2 inside the tile: `sayPod` defines it ("Personal Online Datastore (pod)"), `sayConsent`, `sayTaken`; the pod server's pages ("Your pod") | `sayNeedsPod` (app); kit sign-in "your pod's address", "Pod or WebID" | Storage that's yours. The map reads it; it doesn't keep a copy. | Keep: B2 defines it in line, the chip follows B. A self-hoster (B3) never meets a pod: no chip for them (dry run did this; → 14.3) |
+| endpoint | change (C) | none | none | The address where your file lives. Everyone who reads you reads there. | Tile C must *show* the address (C's tool: the file's URL as a Copyable under the readers). Today nothing shows it (→ 14.6) |
+| handshake | join | none | none (`saidDone` shows it: "Dashed until they say yes. Solid after.") | A membership both sides state. Either side can end it at once. | OK as is |
+| agent | answer | none | none (`saidDone` shows it: "It read one file. The log says which") | An assistant with a name of its own, let into the folders you choose and nowhere else. | OK as is |
+| linked data | second | none | none (`saidDone`: "Second map. Same file.") | A shape other tools read without an adapter. That's how a second map finds you. | OK as is |
+| WebID | peers | kit sign-in ("with your WebID", "Pod or WebID"); the pod's consent page ("Choose the WebID — your name on the web") | none | A name on the web. Each space you see has one. So does yours. | **Decided (Nicolas, 2026-10-31): keep at peers.** The peers preview and tool show each space's WebID, so the tip's "each space you see has one" is true when it unlocks (→ the peers tile's story). Sign-in and the pod's consent page use the word earlier; that stays |
+| account | handover | the pod server's pages at B2 ("Your account", "Edit account") | handover `saidDone`, handover preview title | How you sign in. Separate from your space's identity, so it can change hands. | Keep at handover: that is where "separate from your space's identity" is shown. The pod server's wording is outside this app |
+
 - The dry run's preview functions are the copy reference. Keep them as data where the kit pattern allows
   (kit `ux-principles.md`: concept screens as data).
 - The fog map becomes a solid-kit pattern only after this slice is tested (Nicolas, 2026-10-29).

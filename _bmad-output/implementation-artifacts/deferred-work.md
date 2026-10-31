@@ -1,5 +1,27 @@
 # Deferred Work
 
+## Deferred from: Epic 14 home app, focus and hover review (2026-10-31) → next map story (story number at triage; Nicolas: "soon")
+
+The design system (`mapsofmaking/design-system`) changed two rules on 2026-10-31: **focus is riso
+blue** (`accent-2`), red only for errors (PR #6), and **hover lifts** (hard shadow, 1px up-left)
+instead of filling red (PR #7). mom-home follows by copying a pinned commit; **the map does not**:
+`web/maps-of-making.html` keeps its own inline copy of the rules the design system was lifted
+from.
+
+- **Map focus still red.** `web/maps-of-making.html:46` `:focus-visible` uses `--accent`; switch to
+  `--accent-2`, then line 47 (`#search-input`, already cobalt) is redundant. Seen live on
+  test.mapsofmaking.org (endpoint URL field in "Add your space").
+- **Map hovers still fill red:** `.btn-primary`, `.sp-embed-btn`, `.code .copy`, `.bot-fab`
+  (lines ~233–322); same lift as the design system's `components.css`.
+- **The real fix: the map loads its look from the design system, like every other app.** Nicolas:
+  one mechanism for all apps (mom-home pins + copies `tokens/`, mounts `skins/kit/skin.css` at run
+  time; the backoffice mounts the skin). The map is also meant to be deployed for other verticals,
+  which needs that mechanism anyway. Decide pin-and-copy vs run-time mount for the map's own
+  classes, then retire the inline copy (no triple source of truth).
+- Also flagged in the design system, not changed: `.result[aria-current]` (red outline on the
+  selected search result) and `.sp-unlock-marker.next` (red "next" marker) use red without
+  meaning an error.
+
 ## Deferred from: demo-readiness quick fix, Axis B thresholds (2026-10-18) → Story (post-traction), pairs with party-mode liveness entry (2026-06-10)
 
 - **Axis B thresholds widened as a demo stopgap, not a fix.** `infra/link_handler/config.yaml`
