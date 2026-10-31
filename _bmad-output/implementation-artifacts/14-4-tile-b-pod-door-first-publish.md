@@ -22,8 +22,9 @@ unverified), sees the provider's login first. Bernard's line before the redirect
 
 ### AC2 — The file
 **Then** the app writes `space.ttl` at the pod root from the tile A draft (decided 2026-10-30: the pod is
-linked-data native, so later tiles read and write links without JSON parsing). The mapping from genjson's
-export to Turtle must satisfy 14.7's validation (a name, coordinates)
+linked-data native, so later tiles read and write links without JSON parsing). The mapping is the Turtle
+column of [`docs/reference/space-file.md`](../../docs/reference/space-file.md) and must satisfy 14.7's
+validation (a name, coordinates)
 **And** the file is not the WebID document: `/profile/` holds the account's identity and sign-in data, and
 the space can change hands or gain managers. The WebID document links to the space file (predicate to
 settle in the tree).

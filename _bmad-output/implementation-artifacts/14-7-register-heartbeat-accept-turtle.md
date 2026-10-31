@@ -37,3 +37,26 @@ space card shows the source in its own format.
 - A pod can serve one RDF document as Turtle or JSON-LD on request; a Turtle file on a pod may therefore
   arrive as JSON-LD if JSON is preferred. Verify against `pod.mapsofmaking.org` before fixing the Accept
   order.
+
+## Added 2026-10-31 — the space file
+
+The fields, the Turtle home writes and what the map keeps are in
+[`docs/reference/space-file.md`](../../docs/reference/space-file.md). For AC1 that means:
+
+- **Subject.** `<…/space.ttl#space>` becomes `urn:mak:space/<slug>`; the pod document is kept as
+  `mom:profileUrl` (the map's query already reads it).
+- **Address.** The `schema:PostalAddress` node is flattened onto the space, with `mom:address` and
+  `mom:countryCode` written from it, as the JSON path writes them.
+- **Allow-list.** Only the table's predicates are copied: a pod file has other writers, and a person's pod
+  holds more than a space.
+- **Namespace.** `http://schema.org/` is read as `https://schema.org/`.
+- **Media type.** `text/turtle` and `application/ld+json` are parsed as RDF; `application/json` goes the
+  SpaceAPI way. Our pod answers `text/turtle` (checked 2026-10-31); CSS would send JSON-LD with full IRIs,
+  which the SpaceAPI path can't read, so Turtle comes first in the Accept header.
+- **Email and Matrix stay out of the index** (no query uses them). The card shows them from the source as
+  last read (AC3's raw), not from `contactJson`.
+
+### AC5 — One table, held by a test
+**Then** two fixtures, `space.ttl` and `space.json` for the reference doc's example, ingest to the same set of
+statements in the space's graph (parity test), and home's two writers (14.4, 14.5) are tested against the
+same fixtures.

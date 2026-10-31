@@ -11,8 +11,9 @@ So that I'm on the map without an account here, and I know what that choice leav
 ## Acceptance Criteria
 
 ### AC1 — The file
-**Then** the door shows the space's JSON (genjson export) with a copy button. No download link: copy is
-what works everywhere, and genjson's Export stays available in tile A.
+**Then** the door shows the space's JSON (the JSON column of
+[`docs/reference/space-file.md`](../../docs/reference/space-file.md), address in the order the map's parser
+reads) with a copy button. No download link: copy is what works everywhere. Tile A has no export.
 
 ### AC2 — The walkthrough
 **Then** Bernard's GitLab walkthrough (Story 9.8 copy) follows, and its last beat registers the raw URL
