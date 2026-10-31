@@ -20,9 +20,10 @@ shows its preview, labelled. Stories 14.2–14.6 turn tiles real one at a time.
 ### AC1 — App scaffold from solid-kit
 **Given** solid-kit is copied, not packaged (kit ADR 004)
 **When** the app is created
-**Then** it is routed like genjson is today: a host rule in `infra/web/Caddyfile` (keeping `/api/` on its
-own host) and a gateway vhost modelled on `08-genjson-mapsofmaking.conf`, so the page calls `/api/` on
-`home.` and no CORS is added to link_handler
+**Then** it lives in its own repo, `mapsofmaking/mom-home` (decided 2026-10-30, kit ADR 011: one image per
+app), ships as its own image and container, and the gateway site (mapsofmaking/vps-infra, `gateway/sites/mom-home.caddy`) sends
+`home.mapsofmaking.org/` to it and `/api/` to maps-web, so the page calls `/api/` on `home.` and no CORS is
+added to link_handler
 **And** `SESSION_ID` is unique to this app (kit CLAUDE.md: shared ids clobber tokens)
 **And** a Client ID Document is served at `https://home.mapsofmaking.org/id.jsonld` listing the app's
 redirect URI (kit ADR 010 point 6), for the sign-in in 14.4
@@ -39,7 +40,7 @@ as <space name>" and "Sign out"
 ### AC2 — The tree is Turtle, and lives with the app
 **Given** the tile tree drafted in the session
 **When** the app loads
-**Then** it reads `web/home/onboarding.ttl` (published with the app) and builds tiles, requirements
+**Then** it reads `onboarding.ttl` (mom-home `public/`, published with the app) and builds tiles, requirements
 (`onb:requiresAll` / `onb:requiresAny`), cues, Bernard's lines and words from it
 **And** that file is the single source of every Bernard line the app speaks, tile A's form copy included
 (decided 2026-10-30): forking the app for another vertical means swapping one file
@@ -87,26 +88,58 @@ COMING.
 
 ### AC7 — The hex view, as drawn
 **Then** the hex view is titled "What you can do" (not "map": that is mapsofmaking.org) and draws tiles in
-riso style: done = green tint printed slightly off an ink outline, with ✓; open = white, bold ink outline;
+riso style: done = green tint printed slightly off an ink outline (no ✓: the green says done); open = white,
+bold ink outline; done and open tiles carry their `TilePicto` above the label, the same as the folded row
+(decided 2026-10-31), coming and undiscovered tiles none, so the progression holds;
 coming = dashed muted outline on paper; still to discover = halftone dots; selected = 4px outline, no
-shadow. Riso red only for errors and focus
+shadow. Riso red only for errors; focus is riso blue (cobalt), so a focused field never reads as an error
+(design system, decided 2026-10-31)
 **And** desktop is 50/50: hex view and workbench side by side, both panels with the hard shadow; the hex
 column holds still and only the workbench scrolls (one screen at 1600×900)
-**And** on a phone, and in the signed-in workbench, the hex view folds into a row of small hexes with "+ N
-to discover" (also where new features appear as they are built), "Now: <step>" and "See all ›", which opens
-the full view as a sheet
-**And** signed in, the folded row is the design system's `HexRow` toolbar: one 52px line, done and open
-tiles carry their `TilePicto` (named by `onb:icon`), the tile name shows on hover or focus, a click opens
-the tile; a tile's first open (its tutorial) keeps the full view, its tool opens folded.
+**And** the hex view folds into a row of small hexes with "+ N to discover" (also where new features appear
+as they are built) and "Now: <step>"; signed in, the folded row is the design system's `HexRow` toolbar: one
+52px line, done and open tiles carry their `TilePicto` (named by `onb:icon`), the tile name shows on hover
+or focus, a click opens the tile
+**And** fold is one state of the page, never of a tile (decided 2026-10-31; the dry run's fold followed the
+selected tile and the page seemed to move by itself): picking a tile never moves the layout. It changes
+once on purpose, at the end of tile C's tutorial (14.6), with a Bernard line naming the toggle, and
+otherwise only by the toggle, "Fold" / "Show all", in the same corner of the hex panel. The fold is
+remembered: for the tab signed out, in `settings/home.ttl` signed in (AC4). Never set, a desktop arrives
+unfolded and a phone folded. Unfolding is in place (50/50, or stacked on a phone), not an overlay
+**And** the fold is instant, not animated (a two-beat animation was tried and dropped, 2026-10-31: the
+hexes are the visual cue; Bernard's line at the first fold closes the mental gap, 14.6)
 
 ## Tasks
-- [ ] Scaffold from solid-kit; config, Client ID Document, vhost, compose service
-- [ ] `web/home/onboarding.ttl` + namespace note; parse with N3 (pinned) at load
+- [ ] Scaffold mom-home from solid-kit; config, Client ID Document, image + CI, compose service, gateway site in vps-infra
+- [ ] `public/onboarding.ttl` + namespace note; parse with N3 (pinned) at load
 - [ ] Hex view, workbench, words: port from the storyboard (looks, copy) and the dry run (behaviour)
+- [x] Words you've met (table in Dev Notes; endpoint → 14.6, pod for self-hosters → 14.3), checked with Nicolas: for each `onb:Word`, which tile unlocks it
+  (`onb:unlocksWord`), every place the word already shows in copy before and after it unlocks (Bernard
+  lines, tile A/B forms, previews), and the meaning shown in its tip (`onb:meaning`). One table in Dev
+  Notes; copy fixes go in `onboarding.ttl`. Already seen: "pod" and "account" are used at B2 but unlock
+  later (keep, handover); "endpoint", "linked data", "WebID" appear in no copy yet
 - [ ] `done.ts` registry with a stub per tile; tests for the fog rules (kit: add the test with the code)
-- [ ] Live check: loads on a phone, light and dark, keyboard only
+- [ ] Live check: loads on a phone, Daylight (MoM is Daylight only, decided 2026-10-31: no theme switch in the app), keyboard only
 
 ## Dev Notes
+
+### Words you've met: where each word is met (S4, 2026-10-31; for Nicolas)
+
+The rule (AC5): a word unlocks right after the tile that *shows* what it names. The tile's own copy
+need not say the word; the chip names what was just experienced. What matters is a word met in copy
+*before* its chip unlocks. Scanned: every line in `onboarding.ttl`, the app's strings
+(`src/workbench/`, `src/main.ts`), and the pod server's pages a coordinator passes through.
+
+| Word | Unlocked by | Shown in copy before it unlocks | Shown at/after | Tip (`onb:meaning`) | Proposal |
+|---|---|---|---|---|---|
+| pod | keep (B, "Publish it") | B2 inside the tile: `sayPod` defines it ("Personal Online Datastore (pod)"), `sayConsent`, `sayTaken`; the pod server's pages ("Your pod") | `sayNeedsPod` (app); kit sign-in "your pod's address", "Pod or WebID" | Storage that's yours. The map reads it; it doesn't keep a copy. | Keep: B2 defines it in line, the chip follows B. A self-hoster (B3) never meets a pod: no chip for them (dry run did this; → 14.3) |
+| endpoint | change (C) | none | none | The address where your file lives. Everyone who reads you reads there. | Tile C must *show* the address (C's tool: the file's URL as a Copyable under the readers). Today nothing shows it (→ 14.6) |
+| handshake | join | none | none (`saidDone` shows it: "Dashed until they say yes. Solid after.") | A membership both sides state. Either side can end it at once. | OK as is |
+| agent | answer | none | none (`saidDone` shows it: "It read one file. The log says which") | An assistant with a name of its own, let into the folders you choose and nowhere else. | OK as is |
+| linked data | second | none | none (`saidDone`: "Second map. Same file.") | A shape other tools read without an adapter. That's how a second map finds you. | OK as is |
+| WebID | peers | kit sign-in ("with your WebID", "Pod or WebID"); the pod's consent page ("Choose the WebID — your name on the web") | none | A name on the web. Each space you see has one. So does yours. | **Decided (Nicolas, 2026-10-31): keep at peers.** The peers preview and tool show each space's WebID, so the tip's "each space you see has one" is true when it unlocks (→ the peers tile's story). Sign-in and the pod's consent page use the word earlier; that stays |
+| account | handover | the pod server's pages at B2 ("Your account", "Edit account") | handover `saidDone`, handover preview title | How you sign in. Separate from your space's identity, so it can change hands. | Keep at handover: that is where "separate from your space's identity" is shown. The pod server's wording is outside this app |
+
 - The dry run's preview functions are the copy reference. Keep them as data where the kit pattern allows
   (kit `ux-principles.md`: concept screens as data).
 - The fog map becomes a solid-kit pattern only after this slice is tested (Nicolas, 2026-10-29).

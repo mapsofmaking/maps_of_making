@@ -2431,7 +2431,7 @@ So that we stop maintaining a bespoke bot runtime, gain E2EE/multi-platform/dura
 ## Epic 14: Onboard — Progressive Onboarding on Pods *(slice 1: describe, keep, change once; 2026-10-29)*
 
 > **Added 2026-10-29** from the personas × journeys session (solid-kit `docs/personas-journeys.md`) and the
-> dry-run sketch ("Maps of Making Dry Run" artifact, tile tree `web/home/onboarding.ttl`). This is the
+> dry-run sketch ("Maps of Making Dry Run" artifact, tile tree `onboarding.ttl` (mom-home repo, `public/`)). This is the
 > "WebID/Solid pod storage" epic that the Epic 13 re-scope (2026-07-07) left as a genuine future epic: a
 > space's JSON in its own pod, as a second door beside the GitLab one. It does not touch Bernard's
 > deploy-key write path.
@@ -2450,12 +2450,12 @@ other tile stays in the onboarding map as a labelled preview ("coming") until it
   `home.<domain>` becomes the solid-kit convention once this slice is built and tested.
 - **Fog map:** tiles clear as they are done; at most three open; cues name outcomes; veteran tiles stay
   cues. **The pod is the map:** "done" is read from the pod, not stored. The tree (requirements, cues,
-  Bernard's lines, words) is Turtle in `web/home/onboarding.ttl`, with the app.
+  Bernard's lines, words) is Turtle in `onboarding.ttl` (mom-home repo, `public/`), with the app.
 - **Two equal doors at tile B** ("Either's fine", bible §3): keep it at Maps of Making (account + pod in
   one step), or take the file and host it yourself (Story 9.8 path). Tiles that need a pod say so honestly
   on the self-host branch.
 - **Bernard narrates** (full voice, bible §5 wizard rules). Every line the app speaks lives in
-  `web/home/onboarding.ttl`, tile A's form copy included: one file, so another vertical forks the app by
+  `onboarding.ttl` (mom-home repo, `public/`), tile A's form copy included: one file, so another vertical forks the app by
   swapping it. Adjusted from real feedback.
 - **Commodity → vocabulary → sovereignty.** Words ("pod", "endpoint"…) unlock right after the thing they
   name has been seen.
