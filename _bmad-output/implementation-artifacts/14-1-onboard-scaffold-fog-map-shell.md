@@ -1,6 +1,6 @@
 # Story 14.1: Onboard Scaffold + Fog Map Shell (tree, done checks, words)
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -115,16 +115,23 @@ unfolded and a phone folded. Unfolding is in place (50/50, or stacked on a phone
 hexes are the visual cue; Bernard's line at the first fold closes the mental gap, 14.6)
 
 ## Tasks
-- [ ] Scaffold mom-home from solid-kit; config, Client ID Document, image + CI, compose service, gateway site in vps-infra
-- [ ] `public/onboarding.ttl` + namespace note; parse with N3 (pinned) at load
-- [ ] Hex view, workbench, words: port from the storyboard (looks, copy) and the dry run (behaviour)
+- [x] Scaffold mom-home from solid-kit; config, Client ID Document, image + CI, compose service, gateway site in vps-infra
+- [x] `public/onboarding.ttl` + namespace note; parse with N3 (pinned) at load
+- [x] Hex view, workbench, words: port from the storyboard (looks, copy) and the dry run (behaviour)
 - [x] Words you've met (table in Dev Notes; endpoint → 14.6, pod for self-hosters → 14.3), checked with Nicolas: for each `onb:Word`, which tile unlocks it
   (`onb:unlocksWord`), every place the word already shows in copy before and after it unlocks (Bernard
   lines, tile A/B forms, previews), and the meaning shown in its tip (`onb:meaning`). One table in Dev
   Notes; copy fixes go in `onboarding.ttl`. Already seen: "pod" and "account" are used at B2 but unlock
   later (keep, handover); "endpoint", "linked data", "WebID" appear in no copy yet
-- [ ] `done.ts` registry with a stub per tile; tests for the fog rules (kit: add the test with the code)
-- [ ] Live check: loads on a phone, Daylight (MoM is Daylight only, decided 2026-10-31: no theme switch in the app), keyboard only
+- [x] `done.ts` registry with a stub per tile; tests for the fog rules (kit: add the test with the code)
+- [x] Live check: loads on a phone, Daylight (MoM is Daylight only, decided 2026-10-31: no theme switch in the app), keyboard only
+
+### Live check (S7, 2026-10-31)
+
+Live at `home.mapsofmaking.org` (`ghcr.io/mapsofmaking/mom-home:sha-1d37665`, design system pinned `6ebd885`).
+- Automated, signed out, phone 390×844 and desktop 1600×900: no console errors, no horizontal overflow, Daylight even under a dark OS setting, logical Tab order, riso-blue focus ring on links, buttons, fields and hexes, one screen at 1600×900.
+- By hand (Nicolas), desktop and mobile: sign-in with the pod address and with the WebID against pod.mapsofmaking.org; Fold persists across reload from `settings/mom-home.ttl`.
+- Findings, not blocking: header "Sign in" (36×20) and "Fill in an example" (110×23) are under the 24px target size; on a phone the open "Describe your space" step shows a `COMING` label; the Description placeholder is clipped on a phone.
 
 ## Dev Notes
 
