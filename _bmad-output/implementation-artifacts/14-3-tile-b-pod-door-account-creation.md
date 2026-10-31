@@ -38,7 +38,7 @@ found only after "Create it" makes the coordinator redo the passphrase). **14.0 
 answer "is this name free" without creating anything**: a HEAD on `https://<name>.pod.mapsofmaking.org/`
 answers `401` for free and taken names alike (wildcard), and the account API has no check. Until the
 provider offers one (solid-css-overlay), the format is checked live and "taken" shows after "Create it",
-on the address field, with the passphrase kept (the next line); "Create it" handles a name taken in
+on the address field, with the passphrase kept (the next line; fallback accepted by Nicolas, 2026-10-31); "Create it" handles a name taken in
 between either way
 **And** no error clears a field: errors update in place, the passphrase fields keep what was typed.
 **And** before "Create it", Bernard warns about the consent page: the pod's own page will ask whether

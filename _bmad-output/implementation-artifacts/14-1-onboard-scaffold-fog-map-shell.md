@@ -133,6 +133,47 @@ Live at `home.mapsofmaking.org` (`ghcr.io/mapsofmaking/mom-home:sha-1d37665`, de
 - By hand (Nicolas), desktop and mobile: sign-in with the pod address and with the WebID against pod.mapsofmaking.org; Fold persists across reload from `settings/mom-home.ttl`.
 - Findings, not blocking: header "Sign in" (36×20) and "Fill in an example" (110×23) are under the 24px target size; on a phone the open "Describe your space" step shows a `COMING` label; the Description placeholder is clipped on a phone.
 
+### Review Findings
+
+Code review 2026-10-31, mom-home `e036d60..0ab02f7` (vendored `src/styles/mom/*` excluded). Layers: Blind Hunter, Edge Case Hunter, Acceptance Auditor. Line refs are mom-home files at `0ab02f7`.
+
+- [ ] [Review][Patch] (D1, decided: guard) Guard tile A's `opts.done.add("describe")` when a pod is present; state in the spec (AC1b, AC4) that "never steps through onboarding again" lands with 14.3/14.4 when `space` is looked up [src/workbench/page.ts:243, spec AC1b/AC4]
+- [x] [Review][Defer] (D2, decided: leave) Blank tile A form marks "describe" done — deferred, placeholder until 14.2
+- [ ] [Review][Patch] (D3, decided: amend spec) Amend AC6 to exempt tile A (real form, no COMING chip); soften AC1b "Signed in as <space name>" to the signer's name until 14.6 [spec AC6, AC1b]
+- [ ] [Review][Patch] (D4, decided: count completable) Count only tiles whose done check can complete toward `MAX_OPEN`, so stub tiles never hold real ones as "ready" [src/tree/fog.ts, src/tiles/done.ts]
+- [ ] [Review][Patch] (D5, checked on VPS 2026-10-31: `mom-home.caddy` sets nosniff, Referrer-Policy, HSTS, X-Frame-Options; live `curl -I` confirms) Fix stale comment in `deploy/nginx-site.conf` ("security headers are handled upstream" → name `vps-infra gateway/sites/mom-home.caddy`) [deploy/nginx-site.conf]
+- [ ] [Review][Patch] `renderPage` leaks on every sign-in/out/retry: two `ResizeObserver`s and `wide.addEventListener("change")` never removed; `keydown`/`click` listeners stack on persistent `#app` [src/workbench/page.ts:216-219,278-284]
+- [ ] [Review][Patch] `changeHomeSettings` recurses on 412 with no bound (create and update paths); doc says retry once, second 412 is a conflict. Also treat only a 404 on the settings URL as "create" [src/settings/home.ts:116]
+- [ ] [Review][Patch] Type Index registration appends raw Turtle by string concat and can corrupt the shared file: parse the transformed result with N3, return `null` on error; only follow `privateTypeIndex`/`preferencesFile` URLs on the pod or WebID origin [src/settings/home.ts registerInTypeIndex/findPrivateTypeIndex]
+- [ ] [Review][Patch] Settings rewrite drops triples the app does not know and overwrites a file with no `onb:HomeSettings` subject; malformed file fails every fold with the wrong message. Replace only known predicates, refuse and say so on unreadable file [src/settings/home.ts parseHomeSettings/serializeHomeSettings]
+- [ ] [Review][Patch] `ensureSettingsReadme` network failure after the settings file was created reports "your pod didn't take that change"; catch and warn [src/settings/home.ts]
+- [ ] [Review][Patch] Pod root without trailing slash builds `…usersettings/mom-home.ttl`; normalise at the single entry point [src/settings/home.ts homeSettingsUrl]
+- [ ] [Review][Patch] Fold toggle writes are unserialised: rapid toggles/412 retries can leave the pod opposite to the screen; chain writes, send latest [src/main.ts onFold]
+- [ ] [Review][Patch] `signOut`: no try/finally around `logout()` (UI stuck on throw), no `forgetReads()` (read.ts says pod data must not outlive the session), `done`/`fold` not cleared [src/main.ts]
+- [ ] [Review][Patch] `main()`: `completeLogin()` throw leaves blank page; tree error path runs before `completeLogin()` so `?code=&state=` is orphaned; Retry re-enters `main()` [src/main.ts]
+- [ ] [Review][Patch] `clientIdFor`: no timeout (hung `/id.jsonld` hangs Sign in), silent fallback to DCR on mismatch (log why, normalise trailing slash) [src/lib/auth.ts]
+- [ ] [Review][Patch] `parseTree` accepts lies: dependency cycles, no root tile, duplicate fragment ids, blank/fractional `q`/`r`/`prio` (`Number("")` = 0), emergent+planned. Throw `TreeError` naming the tile [src/tree/parse.ts]
+- [ ] [Review][Patch] Bernard-line filter `/^(say|said)[A-Z]?/` matches any property starting with "say"; use `/^(say|said)([A-Z]|$)/` [src/tree/parse.ts:92]
+- [ ] [Review][Patch] `waitsFor` shows the full title of a requirement that is only a cue/ready tile; AC3 says outcome only, never mechanism. Mask unless done/open [src/workbench/step.ts]
+- [ ] [Review][Patch] Default selected tile can be fog when nothing is open; fall back to first non-fog [src/workbench/page.ts draw]
+- [ ] [Review][Patch] Prototype-key lookups: `DONE_CHECKS[t.id]`, `ICONS[t.icon]`, previews `in`; a tile id/icon of `constructor` counts as done or injects function source. Use `Object.hasOwn` [src/tiles/done.ts:58, hexview.ts, hexrow.ts, previews.ts]
+- [ ] [Review][Patch] Dev-skin vite plugin: `file.startsWith(ds)` admits sibling dirs (`ds-evil`) and directories (EISDIR); use `ds + sep` and `isFile()` [vite.config.ts:34]
+- [ ] [Review][Patch] `sync-design-system.sh` runs `rm -rf "$out"` before its guards; build into a temp dir, `mv` on success [scripts/sync-design-system.sh]
+- [ ] [Review][Patch] Hex view a11y: `aria-expanded` never updated on fold/unfold buttons, `aria-controls` points at a hidden section, tooltip span inside its own button double-announces [src/workbench/hexrow.ts, page.ts]
+- [ ] [Review][Patch] `HOME_TAG` unset in compose gives an empty tag; use `${HOME_TAG:?…}` for the server flow [docker-compose.yml]
+- [ ] [Review][Patch] Tests: `DONE_CHECKS` stub swap is not restored on failure (use try/finally); add tests for the new guards above [src/settings/home.test.ts]
+- [ ] [Review][Patch] Spec AC7 says `settings/home.ttl`; AC4, code and reference doc say `settings/mom-home.ttl`. Fix AC7 text [this file, AC7]
+- [x] [Review][Defer] `keep` and `describe` done stubs are identical and ignore their `doneWhen` — deferred, latent while `space` is null; real checks land in 14.2/14.3/14.4
+- [x] [Review][Defer] `locality()` shows street/country for addresses without a comma — deferred, preview placeholder until 14.2
+- [x] [Review][Defer] `HomeSettings.seen`/`seenTutorial`, `currentTree`/`currentPod`, `foldForFirstTime` unused — deferred, arrive with 14.6
+- [x] [Review][Defer] `new URL("/id.jsonld", redirectUrl)` breaks under a sub-path deploy — deferred, app is served at origin root
+- [x] [Review][Defer] `/skin.css` render-blocking `<link>` and possible SPA-fallback MIME warning — deferred, deploy mount lives in vps-infra, unverified
+- [x] [Review][Defer] `n3` in production bundle (~100 KB) and no loading state before the tree loads — deferred, perf, measure first
+- [x] [Review][Defer] Design-system copy pin has no CI integrity check; `?done=`/`?workbench=` DEV-only params untested — deferred, hygiene
+- [x] [Review][Defer] Rotting comment references (story/session/person dates) and test gaps for `renderPage`/`main.ts` flows — deferred, hygiene
+
+Dismissed as noise or decided: Daylight-only / no `prefers-contrast` path (decided 2026-10-31), XSS via innerHTML (interpolations are constants, drafts escaped), hard-coded Bernard persona line, `SESSION_ID` rename orphaning settings, `seen` overwrite on transient read failure (callback spreads), global focus-ring tokens scoped to `.wb-page` (S7 checked focus on kit screens), `Math.min(...)` on large trees, `@types/n3` pin mismatch, `.env` ignore breadth, "Fields here are placeholders" copy (11 total).
+
 ## Dev Notes
 
 ### Words you've met: where each word is met (S4, 2026-10-31; for Nicolas)
