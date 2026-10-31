@@ -88,7 +88,9 @@ COMING.
 
 ### AC7 — The hex view, as drawn
 **Then** the hex view is titled "What you can do" (not "map": that is mapsofmaking.org) and draws tiles in
-riso style: done = green tint printed slightly off an ink outline, with ✓; open = white, bold ink outline;
+riso style: done = green tint printed slightly off an ink outline (no ✓: the green says done); open = white,
+bold ink outline; done and open tiles carry their `TilePicto` above the label, the same as the folded row
+(decided 2026-10-31), coming and undiscovered tiles none, so the progression holds;
 coming = dashed muted outline on paper; still to discover = halftone dots; selected = 4px outline, no
 shadow. Riso red only for errors; focus is riso blue (cobalt), so a focused field never reads as an error
 (design system, decided 2026-10-31)
@@ -104,6 +106,8 @@ once on purpose, at the end of tile C's tutorial (14.6), with a Bernard line nam
 otherwise only by the toggle, "Fold" / "Show all", in the same corner of the hex panel. The fold is
 remembered: for the tab signed out, in `settings/home.ttl` signed in (AC4). Never set, a desktop arrives
 unfolded and a phone folded. Unfolding is in place (50/50, or stacked on a phone), not an overlay
+**And** the fold is instant, not animated (a two-beat animation was tried and dropped, 2026-10-31: the
+hexes are the visual cue; Bernard's line at the first fold closes the mental gap, 14.6)
 
 ## Tasks
 - [ ] Scaffold mom-home from solid-kit; config, Client ID Document, image + CI, compose service, gateway site in vps-infra

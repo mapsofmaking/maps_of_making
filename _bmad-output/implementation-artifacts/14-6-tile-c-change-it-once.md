@@ -85,6 +85,12 @@ never written as a flag; app preferences that can't be derived (none for this ti
 Live: hours changed in the tile appear on the map card and in the raw source within one minute.
 
 ## Dev Notes
+- **The first fold happens here** (14.1 AC7, decided 2026-10-31): at the end of tile C's tutorial the page
+  calls `foldForFirstTime()` (mom-home `src/workbench/page.ts`). No animation (tried and dropped,
+  Nicolas: "unconvincing and cheap visually"; the hexes are the cue, the fold is sharp and fast).
+  Bernard's voice closes the gap instead: one line in `onboarding.ttl` on `:change`, said as the hexes
+  fold, naming the toggle (draft: "I'll fold the map up here. It's one click away, top right: Show
+  all."). The line is Nicolas's to word.
 - Map follow-up (outside Epic 14, → backlog): `web/app.js` refetches `/data/spaces.geojson` on
   `visibilitychange` when the tab comes back after > 30 s hidden. Then a coordinator who keeps the map in
   another tab sees the change on switching back, and AC2's reload hint can go. Home and the map are on
