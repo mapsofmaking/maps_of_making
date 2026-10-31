@@ -77,7 +77,8 @@ pod", "The map read it"), using the kit's pending line (400 ms delay, admits a l
 wait after 10 s), and a failed ingest says which reader didn't update and why.
 
 ### AC5 — No progress flag
-**Then** tile C's done is derived from the pod's data (`onb:doneWhen`: hours modified after creation),
+**Then** tile C's done is derived from the pod's data (`onb:doneWhen`: hours present and set after the space was created; since 2026-10-31 tile A no longer
+asks for hours, so the first time usually adds them rather than changes them),
 never written as a flag; app preferences that can't be derived (none for this tile) go in
 `settings/home.ttl` (see 14.1 AC4).
 
@@ -95,4 +96,7 @@ Live: hours changed in the tile appear on the map card and in the raw source wit
   `visibilitychange` when the tab comes back after > 30 s hidden. Then a coordinator who keeps the map in
   another tab sees the change on switching back, and AC2's reload hint can go. Home and the map are on
   different origins, so BroadcastChannel can't carry it.
-- Address changes geocode through genjson's proxy (`/api/geocode`, Nominatim, 1 req/s).
+- Address changes geocode through genjson's proxy (`/api/geocode`, Nominatim, 1 req/s), the same way and
+  route as tile A (14.2 AC5: a city is enough; the place found is shown).
+- The tool's fields are the space file's ([`docs/reference/space-file.md`](../../docs/reference/space-file.md)),
+  opening hours included; SDGs and a network's requested fields join under "Asked by <network>".
