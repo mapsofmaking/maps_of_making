@@ -1,7 +1,7 @@
 # Wizard shell — the other front door to INPUT
 
 > **Retired (Story 14.8).** The genjson wizard this page describes is gone: `genjson.mapsofmaking.org`
-> forwards to the onboarding app at `home.mapsofmaking.org`. The code is at tag `genjson-last`
+> redirects to the onboarding app at `home.mapsofmaking.org`. The code is at tag `genjson-last`
 > (`git show genjson-last:web/genjson/genjson.js`); the `genjson.js:line` anchors below point there.
 > Kept as a record of the design.
 
