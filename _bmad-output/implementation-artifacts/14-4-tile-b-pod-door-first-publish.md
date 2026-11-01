@@ -60,6 +60,12 @@ once →" as the primary button to tile C ("See it on the map ↗" steps back to
 resumes from the failed step (a written file is not rewritten; a registered URL dedups by endpoint, see
 `_find_graph_by_endpoint`).
 
+### AC — The writer is held to the map's reading
+**Then** the Turtle the app writes is tested against `tests/fixtures/space/atelier-du-canal.ttl`
+(maps_of_making; copy it into mom-home pinned to a commit, like the design system): the same draft values
+give the same file, and the map's parser reads it to the statements in `atelier-du-canal.json`
+(Story 14.7's parity test, `tests/test_space_turtle.py`).
+
 ## Done gate
 A new coordinator, on a phone, goes from tile A to their pin opened on the map, against
 `pod.mapsofmaking.org`, without copying anything.
