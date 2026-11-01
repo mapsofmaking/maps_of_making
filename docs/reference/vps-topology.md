@@ -1,6 +1,13 @@
 # VPS topology
 
-Reference facts about the Hetzner VPS hosting Maps of Making — architecture, domains, and the
+> **2026-11-01: the map moved to the MoM VPS.** What is written below is the **Hetzner** layout (two-layer
+> nginx), kept for the rollback window and as history. Now: gateway Caddy (vps-infra) → `maps-web` (Caddy,
+> `infra/web/Caddyfile`) → `maps-link-handler` / `maps-oxigraph`, in `/srv/mom-map`; see
+> [Operate the VPS](../how-to/operate-the-vps.md) and vps-infra's `sites-and-routes.md`. Still on Hetzner:
+> Dendrite (`matrix.mapsofmaking.org`), Hermes. The Makefile's `publish`, `sync*`, `vps-*` targets drive
+> Hetzner over rsync and are legacy; the new server deploys from CI.
+
+Reference facts about the Hetzner VPS that hosted Maps of Making — architecture, domains, and the
 Makefile target inventory. For step-by-step operations (deploy, reset, diagnose 502s), see
 [operate-the-vps.md](../how-to/operate-the-vps.md).
 
@@ -26,7 +33,7 @@ Internet ──► nginx-gateway (host: hetzner-gateway stack)
 
 | Domain | Status | Behavior |
 |---|---|---|
-| `mapsofmaking.org` | **Primary** | Serves the app |
+| `mapsofmaking.org` | **Primary** | Serves the app (MoM VPS since 2026-11-01) |
 | `mapsofmaking.com` | Active | 301 → `mapsofmaking.org` |
 | `admin.mapsofmaking.org` | Retired 2026-11 | Was a login stub; a future admin would use Solid OIDC |
 | `genjson.mapsofmaking.org` | Active | Bernard's Workshop JSON composer |

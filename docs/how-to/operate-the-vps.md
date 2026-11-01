@@ -1,6 +1,30 @@
 # Operate the VPS
 
-Operational recipes for the Hetzner VPS hosting Maps of Making. For the box's architecture,
+## Where the map runs now (since 2026-11-01)
+
+The map, its Oxigraph and Bernard run on the **MoM VPS** (`ssh mom`), not on Hetzner. Hostnames and
+TLS are the shared gateway's (Caddy, repo `mapsofmaking/vps-infra`, `gateway/sites/mom-map.caddy`);
+everything else is this repo's `infra/web/Caddyfile` in the `maps-web` container.
+
+| What | Where |
+|---|---|
+| Code, compose, `.env`, `data/` | `/srv/mom-map` (branch `mom-vps`, owner `deploy`; `.env` mode 600 at its root) |
+| Containers | `maps-web`, `maps-link-handler`, `maps-oxigraph` (1 GiB limit), `maps-agent-bot` (compose profile `bot`) |
+| Deploy | push to `mom-vps` → `images` workflow builds `sha-<7>` images → its `deploy` job runs `mom-map-deploy` over a forced SSH key. By hand: `gh workflow run images.yml --ref mom-vps` |
+| Roll back | `mom-map-deploy <earlier 40-hex commit>` as the `deploy` user (it records `MAP_TAG` in `.env`) |
+| Logs | `ssh mom 'docker logs --tail 100 maps-link-handler'` (same for the others); the script's own: `journalctl -t mom-map-deploy` |
+| First-time setup, secrets | [`infra/deploy/README.md`](../../infra/deploy/README.md) |
+| Moving data between servers | vps-infra `migration/map/copy-map-data.sh` |
+
+There is no admin page: `web/admin` and `admin.` were retired (a future admin would log in with Solid OIDC).
+
+**Everything below describes the old Hetzner operation.** Keep it only for the rollback window (Hetzner's
+map containers are stopped, not deleted, until about 15 Nov 2026) and as history. Dendrite and Hermes
+are still on Hetzner.
+
+## Hetzner (legacy)
+
+Operational recipes for the Hetzner VPS that hosted Maps of Making until 2026-11-01. For the box's architecture,
 domains, and Makefile target inventory, see [vps-topology.md](../reference/vps-topology.md).
 
 ## SSH login is root — `~` traps
