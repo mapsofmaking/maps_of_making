@@ -1,6 +1,6 @@
 # Story 14.8: Retire genjson
 
-Status: in-progress — S1 to S3 built, live on merge; S4 (end of the transition) and S5 (Hetzner leftovers, after 2026-11-15) wait for their dates
+Status: in-progress — S1 to S3 live, S4 built (live on merge); S5 (Hetzner leftovers, on or after 2026-11-15) is the last slice
 
 ## Story
 
@@ -44,9 +44,10 @@ rsynced to Hetzner and home deploys from its own repo. The app's copy lives in `
   `tests/test_bernard_voice_completeness.py` and the nginx vhost deleted; Makefile, `.gitignore`, `CREDITS.md`,
   compose comment, `07-wizard-shell.md` (retired banner) and `vps-topology.md` updated. Tag `genjson-last`
   keeps the wizard one `git show` away (14.5 may want the hosting-guide pictures from `tuto/`).
-- [ ] **S4, end of the transition (date to set; usage is low, see the analytics design):** `genjson.` `/` also
-  `redir` 301; delete `web/genjson/index.html`; update the smoke test. Ships by merge, no gateway change.
-  Anyone who still has a draft on genjson after this date loses the way in.
+- [x] **S4, end of the transition (2026-11-01, Nicolas: "proceed S4", right after S2/S3 went live):** every path on
+  `genjson.`, `/` included, is a 301 to home (query kept); `web/genjson/` is gone; smoke test updated. Ships by
+  merge, no gateway change. A draft still in a browser on genjson's origin is no longer forwarded: the way in was
+  open for the length of one deploy. (AC2's "transition period" was therefore minutes, by choice: usage is low.)
 - [ ] **S5, Hetzner leftovers (on or after 2026-11-15, the end of the rollback window; last slice):** resolve the
   table in `deferred-work.md` ("Hetzner leftovers"): the remaining `infra/gateway-nginx/` confs, the Makefile
   retired stubs, the legacy halves of `vps-topology.md` and `operate-the-vps.md`, `ssh hetzner` in

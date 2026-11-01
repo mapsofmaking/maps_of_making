@@ -36,7 +36,7 @@ Internet ──► nginx-gateway (host: hetzner-gateway stack)
 | `mapsofmaking.org` | **Primary** | Serves the app (MoM VPS since 2026-11-01) |
 | `mapsofmaking.com` | Active | 301 → `mapsofmaking.org` |
 | `admin.mapsofmaking.org` | Retired 2026-11 | Was a login stub; a future admin would use Solid OIDC |
-| `genjson.mapsofmaking.org` | Retired (14.8) | `/` forwards a saved draft to `home.`; any other path 301s to `home.mapsofmaking.org` |
+| `genjson.mapsofmaking.org` | Retired (14.8) | every path 301s to `home.mapsofmaking.org`, query kept |
 | `mothersand.mapsofmaking.org` | Active | Mother Sand website |
 
 Wildcard cert lives at `/etc/letsencrypt/live/mapsofmaking.org/` and covers `.org` + `.com`.

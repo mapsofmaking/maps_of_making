@@ -50,7 +50,9 @@ status 200 $W/
 status 200 $W/health
 status 404 $W/no-such-file
 status 404 $W/admin/
-status 200 -H Host:genjson.mapsofmaking.org $W/
+status 301 -H Host:genjson.mapsofmaking.org $W/
+header 'Location: https://home.mapsofmaking.org/' -H Host:genjson.mapsofmaking.org $W/
+header 'Location: https://home.mapsofmaking.org/?resume=1' -H Host:genjson.mapsofmaking.org "$W/?resume=1"
 status 200 -H Host:mothersand.mapsofmaking.org $W/
 status 403 -X POST $W/sparql/update
 status 204 -X OPTIONS $W/sparql/update
@@ -61,9 +63,7 @@ status 301 -H Host:genjson.mapsofmaking.org $W/api/geocode
 header 'Location: https://home.mapsofmaking.org/?resume=1' -H Host:genjson.mapsofmaking.org "$W/old/path?resume=1"
 header 'Location: https://home.mapsofmaking.org/' -H Host:genjson.mapsofmaking.org $W/old/path
 body 'mak-link-handler /claim/abc' $W/claim/abc
-body 'from-genjson' -H Host:genjson.mapsofmaking.org $W/
 header 'Content-Security-Policy: frame-ancestors *' -H Host:test.mapsofmaking.org $W/
-header 'X-Frame-Options: SAMEORIGIN' -H Host:genjson.mapsofmaking.org $W/
 header "'unsafe-eval'" -H Host:mothersand.mapsofmaking.org $W/
 header 'Access-Control-Allow-Origin: *' $W/sparql/query
 header 'X-Content-Type-Options: nosniff' $W/
