@@ -11,6 +11,15 @@ So that the map's freshness signals are true and nobody can use it to read our i
 
 ## Context
 
+**Tracks GitHub issue #8, "Create the staying alive app"** (mapsofmaking/maps_of_making): "Record on maps of
+making db: last time heard of them; can send newsletter". This story is the "last time heard of them" half:
+the heartbeat is how the map hears from a space, and these ACs make that record true. The newsletter half
+(consent to be written to, and sending through an SMTP provider, issue #14: Resend.com) is not here: it needs
+the coordinator's consent and a contact the index does not keep (14.7: email and Matrix stay in the source),
+so it fits next to 14.10's tile, where the coordinator decides what the map may do. Open question for
+Nicolas: one story for that half, or part of 14.10.
+
+
 The heartbeat fetches every claimed space every 10 minutes (`config.yaml` `heartbeat_interval_seconds: 600`,
 `heartbeat_concurrency: 24`), through `source.fetch_source` since Story 14.7 (shared with register), then
 rebuilds `spaces.geojson` for the whole corpus. It is simple and bounded. Reading production on 2026-11-01
