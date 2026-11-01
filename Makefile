@@ -1,27 +1,12 @@
-REMOTE      ?= hetzner
-REMOTE_APP  ?= /home/nicolas/maps_of_making
-REMOTE_GW   := /home/nicolas/hetzner-gateway/nginx/conf.d
+# The MoM VPS (`ssh mom`) since 2026-11-01. The code there is a CI-deployed
+# checkout of mom-vps owned by `deploy`: these vps-* targets only talk to the
+# running containers (docker exec, docker cp), they never rsync code or build.
+# The old Hetzner deploy targets (publish, sync*, vps-rebuild, vps-reset,
+# deploy-genjson) are retired stubs; their code is at tag mom-demo-final.
+REMOTE      ?= mom
+REMOTE_APP  ?= /srv/mom-map
 
-# Files/dirs excluded from app sync
-# data/ holds runtime state (oxigraph DB, nginx logs) — never overwrite from local
-RSYNC_EXCLUDE := \
-	--exclude='.git/' \
-	--exclude='_bmad/' \
-	--exclude='_bmad-output/' \
-	--exclude='archive/' \
-	--exclude='*.mp4' \
-	--exclude='*.zip' \
-	--exclude='.claude/' \
-	--exclude='gateway-nginx/' \
-	--exclude='node_modules/' \
-	--exclude='venv/' \
-	--exclude='__pycache__/' \
-	--exclude='*.pyc' \
-	--exclude='.pytest_cache/' \
-	--exclude='graphify-out/' \
-	--exclude='data/'
-
-.PHONY: ontology-pull sync sync-app sync-gateway publish startdev rebuild seed-spaceapi seed-bundle bundle-to-csv csv-to-bundle heartbeat devdeploy reset vps-rebuild vps-seed vps-reset help endpoint deploy-genjson bernard-copy load-ontology vps-load-ontology vps-load-suppliers suppliers-csv suppliers-geocode suppliers-ttl
+.PHONY: deploy ontology-pull sync sync-app sync-gateway publish startdev rebuild seed-spaceapi seed-bundle bundle-to-csv csv-to-bundle heartbeat devdeploy reset vps-rebuild vps-seed vps-reset help endpoint deploy-genjson bernard-copy load-ontology vps-load-ontology vps-load-suppliers suppliers-csv suppliers-geocode suppliers-ttl
 .PHONY: mac-up mac-down mac-init mac-reset mac-heartbeat mac-test
 .PHONY: c-reset c-activate c-demo c-all
 .PHONY: ca-reachable ca-timeout ca-dns-fail ca-http-error caxis-a
@@ -148,6 +133,13 @@ mac-reset:
 	$(MAKE) mac-init
 	@echo "✓ mac-reset complete"
 
+## Deploy the current mom-vps head: build the three images in CI and run mom-map-deploy
+## on the server. Pushing to mom-vps does the same on its own. Needs the gh CLI
+## (here it lives in the distrobox: distrobox-enter dropbox-container -- make deploy).
+deploy:
+	gh workflow run images.yml -R mapsofmaking/maps_of_making --ref mom-vps
+	@echo "→ started. Watch: gh run list -R mapsofmaking/maps_of_making --workflow images.yml --limit 1"
+
 help:
 	@echo "── DOCS ─────────────────────────────────────────────────────────────"
 	@echo "make check-docs    — fail if a superseded architecture fact reappears in live docs"
@@ -172,15 +164,10 @@ help:
 	@echo "make devdeploy     — rebuild + seed + heartbeat (mirrors publish, locally)"
 	@echo "make reset         — DESTRUCTIVE: wipe Oxigraph + heartbeat DB, then devdeploy"
 	@echo "── VPS ──────────────────────────────────────────────────────────────"
-	@echo "make publish       — push code: sync + down/up --build + heartbeat + gateway reload (no seed)"
-	@echo "make sync          — sync everything (app + gateway confs)"
-	@echo "make sync-app      — sync project root (excl. dev artifacts) to VPS"
-	@echo "make sync-gateway  — sync gateway nginx confs (manual reload needed)"
-	@echo "make deploy-genjson — push web/genjson/ only + nginx reload (fast wizard dev loop)"
-	@echo "make vps-rebuild   — rebuild containers on VPS (no sync — code must be current)"
+	@echo "make deploy        — deploy mom-vps head to the MoM VPS (CI builds images; needs gh)"
+	@echo "  (publish, sync, sync-app, sync-gateway, deploy-genjson, vps-rebuild, vps-reset are retired stubs)"
 	@echo "make vps-seed [LIST=… NETWORK=…] — seed SpaceAPI list on VPS (default: directory.spaceapi.io, network=spaceapi)"
 	@echo "make vps-seed-bundle BUNDLE=… NETWORK=… [SOURCE=…] — seed Path B bundle (grey/claimable pins, no endpoint)"
-	@echo "make vps-reset     — DESTRUCTIVE: wipe VPS Oxigraph + SQLite, rebuild, reload canary only"
 	@echo "── CANARY ───────────────────────────────────────────────────────────"
 	@echo "make c-reset      — restore canary from baseline (seeded, no endpointUrl)"
 	@echo "make c-activate   — add mom:endpointUrl to canary (simulates claiming step)"
@@ -263,7 +250,7 @@ load-ontology:
 	bash scripts/load_ontology.sh http://localhost:7878
 
 ## Parity twin: load ontologies into the VPS Oxigraph. Runs the same script on the
-## VPS host against the published :7878 port. sync-app must have pushed scripts/ +
+## VPS host against the published :7878 port. the server's checkout (CI deploy) holds scripts/ +
 ## ontology/ first. NOT auto-run by `publish` (idempotent, but kept opt-in).
 ##
 ## NOTE 1 — NEVER use localhost:7878 on the VPS. Story 13.2 removed maps-oxigraph's
@@ -351,35 +338,17 @@ reset:
 	$(MAKE) devdeploy
 	@echo "✓ reset complete — refresh your browser at http://localhost:8080"
 
-## Push latest code: sync → docker down → up --build → heartbeat → gateway reload.
-## Does NOT touch data/ (rsync excludes it) and does NOT seed — use `make vps-reset`
-## to factory-reset, or `make vps-seed LIST=…` to add a network. Heartbeat refreshes
-## already-claimed spaces so the map updates immediately instead of waiting 10min.
-publish: sync-app
-	@echo "→ full stack restart + rebuild on VPS..."
-	ssh $(REMOTE) 'cd $(REMOTE_APP) && docker compose -f infra/docker-compose.yml down && docker compose -f infra/docker-compose.yml up -d --build'
-	@echo "→ waiting for link-handler to be healthy..."
-	ssh $(REMOTE) 'timeout 90 sh -c "until docker exec maps-link-handler python3 -c \"import urllib.request; urllib.request.urlopen('"'"'http://localhost:8000/health'"'"')\" 2>/dev/null; do sleep 3; done" && echo ok'
-	@echo "→ triggering immediate heartbeat cycle (refreshes claimed spaces + rematerializes GeoJSON)..."
-	ssh $(REMOTE) 'docker exec -i maps-link-handler python3 -' < scripts/heartbeat_run.py
-	@echo "→ reloading gateway nginx (clears stale upstream cache after maps-nginx recreate)..."
-	ssh $(REMOTE) 'docker exec nginx-gateway nginx -s reload'
-	@echo "✓ published — map live"
+## Retired (Hetzner rsync deploy). The map deploys from CI: make deploy.
+publish:
+	@echo "make publish is retired: the map runs on the MoM VPS since 2026-11-01 and deploys from CI. Use: make deploy (push to mom-vps, or this runs the images workflow by hand)."; exit 1
 
-## Push everything (app + gateway confs)
-sync: sync-app sync-gateway
-
-## Push project root to VPS — all files except dev-only artifacts
+sync:
+	@echo "make sync is retired: the map runs on the MoM VPS since 2026-11-01 and deploys from CI. Use: make deploy (push to mom-vps, or this runs the images workflow by hand)."; exit 1
 sync-app:
-	rsync -avz --delete $(RSYNC_EXCLUDE) \
-		. \
-		$(REMOTE):$(REMOTE_APP)/
-	@echo "✓ app synced to $(REMOTE):$(REMOTE_APP)"
+	@echo "make sync-app is retired: the map runs on the MoM VPS since 2026-11-01 and deploys from CI. Use: make deploy (push to mom-vps, or this runs the images workflow by hand)."; exit 1
 
-## Rebuild containers on VPS without syncing — use when code is already current on VPS
-## (e.g. after a server-side config edit). If local code changed, use make publish instead.
 vps-rebuild:
-	ssh $(REMOTE) 'cd $(REMOTE_APP) && docker compose -f infra/docker-compose.yml down && docker compose -f infra/docker-compose.yml up -d --build'
+	@echo "make vps-rebuild is retired: containers are not built on the MoM VPS (images come from CI). To restart one: ssh mom 'cd /srv/mom-map/infra && docker compose restart <service>'."; exit 1
 
 ## Seed a SpaceAPI endpoint list onto the VPS. LIST = URL or local path (default:
 ## directory.spaceapi.io). NETWORK = filter-chip slug (default: spaceapi).
@@ -436,32 +405,10 @@ vps-seed-bundle:
 	ssh $(REMOTE) 'docker exec maps-link-handler python3 -c "import httpx; r = httpx.post(\"http://localhost:8000/api/rematerialize\", timeout=60); print(\"rematerialize:\", r.status_code)"'
 	@echo "✓ VPS bundle seeded (network=$(NETWORK))"
 
-## DESTRUCTIVE: VPS analog of `make reset`. Wipes Oxigraph store + SQLite
-## (heartbeat_log, snapshot_store) and materialized GeoJSON on the VPS, then
-## rebuilds containers and seeds only the Mother Sand canary. Use to factory-
-## reset the deployment; claim additional URLs afterwards through the admin UI.
+## Retired. On the MoM VPS this would wipe the production store. To restore from
+## a backup: vps-infra docs/how-to/back-up-the-map.md.
 vps-reset:
-	@echo "⚠  This will wipe data/oxigraph/ and data/tasks/*.db on $(REMOTE)."
-	@echo "   All coordinator-registered spaces will be lost. Only the Mother Sand"
-	@echo "   canary will be reloaded."
-	@read -p "   Type 'vps-reset' to confirm: " ans && [ "$$ans" = "vps-reset" ] || (echo "aborted"; exit 1)
-	@echo "→ stopping containers on VPS..."
-	ssh $(REMOTE) 'cd $(REMOTE_APP) && docker compose -f infra/docker-compose.yml down'
-	@echo "→ wiping Oxigraph + SQLite + materialized GeoJSON on VPS..."
-	ssh $(REMOTE) 'cd $(REMOTE_APP) && rm -rf data/oxigraph/* data/tasks/snapshot_store.db data/tasks/heartbeat_log.db data/tasks/gap_log.txt data/tasks/oxigraph.db web/data/spaces.geojson'
-	@echo "→ rebuilding containers on VPS..."
-	ssh $(REMOTE) 'cd $(REMOTE_APP) && docker compose -f infra/docker-compose.yml up -d --build'
-	@echo "→ waiting for link-handler to be healthy..."
-	ssh $(REMOTE) 'timeout 90 sh -c "until docker exec maps-link-handler python3 -c \"import urllib.request; urllib.request.urlopen('"'"'http://localhost:8000/health'"'"')\" 2>/dev/null; do sleep 3; done" && echo ok'
-	@echo "→ staging canary loader + ops + payload into container..."
-	ssh $(REMOTE) 'cd $(REMOTE_APP) && docker cp scripts/load_canary.py maps-link-handler:/app/scripts/load_canary.py && docker cp scripts/canary_ops.py maps-link-handler:/app/scripts/canary_ops.py && docker exec maps-link-handler mkdir -p /app/web/canary && docker cp web/canary/mother-sands.json maps-link-handler:/app/web/canary/mother-sands.json'
-	@echo "→ loading Mother Sand canary into Oxigraph..."
-	ssh $(REMOTE) 'docker exec -e OXIGRAPH_URL=http://oxigraph:7878 -e PYTHONPATH=/app maps-link-handler python3 /app/scripts/load_canary.py'
-	@echo "→ rematerializing GeoJSON..."
-	ssh $(REMOTE) 'docker exec maps-link-handler python3 -c "import httpx; r = httpx.post(\"http://localhost:8000/api/rematerialize\", timeout=30); print(\"rematerialize:\", r.status_code)"'
-	@echo "→ reloading gateway nginx (clears stale upstream cache after maps-nginx restart)..."
-	ssh $(REMOTE) 'docker exec nginx-gateway nginx -s reload'
-	@echo "✓ vps-reset complete — only Mother Sand canary in graph; claim additional URLs through the admin UI."
+	@echo "make vps-reset is retired: it would wipe the production store. Restore from a backup instead: vps-infra docs/how-to/back-up-the-map.md."; exit 1
 
 ## ── CANARY ───────────────────────────────────────────────────────────────────
 ## Mother Sand diagnostic canary — three-axis fault attribution tool.
@@ -469,12 +416,11 @@ vps-reset:
 ## Scenario cycle: make cb-zombie → writes web/canary/mother-sands.json → push to VPS → heartbeat
 ## See docs/how-to/set-up-mother-sand.md and docs/how-to/diagnose-a-broken-map.md for full guide.
 
-## Push canary JSON + logo to VPS static server
+## Push canary JSON to the VPS (mounted from data on the server; the logo is in the image)
 endpoint:
 	@mkdir -p web/canary
 	rsync -avz web/canary/mother-sands.json $(REMOTE):$(REMOTE_APP)/web/canary/
-	rsync -avz web/mother-sands-logo.png $(REMOTE):$(REMOTE_APP)/web/
-	@echo "✓ canary + logo pushed → https://mapsofmaking.org/canary/mother-sands.json"
+	@echo "✓ canary pushed → https://mapsofmaking.org/canary/mother-sands.json"
 
 ## Restore web/canary/mother-sands.json from committed baseline (seeded state, no endpoint URL)
 ## Also removes mom:endpointUrl from Oxigraph so heartbeat skips it — simulates fresh seeded space.
@@ -676,21 +622,14 @@ vps-c-demo-on: vps-stage-scripts
 vps-c-demo-off: vps-stage-scripts
 	$(MAKE) c-demo-off CANARY_OPS='$(VPS_OPS)' PUSH_STEP='$(MAKE) _vps-push'
 
-## Push gateway nginx confs only (triggers manual nginx reload on VPS)
+## Retired: the gateway is Caddy in the vps-infra repo, not nginx confs from here.
 sync-gateway:
-	rsync -avz \
-		infra/gateway-nginx/ \
-		$(REMOTE):$(REMOTE_GW)/
-	@echo "✓ gateway confs synced to $(REMOTE):$(REMOTE_GW)"
-	@echo "  → reload nginx manually if conf changed: ssh $(REMOTE) 'docker exec nginx-gateway nginx -s reload'"
+	@echo "make sync-gateway is retired: the gateway is Caddy, in the vps-infra repo (gateway/sites/mom-map.caddy)."; exit 1
 
-## Push only web/genjson/ static files to VPS + reload nginx — fast wizard dev loop
-## Does NOT rebuild containers; use make publish when backend (link_handler) changes.
+## genjson/ is baked into the maps-web image now (no fast rsync loop on the MoM VPS).
 bernard-copy:
 	python3 -c "import yaml, json, sys; json.dump(yaml.safe_load(open('web/genjson/bernard_copy.yaml')), open('web/genjson/bernard_copy.json','w'), ensure_ascii=False, indent=2)"
 	@echo "✓ bernard_copy.json regenerated"
 
 deploy-genjson: bernard-copy
-	rsync -avz web/genjson/ $(REMOTE):$(REMOTE_APP)/web/genjson/
-	ssh $(REMOTE) 'docker exec nginx-gateway nginx -s reload'
-	@echo "✓ genjson deployed → https://genjson.mapsofmaking.org"
+	@echo "genjson is part of the maps-web image: commit, push to mom-vps, then make deploy."; exit 1
