@@ -28,10 +28,12 @@ if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 
 from spaceapi_extract import escape_literal, extract_core, extract_mom, triples_for
+from spaceapi_extract.turtle import safe_iri
 
 from pipeline import run_space_pipeline
 from pipeline_helpers import get_config
 from snapshot_store import mint_observed_at, write_snapshot, read_last_ok_observed_at, read_snapshot
+from source import as_spaceapi, fetch_source, snapshot_parts
 from utils import MOM, SCHEMA, _ALLOWED_SCHEMES, _sparql_str, _sparql_iri, _slug
 import bot_keys
 
@@ -459,28 +461,35 @@ async def _fetch_and_validate(url: str) -> dict:
 
     try:
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
-            resp = await client.get(url)
+            fetched = await fetch_source(client, url)
     except (httpx.ConnectError, httpx.TimeoutException) as e:
         return {**_EMPTY_RESULT, "error": str(e)}
     except httpx.HTTPError as e:
         return {**_EMPTY_RESULT, "error": str(e)}
 
-    if resp.status_code != 200:
+    if fetched.status_code != 200:
         return {
             **_EMPTY_RESULT,
-            "status_code": resp.status_code,
-            "error": f"HTTP {resp.status_code}",
+            "status_code": fetched.status_code,
+            "error": f"HTTP {fetched.status_code}",
         }
 
-    try:
-        data = resp.json()
-    except Exception:
+    source = fetched.source
+    if not source.ok:
+        # AC4 (14.7): a page that is neither JSON nor Turtle is refused with the media type it really was.
+        error = "Response is not valid JSON" if source.kind == "invalid_json" else source.error
         return {
             "reachable": True,
-            "status_code": resp.status_code,
+            "status_code": fetched.status_code,
             "schema_valid": False,
-            "error": "Response is not valid JSON",
+            "media_type": source.sent,
+            "error": error,
         }
+
+    # Turtle is validated through the same model, in SpaceAPI's shape, so both formats
+    # answer name / coordinates / subset alike. The graph is written from the Turtle's
+    # own fields (_build_sparql_update), never from this dict.
+    data = as_spaceapi(source.turtle) if source.kind == "turtle" else source.data
 
     # Validate through Pydantic schema
     try:
@@ -496,7 +505,7 @@ async def _fetch_and_validate(url: str) -> dict:
 
     result = {
         "reachable": True,
-        "status_code": resp.status_code,
+        "status_code": fetched.status_code,
         "schema_valid": bool(name),
         "name_found": name,
         "coords_found": lat is not None and lon is not None,
@@ -508,18 +517,21 @@ async def _fetch_and_validate(url: str) -> dict:
         "unlock_message": subset_info["unlock_message"],
         "next_subset": subset_info["next_subset"],
         "next_unlock": subset_info["next_unlock"],
+        "media_type": source.media_type,
         "_data": data,  # internal — stripped before response
+        "_source": source,  # internal — stripped before response
     }
     if not name:
-        result["error"] = "Name not found — expected 'space' (SpaceAPI v13–15) or 'schema:name' / 'name'"
+        result["error"] = "Name not found — expected 'space' (SpaceAPI v13–15) or 'schema:name' / 'name' (JSON-LD, Turtle)"
     elif lat is None or lon is None:
-        result["coords_error"] = "Coordinates not found — expected location.lat/lon (SpaceAPI) or schema:geo (JSON-LD)"
+        result["coords_error"] = "Coordinates not found — expected location.lat/lon (SpaceAPI), schema:geo (JSON-LD or Turtle)"
     return result
 
 
 def _build_sparql_update(graph_uri: str, space_uri: str, name: str, lat: float, lon: float,
                           endpoint_url: str, data: dict,
-                          subset: str = "", next_unlock: Optional[str] = None) -> str:
+                          subset: str = "", next_unlock: Optional[str] = None,
+                          turtle_fields: Optional[dict] = None, profile_url: Optional[str] = None) -> str:
     # Registration envelope — identity + metadata (not extractable from payload)
     envelope = [
         f"<{space_uri}> a <{MOM}Space> .",
@@ -533,12 +545,18 @@ def _build_sparql_update(graph_uri: str, space_uri: str, name: str, lat: float, 
     if next_unlock:
         envelope.append(f"<{space_uri}> <{MOM}nextUnlock> {escape_literal(next_unlock)} .")
 
-    # Payload fields via extractor — skip name/geo (already in envelope)
+    # Payload fields — skip name/geo (already in envelope)
     _ENVELOPE_SKIP = {"schema:name", "schema:geo"}
-    core_fields = {k: v for k, v in extract_core(data).items() if k not in _ENVELOPE_SKIP}
-    mom_fields = extract_mom(data)
-
-    payload_triples = triples_for(space_uri, core_fields) + triples_for(space_uri, mom_fields)
+    if turtle_fields is not None:
+        # Turtle (Story 14.7): the fields read from the file itself, not through the SpaceAPI
+        # extractor; same shape, so the same triples. The pod document is the profile.
+        payload_triples = triples_for(space_uri, {k: v for k, v in turtle_fields.items() if k not in _ENVELOPE_SKIP})
+        if profile_url:
+            payload_triples += triples_for(space_uri, {"mom:profileUrl": profile_url})
+    else:
+        core_fields = {k: v for k, v in extract_core(data).items() if k not in _ENVELOPE_SKIP}
+        mom_fields = extract_mom(data)
+        payload_triples = triples_for(space_uri, core_fields) + triples_for(space_uri, mom_fields)
 
     all_triples = ["  " + t for t in envelope] + ["  " + t for t in payload_triples]
     triples_str = "\n".join(all_triples)
@@ -939,6 +957,7 @@ async def claim_link(token: str):
 async def validate_url(req: UrlRequest):
     result = await _fetch_and_validate(req.url)
     result.pop("_data", None)
+    result.pop("_source", None)
     # Subset info already in result from _fetch_and_validate
     return result
 
@@ -947,6 +966,7 @@ async def validate_url(req: UrlRequest):
 async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
     result = await _fetch_and_validate(req.url)
     data = result.pop("_data", {})
+    source = result.pop("_source", None)
 
     if not result.get("reachable") or not result.get("schema_valid") or not result.get("coords_found"):
         raise HTTPException(status_code=422, detail={"validation": result})
@@ -1004,9 +1024,12 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
     except Exception as e:
         logger.warning("classify_subset failed for %s (non-fatal): %s", slug, e)
 
+    is_turtle = source is not None and source.kind == "turtle"
     sparql_update = _build_sparql_update(
         graph_uri, space_uri, name, lat, lon, req.url, data,
         subset=cls.get("subset", ""), next_unlock=cls.get("next_unlock"),
+        turtle_fields=source.turtle.fields if is_turtle else None,
+        profile_url=safe_iri(req.url.split("#", 1)[0]) if is_turtle else None,
     )
 
     try:
@@ -1024,7 +1047,8 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
     # Snapshot store gets the registration payload so heartbeat ticks can
     # diff against it. No mom:rawContent / snapshot-graph write (Story 3.10).
     try:
-        write_snapshot(slug, reg_observed_at, data, fetch_status="ok")
+        payload, media_type, raw_text = snapshot_parts(source) if source is not None else (data, None, None)
+        write_snapshot(slug, reg_observed_at, payload, fetch_status="ok", media_type=media_type, raw_text=raw_text)
     except Exception as snap_err:
         logger.warning("snapshot store write failed for %s: %s", slug, snap_err)
 
@@ -1129,8 +1153,19 @@ async def get_space_raw(space_id: str):
     snap = read_snapshot(space_id)
     if snap is None or not snap.get("payload"):
         return {"error": "no_snapshot", "message": "This space has no cached endpoint content yet."}
+    media_type = snap.get("media_type") or "application/json"
+    if media_type == "text/turtle":
+        # Story 14.7 AC3: the source as written. The contact is read from it, not from the
+        # index (email and Matrix stay out of the graph by decision), for the card to show.
+        payload = snap["payload"] if isinstance(snap["payload"], dict) else {}
+        out = {"raw": snap.get("raw_text") or "", "mediaType": media_type, "snapshotDate": snap.get("observed_at", "")}
+        contact = payload.get("contact") or {}
+        if contact:
+            out["contact"] = contact
+        return out
     return {
         "raw": snap["payload"],
+        "mediaType": media_type,
         "snapshotDate": snap.get("observed_at", ""),
     }
 

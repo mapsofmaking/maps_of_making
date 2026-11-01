@@ -8,3 +8,4 @@ geopy
 cryptography>=42.0.0
 pytest-asyncio
 pytest-httpserver
+rdflib>=7.0

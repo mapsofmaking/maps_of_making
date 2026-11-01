@@ -32,7 +32,9 @@ settle in the tree).
 ### AC3 — Public by default, and only that
 **Then** the app writes a resource ACL giving public read on `space.ttl` alone, hand-written Turtle
 (kit ADR 003); the rest of the pod stays private
-**And** a read without credentials returns 200 before the next step runs.
+**And** a read without credentials returns 200 before the next step runs
+**And** this per-resource ACL is the mechanism tile C reuses for an uploaded logo (14.6 AC6): one file, public read,
+the rest private. Write it as a helper that takes the resource, not as code that only knows `space.ttl`.
 
 ### AC4 — On the map
 **Then** the app calls `POST /api/register-url` with the file's address, through its own `/api/` proxy
@@ -57,6 +59,12 @@ once →" as the primary button to tile C ("See it on the map ↗" steps back to
 **Then** sign-in, write, ACL and register each report their own failure with a way forward, and a retry
 resumes from the failed step (a written file is not rewritten; a registered URL dedups by endpoint, see
 `_find_graph_by_endpoint`).
+
+### AC — The writer is held to the map's reading
+**Then** the Turtle the app writes is tested against `tests/fixtures/space/atelier-du-canal.ttl`
+(maps_of_making; copy it into mom-home pinned to a commit, like the design system): the same draft values
+give the same file, and the map's parser reads it to the statements in `atelier-du-canal.json`
+(Story 14.7's parity test, `tests/test_space_turtle.py`).
 
 ## Done gate
 A new coordinator, on a phone, goes from tile A to their pin opened on the map, against

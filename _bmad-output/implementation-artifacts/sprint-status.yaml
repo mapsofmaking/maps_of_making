@@ -298,8 +298,10 @@ development_status:
   14-4-tile-b-pod-door-first-publish: backlog  # line before redirect chosen in 14.0; needs 14-7
   14-5-tile-b-self-host-door: backlog
   14-6-tile-c-change-it-once: backlog
-  14-7-register-heartbeat-accept-turtle: ready-for-dev  # blocks 14-4 (pod door writes space.ttl)
+  14-7-register-heartbeat-accept-turtle: in-progress  # S1-S5 built (branch epic-14-14-7-turtle, PR open); done once merged + production check; blocks 14-4 until deployed
   14-8-retire-genjson: done  # live 2026-11-01 (map 01095c8, home sha-940b468); Hetzner clean-up continues in deferred-work.md from 2026-11-15
+  14-9-heartbeat-hardening: draft  # written 2026-11-01 from production logs; AC1-2 security first
+  14-10-tile-what-counts-as-a-change: backlog  # decided 2026-11-01: own edits count; automation-changed fields only if the coordinator opts in; next to tile C (needs 14-6)
   epic-14-retrospective: optional
 
   # Ad-hoc quick-dev slices (not epic-scoped)

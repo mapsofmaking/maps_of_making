@@ -29,6 +29,14 @@ path, `/api/register-url`). Tile B is done when the map has registered the URL (
 GitLab can't hold it. Your call.") and offers the pod door once, as a plain button
 **And** the word "pod" does not unlock on this branch.
 
+### AC — The writer is held to the map's reading
+**Then** the SpaceAPI JSON the app writes is tested against `tests/fixtures/space/atelier-du-canal.json`
+(maps_of_making; copy pinned to a commit): the same draft values give the same file, and the map reads it to
+the statements in `atelier-du-canal.ttl` (Story 14.7's parity test)
+**And** the file is meant to be hosted on GitLab or GitHub, which serve it as `text/plain`; the map reads
+the content when the label is vague (14.7), and `test_register_turtle.py` has a test for exactly that
+(`json as text/plain`).
+
 ## Dev Notes
 - Self-direction is the point: this door must stay as easy as the other. Review copy against bible §3
   (never rank the user's choices) before merge.

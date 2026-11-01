@@ -33,6 +33,7 @@ if _scripts_dir not in sys.path:
 from spaceapi_extract import extract_core, extract_mom, triples_for
 
 from snapshot_store import mint_observed_at, write_snapshot, read_snapshot, mark_unreachable
+from source import TURTLE_TYPE, fetch_source, snapshot_parts
 from pipeline_helpers import detect_diff, _extract_open_now, _extract_last_open_change
 
 logger = logging.getLogger(__name__)
@@ -47,10 +48,11 @@ async def fetch_snapshot(
     endpoint_url: str,
     db_path: Optional[str] = None,
 ) -> tuple[Optional[dict], bool]:
-    """Fetch a SpaceAPI endpoint, mint observed_at once, persist snapshot.
+    """Fetch a space endpoint (SpaceAPI JSON or a Turtle space file), mint observed_at once, persist snapshot.
 
     Returns (snapshot_row, content_changed). On any failure path, marks the snapshot
-    unreachable (preserving observed_at) and returns (None, False).
+    unreachable (preserving observed_at) and returns (None, False). What the source is
+    and how it is read (Story 14.7): source.fetch_source, shared with register.
     """
     prev = read_snapshot(uid, db_path=db_path)
     prev_payload = prev["payload"] if prev else None
@@ -61,30 +63,32 @@ async def fetch_snapshot(
             follow_redirects=True,
             headers={"User-Agent": "MapsOfMaking-heartbeat/1.0 (+https://mapsofmaking.org)"},
         ) as client:
-            resp = await client.get(endpoint_url)
+            fetched = await fetch_source(client, endpoint_url)
     except httpx.HTTPError as e:
         reason = f"Network error: {e.__class__.__name__}"
         logger.warning("[axis-a] %s fetch raised %s — marking unreachable", uid, e.__class__.__name__)
         mark_unreachable(uid, db_path=db_path, reason=reason)
         return None, False
 
-    if resp.status_code != 200:
-        reason = f"HTTP {resp.status_code}"
-        logger.warning("[axis-a] %s fetch returned %s — marking unreachable", uid, resp.status_code)
+    if fetched.status_code != 200:
+        reason = f"HTTP {fetched.status_code}"
+        logger.warning("[axis-a] %s fetch returned %s — marking unreachable", uid, fetched.status_code)
         mark_unreachable(uid, db_path=db_path, reason=reason)
         return None, False
 
     observed_at = mint_observed_at()
-    try:
-        payload = resp.json()
-    except json.JSONDecodeError as e:
-        reason = f"Invalid JSON at line {e.lineno} col {e.colno}: {e.msg}"
-        logger.warning("[axis-a] %s fetch returned malformed JSON — %s", uid, reason)
+    source = fetched.source
+    if not source.ok:
+        # Malformed JSON ("Invalid JSON at line …"), invalid Turtle, a web page, a file too big:
+        # the reason is the coordinator's hint on the broken card.
+        reason = source.error
+        logger.warning("[axis-a] %s fetch not usable (%s) — %s", uid, source.kind, reason)
         mark_unreachable(uid, db_path=db_path, reason=reason)
         return None, False
+    payload, media_type, raw_text = snapshot_parts(source)
 
-    etag = resp.headers.get("etag")
-    last_modified = resp.headers.get("last-modified")
+    etag = fetched.headers.get("etag")
+    last_modified = fetched.headers.get("last-modified")
 
     diff = detect_diff(prev_payload, payload)
     content_changed = diff is not None
@@ -100,6 +104,8 @@ async def fetch_snapshot(
         etag=etag,
         last_modified=last_modified,
         db_path=db_path,
+        media_type=media_type,
+        raw_text=raw_text,
     )
     logger.info("[axis-a] %s snapshot minted observed_at=%s", uid, observed_at)
     return read_snapshot(uid, db_path=db_path), content_changed
@@ -319,12 +325,22 @@ SELECT ?t WHERE {{
     return bindings[0].get("t", {}).get("value")
 
 
+def fields_for(snap: dict) -> dict:
+    """The graph fields of a snapshot: a Turtle space already holds them (read from the file,
+    Story 14.7); a SpaceAPI JSON payload goes through the extractor."""
+    payload = snap["payload"]
+    if snap.get("media_type") == TURTLE_TYPE and isinstance(payload, dict):
+        return dict(payload.get("fields") or {})
+    return {**extract_core(payload), **extract_mom(payload)}
+
+
 async def write_payload_fields(
     uid: str,
     payload: dict,
     graph_uri: str,
     subject: str,
     oxigraph_endpoint: str,
+    fields: Optional[dict] = None,
 ) -> None:
     """Re-extract payload fields (address, contact, description, …) and write to Oxigraph.
 
@@ -342,11 +358,11 @@ async def write_payload_fields(
         f"{MOM_NS}openNow", f"{MOM_NS}lastOpenChange",
     })
 
-    core_fields = extract_core(payload)
-    mom_fields = extract_mom(payload)
+    # `fields` is given for a Turtle snapshot (fields_for); otherwise read the SpaceAPI payload.
+    extracted = fields if fields is not None else {**extract_core(payload), **extract_mom(payload)}
     # Skip name/geo — those are the registration anchor and don't drift
     _SKIP = {"schema:name", "schema:geo"}
-    all_fields = {k: v for k, v in {**core_fields, **mom_fields}.items() if k not in _SKIP}
+    all_fields = {k: v for k, v in extracted.items() if k not in _SKIP}
 
     # Build per-predicate DELETE WHERE + INSERT DATA blocks
     from spaceapi_extract.sparql import _expand  # noqa: PLC0415
@@ -423,7 +439,7 @@ async def run_space_pipeline(
         except Exception as e:
             logger.warning("[axis-b] %s mom:updatedAt write failed (non-fatal): %s", uid, e)
         try:
-            await write_payload_fields(uid, snap["payload"], graph_uri, subject, oxigraph_endpoint)
+            await write_payload_fields(uid, snap["payload"], graph_uri, subject, oxigraph_endpoint, fields=fields_for(snap))
         except Exception as e:
             logger.warning("[payload-fields] %s write failed (non-fatal): %s", uid, e)
     else:
@@ -454,7 +470,7 @@ async def run_space_pipeline(
         # ops_payload_field_backfill memory: same gap, different field set).
         try:
             if await _payload_fields_absent(oxigraph_endpoint, graph_uri, subject):
-                await write_payload_fields(uid, snap["payload"], graph_uri, subject, oxigraph_endpoint)
+                await write_payload_fields(uid, snap["payload"], graph_uri, subject, oxigraph_endpoint, fields=fields_for(snap))
                 logger.info("[payload-fields] %s backfilled (was absent, content unchanged)", uid)
         except Exception as e:
             logger.warning("[payload-fields] %s backfill check/write failed (non-fatal): %s", uid, e)
