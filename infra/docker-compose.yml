@@ -55,7 +55,7 @@ services:
     image: ghcr.io/oxigraph/oxigraph:0.5.7
     container_name: maps-oxigraph
     restart: unless-stopped
-    mem_limit: 768m
+    mem_limit: 1024m  # 3,192 space graphs: ~690 MiB anon after load (2026-11-01), 768m was throttling
     networks:
       - internal
     volumes:
