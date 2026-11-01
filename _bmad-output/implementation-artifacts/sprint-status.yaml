@@ -300,6 +300,8 @@ development_status:
   14-6-tile-c-change-it-once: backlog
   14-7-register-heartbeat-accept-turtle: ready-for-dev  # blocks 14-4 (pod door writes space.ttl)
   14-8-retire-genjson: done  # live 2026-11-01 (map 01095c8, home sha-940b468); Hetzner clean-up continues in deferred-work.md from 2026-11-15
+  14-9-heartbeat-hardening: draft  # written 2026-11-01 from production logs; AC1-2 security first
+  14-10-tile-what-counts-as-a-change: backlog  # decided 2026-11-01: own edits count; automation-changed fields only if the coordinator opts in; next to tile C (needs 14-6)
   epic-14-retrospective: optional
 
   # Ad-hoc quick-dev slices (not epic-scoped)

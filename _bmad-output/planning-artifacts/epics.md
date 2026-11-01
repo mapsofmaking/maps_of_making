@@ -2514,6 +2514,8 @@ other tile stays in the onboarding map as a labelled preview ("coming") until it
 - **14.6** Tile C — Update it once, seen everywhere
 - **14.7** Register and heartbeat accept Turtle *(blocks 14.4 since 2026-10-30)*
 - **14.8** Retire genjson (redirect, links, tests, deploy target)
+- **14.9** Heartbeat hardening (internal addresses refused, conditional fetch, write on change, blip vs outage, compact map file) *(added 2026-11-01)*
+- **14.10** Tile — what counts as a change: the coordinator's own edits count (their file, tile C); fields an outside automation changes count only if opted in. Next to tile C *(added 2026-11-01)*
 
 **Measure:** the analytics design (2026-08-15) found 338 index loads → 2 validate-url → 1 register in 7
 days. Slice 1 is worth having when coordinators reach tile B, whichever door they take. Instrumentation
