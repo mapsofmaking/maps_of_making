@@ -41,6 +41,11 @@ def init_snapshot_db(db_path: Optional[str] = None) -> None:
         con.execute("ALTER TABLE snapshots ADD COLUMN fetch_status TEXT NOT NULL DEFAULT 'ok'")
     if "fetch_error" not in cols:
         con.execute("ALTER TABLE snapshots ADD COLUMN fetch_error TEXT")
+    # Story 14.7: the source as written. Rows from before are JSON and keep NULL here.
+    if "media_type" not in cols:
+        con.execute("ALTER TABLE snapshots ADD COLUMN media_type TEXT")
+    if "raw_text" not in cols:
+        con.execute("ALTER TABLE snapshots ADD COLUMN raw_text TEXT")
     con.commit()
     con.close()
 
@@ -53,23 +58,31 @@ def write_snapshot(
     last_modified: Optional[str] = None,
     fetch_status: str = "ok",
     db_path: Optional[str] = None,
+    media_type: Optional[str] = None,
+    raw_text: Optional[str] = None,
 ) -> None:
-    """Write a snapshot row. observed_at must already be minted — never re-stamp here."""
+    """Write a snapshot row. observed_at must already be minted — never re-stamp here.
+
+    `media_type` / `raw_text` (Story 14.7): what the source was and, for Turtle, its text as
+    written. JSON keeps its payload as the source; `media_type` None reads as application/json.
+    """
     path = db_path or _get_db_path()
     init_snapshot_db(path)
     payload_json = json.dumps(payload, separators=(",", ":"))
     con = sqlite3.connect(path)
     con.execute("""
-        INSERT INTO snapshots (uid, observed_at, payload, etag, last_modified, fetch_status, fetch_error)
-        VALUES (?, ?, ?, ?, ?, ?, NULL)
+        INSERT INTO snapshots (uid, observed_at, payload, etag, last_modified, fetch_status, fetch_error, media_type, raw_text)
+        VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?)
         ON CONFLICT(uid) DO UPDATE SET
             observed_at=excluded.observed_at,
             payload=excluded.payload,
             etag=excluded.etag,
             last_modified=excluded.last_modified,
             fetch_status=excluded.fetch_status,
-            fetch_error=NULL
-    """, (uid, observed_at, payload_json, etag, last_modified, fetch_status))
+            fetch_error=NULL,
+            media_type=excluded.media_type,
+            raw_text=excluded.raw_text
+    """, (uid, observed_at, payload_json, etag, last_modified, fetch_status, media_type, raw_text))
     con.commit()
     con.close()
 
@@ -80,7 +93,7 @@ def read_snapshot(uid: str, db_path: Optional[str] = None) -> Optional[dict]:
     init_snapshot_db(path)
     con = sqlite3.connect(path)
     row = con.execute(
-        "SELECT uid, observed_at, payload, etag, last_modified, fetch_status, fetch_error FROM snapshots WHERE uid=?",
+        "SELECT uid, observed_at, payload, etag, last_modified, fetch_status, fetch_error, media_type, raw_text FROM snapshots WHERE uid=?",
         (uid,)
     ).fetchone()
     con.close()
@@ -94,6 +107,8 @@ def read_snapshot(uid: str, db_path: Optional[str] = None) -> Optional[dict]:
         "last_modified": row[4],
         "fetch_status": row[5],
         "fetch_error": row[6],
+        "media_type": row[7] or "application/json",
+        "raw_text": row[8],
     }
 
 
