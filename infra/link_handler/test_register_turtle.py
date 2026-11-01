@@ -7,24 +7,18 @@ pytest-httpserver instances. The last tests register both fixtures through
 from __future__ import annotations
 
 import json
-import re
-import sys
-from pathlib import Path
 
 import pytest
 from fastapi import BackgroundTasks
 from pytest_httpserver import HTTPServer
 from rdflib import Graph, URIRef
-from rdflib.compare import isomorphic, to_isomorphic
+from rdflib.compare import isomorphic
 from werkzeug.wrappers import Response
 
 import main
 from snapshot_store import read_snapshot
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-FIXTURES = REPO_ROOT / "tests" / "fixtures" / "space"
-TTL = (FIXTURES / "atelier-du-canal.ttl").read_text()
-JSON_TEXT = (FIXTURES / "atelier-du-canal.json").read_text()
+from fakes import JSON_TEXT, TTL, FakeOxigraph, inserted, serve
 
 # What a pod or git host sends for the same bytes.
 CASES = [
@@ -45,11 +39,6 @@ def space_server():
     yield server
     server.clear()
     server.stop()
-
-
-def serve(server: HTTPServer, body: str, content_type: str, path: str = "/space") -> str:
-    server.expect_request(path).respond_with_data(body, content_type=content_type)
-    return server.url_for(path)
 
 
 @pytest.mark.asyncio
@@ -157,38 +146,6 @@ async def test_a_file_over_the_cap_is_refused(space_server, monkeypatch):
 
 # ── Registration: what is written, for both formats ─────────────────────────
 
-class FakeOxigraph:
-    """Answers the two lookups with nothing and keeps every update it is sent."""
-
-    def __init__(self):
-        self.server = HTTPServer(host="127.0.0.1", port=0)
-        self.updates: list[str] = []
-
-    def __enter__(self):
-        self.server.start()
-        self.server.expect_request("/query", method="POST").respond_with_json({"results": {"bindings": []}, "boolean": False})
-        self.server.expect_request("/update", method="POST").respond_with_handler(self._update)
-        return self
-
-    def _update(self, request):
-        self.updates.append(request.get_data(as_text=True))
-        return Response("", status=204)
-
-    def __exit__(self, *exc):
-        self.server.stop()
-
-    @property
-    def url(self) -> str:
-        return self.server.url_for("").rstrip("/")
-
-
-def written_graph(update: str) -> Graph:
-    body = re.search(r"INSERT DATA \{\s*GRAPH <[^>]+> \{(.*)\}\s*\}\s*$", update, re.S).group(1)
-    g = Graph()
-    g.parse(data=body, format="turtle")
-    return g
-
-
 async def register(space_server, body, content_type, tmp_path, monkeypatch, path):
     monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / f"snap{path.replace('/', '-')}.db"))
     url = serve(space_server, body, content_type, path)
@@ -196,7 +153,7 @@ async def register(space_server, body, content_type, tmp_path, monkeypatch, path
         monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
         response = await main.register_url(main.UrlRequest(url=url), BackgroundTasks())
     assert response["status"] == "confirmed", response
-    return url, written_graph(ox.updates[-1])
+    return url, inserted(ox.updates[-1])
 
 
 # What differs by design: the source's own address, the pod profile, and the contact the JSON path keeps in the index.
