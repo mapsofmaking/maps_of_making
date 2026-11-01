@@ -1,6 +1,6 @@
 # Deferred Work
 
-## Hetzner leftovers after the map moved to the MoM VPS (2026-11-01) → clean-up on/after 2026-11-15, end of the rollback window
+## Hetzner leftovers after the map moved to the MoM VPS (2026-11-01) → clean-up on/after 2026-11-15, end of the rollback window (was Story 14.8's S5; the story closed without it)
 
 The map, Oxigraph and Bernard run on `ssh mom`. Hetzner keeps **Dendrite and Hermes** (so `matrix.mapsofmaking.org`
 and its apex `/_matrix/*` proxy are live, not leftover). Until ~15 Nov the stopped Hetzner map containers are the

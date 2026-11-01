@@ -1,6 +1,6 @@
 # Story 14.8: Retire genjson
 
-Status: in-progress — S1 to S3 live, S4 built (live on merge); S5 (Hetzner leftovers, on or after 2026-11-15) is the last slice
+Status: done — live 2026-11-01 (map `01095c8`, home `940b468`). The Hetzner clean-up continues in `deferred-work.md`, from 2026-11-15
 
 ## Story
 
@@ -49,13 +49,19 @@ rsynced to Hetzner and home deploys from its own repo. The app's copy lives in `
   merge, no gateway change. A draft still in a browser on genjson's origin is no longer forwarded: the way in was
   open for the length of one deploy. (AC2's "transition period" was therefore minutes, by choice: usage is low.)
 - [x] **S5a (now, repo only):** `import-a-space-batch.md` says `ssh mom`, two compose comments reworded, the geocode-cap options written down; decided: accept, look at the log after a week.
-- [ ] **S5, Hetzner leftovers (on or after 2026-11-15, the end of the rollback window; last slice):** resolve the
-  table in `deferred-work.md` ("Hetzner leftovers"): the remaining `infra/gateway-nginx/` confs, the Makefile
-  retired stubs, the legacy halves of `vps-topology.md` and `operate-the-vps.md`, `ssh hetzner` in
-  `import-a-space-batch.md`, the compose comments; then the Hetzner box items and DNS TTLs (Nicolas, on the
-  servers). The `/api/geocode` cap is decided (accept). The story closes when S4 and S5 are done.
+- [~] **S5, Hetzner leftovers: moved out of this story (2026-11-01).** What is left is not genjson's: it is the
+  clean-up of the old server, gated on the end of the rollback window (2026-11-15) and mostly done on the Hetzner
+  box by Nicolas. It is tracked in `deferred-work.md` ("Hetzner leftovers", with where each item is and what to do),
+  not as a slice here.
 - [x] **Nominatim identity** (own commit, not a slice): `_USER_AGENT` is `MapsOfMaking-geocode/1.0 (+https://mapsofmaking.org; contact …)`,
   and the `/api/geocode` docstring says what is true now.
+
+## Live check (2026-11-01)
+- `genjson.mapsofmaking.org/`, `/?resume=1` and `/x/y?a=1` answer 301 to `home.mapsofmaking.org/` with the query kept;
+  the map's apex still answers 200. CI on `01095c8`: `tests`, `maps-web`, `images` green.
+- Before S4, on the real genjson origin with a seeded `genjson_draft`: it landed on home with the form filled, the
+  pin resolved and a clean URL; with no draft or a damaged one, home empty, query kept.
+- No separate code review was run; each slice was checked by its own tests and a browser run before the commit.
 
 ## Dev Notes
 - `web/app.js` reads `genjson_draft` from the **map's** origin to choose `?resume=1`. That origin never
