@@ -1,6 +1,6 @@
 # Story 14.7: Register and Heartbeat Accept Turtle
 
-Status: in-progress — S1 to S5 built on branch `epic-14-14-7-turtle` (PR open); done once merged, deployed and checked on production. Blocks 14.4 until then (since 2026-10-30 the pod door writes `space.ttl`)
+Status: done — live 2026-11-01 (map `8186276`, PR #59); unblocks 14.4 (since 2026-10-30 the pod door writes `space.ttl`)
 
 ## Story
 
@@ -50,9 +50,8 @@ the JSON one.
 - [x] **S4 (`7f0160f`):** `/raw` returns `mediaType` (and the contact for Turtle); the card heads and colours
   the Turtle source, the contact line reads email and Matrix from `/raw`.
 - [x] **S5:** reference doc, this story, 14.4 and 14.5 notes, sprint status.
-- [ ] **After merge:** deploy by CI, then check on production with `POST /api/validate-url` (read-only,
-  writes nothing) on the fixture's raw GitHub URL (served `text/plain`, so it takes the content path) and on
-  a JSON endpoint already registered; register nothing.
+- [x] **After merge (2026-11-01):** deployed by CI (`tests`, `maps-web`, `images` green; link-handler healthy
+  with `rdflib` 7.6.0), checked on production, nothing registered: see Live check on production.
 
 ## Live check (2026-11-01, local stack with a real Oxigraph, not production)
 - Register the Turtle and the JSON fixture: graphs identical but for `endpointUrl`, `profileUrl` (Turtle
@@ -64,6 +63,20 @@ the JSON one.
 - Card (Chromium, 1440 and 390 wide): Turtle space shows "Turtle · Endpoint Response" in colour and
   email + Matrix in the contact line; JSON space unchanged.
 - Suites as CI runs them: `link_handler` 53, `tests` 93, `bot` 14 passing.
+
+## Live check on production (2026-11-01, `POST /api/validate-url`, read-only)
+- The fixtures at their GitHub raw URLs (served `text/plain`, so through the content path): `.ttl` reads as
+  `text/turtle` and `.json` as `application/json`, both "Atelier du Canal" at 50.8391, 4.3297, subset
+  `mom:required`.
+- The map page: refused, "The server sent text/html; the map reads JSON or Turtle." The ontology and the pod
+  root (Turtle without a space): "No space found in the file: expected a node typed mom:Space or schema:Place
+  with a schema:name."
+- Two registered JSON endpoints (57North Hacklab, Makerspace Erfurt) still validate with their names and
+  coordinates.
+- Heartbeat after the deploy: 205 fetched, 196 unchanged, 9 changed (the known sensor spaces, 14.9), 9
+  unreachable (10 before): no regression.
+- Not checked on production: a real Turtle space registered through `register-url` (nothing registered by
+  design; the first one comes with 14.4) and the card for it (checked locally).
 
 ## Follow-ups (not in this story)
 - Full-IRI JSON-LD (a stock CSS pod's default answer) is not read: parse it as RDF with a fallback to the
