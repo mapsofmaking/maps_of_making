@@ -32,7 +32,9 @@ settle in the tree).
 ### AC3 — Public by default, and only that
 **Then** the app writes a resource ACL giving public read on `space.ttl` alone, hand-written Turtle
 (kit ADR 003); the rest of the pod stays private
-**And** a read without credentials returns 200 before the next step runs.
+**And** a read without credentials returns 200 before the next step runs
+**And** this per-resource ACL is the mechanism tile C reuses for an uploaded logo (14.6 AC6): one file, public read,
+the rest private. Write it as a helper that takes the resource, not as code that only knows `space.ttl`.
 
 ### AC4 — On the map
 **Then** the app calls `POST /api/register-url` with the file's address, through its own `/api/` proxy

@@ -82,10 +82,31 @@ asks for hours, so the first time usually adds them rather than changes them),
 never written as a flag; app preferences that can't be derived (none for this tile) go in
 `settings/home.ttl` (see 14.1 AC4).
 
+### AC6 — The logo is uploaded, not typed (added 2026-11-01)
+**Given** the pod branch and a signed-in session (the person has a pod to put a file on)
+**Then** the tool's logo field offers "Upload a logo": the app writes the image to the pod, next to
+`space.ttl`, gives that one file public read (the same per-resource ACL as `space.ttl`, 14.4 AC3; the rest of
+the pod stays private), and writes its address as `schema:logo`. The end state is the one a typed URL gives:
+`schema:logo` holds an IRI; the map reads it as it reads any logo, and nothing on the map side changes
+**And** the field keeps accepting a typed address (a logo already hosted elsewhere), and tile A (signed out)
+and the self-host door (14.5) keep the URL field: only a signed-in person has a pod to upload to
+**And** the file is checked before it is written: PNG, JPEG, WebP or SVG, with a size cap (to set; a logo is
+small), refused with a plain line otherwise
+**And** replacing the logo overwrites the same file, so the address in `space.ttl` does not change; the ACL
+is written once, with the first upload
+**And** the card shows it as an `<img>` only, never inline: an SVG as an image cannot run scripts, inlined it
+could
+**And** the public-read step is checked like 14.4's: a read without credentials returns 200 before
+`schema:logo` is written, so the card never shows a broken image.
+
 ## Done gate
 Live: hours changed in the tile appear on the map card and in the raw source within one minute.
 
 ## Dev Notes
+- **Why the logo is uploaded here and not in tile A** (decided 2026-11-01): asking a coordinator for a logo
+  URL is asking them to host a file and copy its address; their pod is where it can live, and once signed in
+  the upload does that in one step. Tile A is signed out, so it keeps the URL field (and its normaliser).
+  The map is unaffected either way (14.7 reads `schema:logo` as an IRI from Turtle or JSON).
 - **The first fold happens here** (14.1 AC7, decided 2026-10-31): at the end of tile C's tutorial the page
   calls `foldForFirstTime()` (mom-home `src/workbench/page.ts`). No animation (tried and dropped,
   Nicolas: "unconvincing and cheap visually"; the hexes are the cue, the fold is sharp and fast).
