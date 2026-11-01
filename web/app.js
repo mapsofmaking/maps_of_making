@@ -1001,9 +1001,9 @@ function glyphColorExpr(surface) {
       // Contact — always rendered
       factsKids.push(el('span', { class: 'sp-fact-key' }, ['Contact']));
       const hasContact = s.contact && typeof s.contact === 'object' && Object.keys(s.contact).length > 0;
-      if (hasContact) {
+      const channelsFor = (contact) => {
         const channelsDiv = el('div', { class: 'sp-channels' });
-        Object.entries(s.contact).forEach(([key, val]) => {
+        Object.entries(contact).forEach(([key, val]) => {
           const { node: iconNode, action } = _contactChannel(key);
           const btn = el('button', { class: 'sp-channel', title: `${key}: ${val}` }, []);
           btn.appendChild(iconNode);
@@ -1022,9 +1022,27 @@ function glyphColorExpr(surface) {
           });
           channelsDiv.appendChild(btn);
         });
-        factsKids.push(el('span', { class: 'sp-fact-val' }, [channelsDiv]));
+        return channelsDiv;
+      };
+      if (hasContact) {
+        factsKids.push(el('span', { class: 'sp-fact-val' }, [channelsFor(s.contact)]));
       } else {
-        factsKids.push(el('span', { class: 'sp-fact-val' }, [el('em', { class: 'sp-fact-empty' }, ['—'])]));
+        const contactVal = el('span', { class: 'sp-fact-val' }, [el('em', { class: 'sp-fact-empty' }, ['—'])]);
+        factsKids.push(contactVal);
+        // A Turtle space (Story 14.7) keeps email and Matrix in its own file, not in the index:
+        // the card reads them from the source as the map last read it.
+        if (kind !== 'seeded' && s.id) {
+          fetch(`/api/space/${encodeURIComponent(s.id)}/raw`)
+            .then(r => r.json())
+            .then(result => {
+              const c = result && result.contact;
+              if (c && typeof c === 'object' && Object.keys(c).length && contactVal.isConnected) {
+                contactVal.innerHTML = '';
+                contactVal.appendChild(channelsFor(c));
+              }
+            })
+            .catch(() => {});
+        }
       }
       body.appendChild(el('div', { class: 'sp-section' }, [
         el('div', { class: 'sp-section-label' }, ['Quick Facts']),
@@ -1156,15 +1174,22 @@ function glyphColorExpr(surface) {
               }
               return;
             }
+            const isTurtle = result.mediaType === 'text/turtle';
             const termWrap = el('div', { class: 'sp-terminal-wrap' }, [
               el('div', { class: 'sp-terminal-head' }, [
-                el('span', { class: 'sp-terminal-head-label' }, ['JSON · Endpoint Response']),
+                el('span', { class: 'sp-terminal-head-label' }, [isTurtle ? 'Turtle · Endpoint Response' : 'JSON · Endpoint Response']),
                 el('span', { class: 'sp-terminal-head-meta' }, [s.observed_at ? new Date(s.observed_at).toLocaleString() : '—']),
               ]),
             ]);
             const pre = document.createElement('pre');
-            pre.className = 'json sp-terminal-body';
-            pre.appendChild(jsonHighlight(result.raw));
+            if (isTurtle) {
+              // The file as written, coloured token by token (textContent only).
+              pre.className = 'turtle sp-terminal-body';
+              pre.appendChild(turtleHighlight(String(result.raw || '')));
+            } else {
+              pre.className = 'json sp-terminal-body';
+              pre.appendChild(jsonHighlight(result.raw));
+            }
             termWrap.appendChild(pre);
             rawEl.appendChild(termWrap);
             const trustLine = el('div', { class: 'sp-trust-line' }, ['The map only reads & enhances your data — it never edits the source.']);
@@ -1274,6 +1299,41 @@ function glyphColorExpr(surface) {
       } else if (m[4]) {
         const span = document.createElement('span');
         span.className = 'n'; span.textContent = m[4]; frag.appendChild(span);
+      }
+      last = re.lastIndex;
+    }
+    if (last < txt.length) frag.appendChild(document.createTextNode(txt.slice(last)));
+    return frag;
+  }
+
+  // Turtle source (Story 14.7), coloured like the JSON one with the same classes. Every
+  // token goes in as textContent: the file is never parsed into the page as HTML.
+  //   k: the name in a prefixed name, and `a` · s: strings · n: IRIs and numbers · c: prefixes (`schema:`), comments, @prefix, language tags
+  const TURTLE_TOKENS = /("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(<[^<>\s]*>)|(#[^\n]*)|(@prefix\b|@base\b|\bPREFIX\b|\bBASE\b|@[a-zA-Z]+(?:-[a-zA-Z0-9]+)*|_:[\w.-]+)|((?:[A-Za-z][\w.-]*)?:[\w.%-]*|(?<![\w:])a(?![\w:]))|([-+]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g;
+  function turtleClass(m) {
+    return m[1] ? 's' : m[2] ? 'n' : m[3] ? 'c' : m[4] ? 'c' : m[5] ? 'k' : 'n';
+  }
+  function turtleHighlight(txt) {
+    const frag = document.createDocumentFragment();
+    const re = new RegExp(TURTLE_TOKENS.source, 'g');
+    let last = 0, m;
+    while ((m = re.exec(txt))) {
+      if (m[0] === '') { re.lastIndex++; continue; }
+      if (m.index > last) frag.appendChild(document.createTextNode(txt.slice(last, m.index)));
+      const add = (cls, text) => {
+        if (!text) return;
+        const span = document.createElement('span');
+        span.className = cls;
+        span.textContent = text;
+        frag.appendChild(span);
+      };
+      const colon = m[5] ? m[0].indexOf(':') : -1;
+      if (colon >= 0) {
+        // `schema:name`: the prefix recedes, the name carries the colour (like a JSON key).
+        add('c', m[0].slice(0, colon + 1));
+        add('k', m[0].slice(colon + 1));
+      } else {
+        add(turtleClass(m), m[0]);
       }
       last = re.lastIndex;
     }

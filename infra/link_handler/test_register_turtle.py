@@ -218,3 +218,27 @@ async def test_refused_files_are_not_registered(space_server, tmp_path, monkeypa
             await main.register_url(main.UrlRequest(url=serve(space_server, "<html></html>", "text/html")), BackgroundTasks())
         assert err.value.status_code == 422 and "text/html" in json.dumps(err.value.detail)
         assert ox.updates == []
+
+
+# ── S4, AC3: /raw gives the source as written, and its media type ───────────
+
+@pytest.mark.asyncio
+async def test_raw_returns_the_turtle_as_written_with_its_contact(space_server, tmp_path, monkeypatch):
+    monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
+    with FakeOxigraph() as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        await main.register_url(main.UrlRequest(url=serve(space_server, TTL, "text/turtle", "/t")), BackgroundTasks())
+    raw = await main.get_space_raw("atelier-du-canal")
+    assert raw["mediaType"] == "text/turtle" and raw["raw"] == TTL and raw["snapshotDate"]
+    assert raw["contact"] == {"email": "contact@atelierducanal.example", "matrix": "#atelier:matrix.org"}
+
+
+@pytest.mark.asyncio
+async def test_raw_for_json_is_as_before_plus_its_media_type(space_server, tmp_path, monkeypatch):
+    monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
+    with FakeOxigraph() as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        await main.register_url(main.UrlRequest(url=serve(space_server, JSON_TEXT, "application/json", "/j")), BackgroundTasks())
+    raw = await main.get_space_raw("atelier-du-canal")
+    assert raw["mediaType"] == "application/json" and raw["raw"]["space"] == "Atelier du Canal"
+    assert "contact" not in raw  # the JSON card has it from the index (contactJson)
