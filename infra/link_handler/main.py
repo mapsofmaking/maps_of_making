@@ -52,7 +52,7 @@ _scheduler = AsyncIOScheduler()
 
 # Geocode proxy — module-level geocoder + 1 req/s rate limiter
 # Nominatim policy: max 1 req/s; descriptive user_agent required (see geopy docs)
-_USER_AGENT = "mapsofmaking-genjson/1.0 (contact: nicolas.de.barquin@gmail.com)"
+_USER_AGENT = "MapsOfMaking-geocode/1.0 (+https://mapsofmaking.org; contact: nicolas.de.barquin@gmail.com)"
 _geolocator = Nominatim(user_agent=_USER_AGENT)
 _geocode = RateLimiter(_geolocator.geocode, min_delay_seconds=1, max_retries=1, swallow_exceptions=False)
 
@@ -1148,12 +1148,13 @@ class GeocodeRequest(BaseModel):
 
 @app.post("/api/geocode")
 async def geocode(req: GeocodeRequest):
-    """Proxy Nominatim geocoding for the wizard — 1 req/s rate-limited (RateLimiter).
+    """Proxy Nominatim geocoding for home.mapsofmaking.org and the bot — 1 req/s rate-limited (RateLimiter).
 
     Returns {lat, lon, country_code, display_name} on success, nulls on no-result,
     503 on error. country_code is DERIVED from Nominatim address components (Story
-    9.12 §2: "ask the address, derive the rest") so the wizard need not demand it.
-    nginx enforces an additional 2 req/s/IP hard cap (limit_req_zone) upstream.
+    9.12 §2: "ask the address, derive the rest") so the form need not demand it.
+    The 1 req/s limit is this process's, shared by every caller; there is no per-IP
+    cap in front of it (the old Hetzner nginx one is gone).
     """
     # Drop empty parts so a missing postcode/country doesn't poison the query.
     query = ", ".join(p for p in (req.address, req.city, req.postcode, req.country_code) if p)
