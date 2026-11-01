@@ -1,5 +1,24 @@
 # Deferred Work
 
+## Hetzner leftovers after the map moved to the MoM VPS (2026-11-01) → clean-up on/after 2026-11-15, end of the rollback window
+
+The map, Oxigraph and Bernard run on `ssh mom`. Hetzner keeps **Dendrite and Hermes** (so `matrix.mapsofmaking.org`
+and its apex `/_matrix/*` proxy are live, not leftover). Until ~15 Nov the stopped Hetzner map containers are the
+rollback; nothing below is urgent, and none of it should go before that date unless marked *now*.
+
+| Kind | Where | What to do |
+|---|---|---|
+| Repo: nginx vhosts | `infra/gateway-nginx/06-…`, `07-admin-…`, `09-mothersand-…` (08 genjson went with 14.8) | delete the dir once Hetzner's own copies are gone (the live confs are on Hetzner, in `~/hetzner-gateway`) |
+| Repo: Makefile stubs | `publish`, `sync`, `sync-app`, `sync-gateway`, `vps-rebuild`, `vps-reset`, their `.PHONY` and help lines | delete 15 Nov (already stubs that `exit 1`; code at tag `mom-demo-final`) |
+| Repo: docs | `docs/reference/vps-topology.md` (whole page is the Hetzner layout, bannered), `docs/how-to/operate-the-vps.md` "Hetzner (legacy)" section, `ssh hetzner` lines in `docs/how-to/import-a-space-batch.md` (~l.101, 120) | delete the legacy halves after the window; fix `import-a-space-batch` to `ssh mom` *now* if someone runs it |
+| Repo: compose comments | `infra/docker-compose.yml` ~l.215 and `infra/docker-compose.dev.yml` (`hetzner-gateway` network name) | reword to "the gateway network" |
+| Open decision | `/api/geocode` is public with **no per-IP cap**: the Hetzner nginx one (2 req/s/IP, burst 5) did not come along. The in-process 1 req/s limiter keeps Nominatim safe but is shared, so one flood slows home for everyone | add a cap at the app's Caddy or the gateway, or accept (usage is low) |
+| Hetzner box | map containers (stopped), vhosts 06–09 (keep `09b-matrix` + certbot), `*.bak-2026-11-01` and `*.bak-iri` files (**hold secrets**), the map folder `/home/nicolas/maps_of_making` | stop → delete after two weeks; `rm` the `.bak` files first |
+| DNS | TTLs of `mapsofmaking.org`, `genjson.`, `mothersand.` back from 300 to 3600 (from 2 Nov) | OVH |
+| Other repos | `~/hetzner-gateway` (local, legacy), vps-infra `docs/reference/hetzner-inventory.md` | archive when the Hetzner box is down |
+| Not a leftover | `/_matrix/*` apex proxy in vps-infra `mom-map.caddy`, `infra/dendrite/` | go when Dendrite moves |
+
+
 ## Deferred from: Epic 14 home app, focus and hover review (2026-10-31) → next map story (story number at triage; Nicolas: "soon")
 
 The design system (`mapsofmaking/design-system`) changed two rules on 2026-10-31: **focus is riso

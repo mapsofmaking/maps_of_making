@@ -1,12 +1,12 @@
 # The MoM VPS (`ssh mom`) since 2026-11-01. The code there is a CI-deployed
 # checkout of mom-vps owned by `deploy`: these vps-* targets only talk to the
 # running containers (docker exec, docker cp), they never rsync code or build.
-# The old Hetzner deploy targets (publish, sync*, vps-rebuild, vps-reset,
-# deploy-genjson) are retired stubs; their code is at tag mom-demo-final.
+# The old Hetzner deploy targets (publish, sync*, vps-rebuild, vps-reset)
+# are retired stubs; their code is at tag mom-demo-final.
 REMOTE      ?= mom
 REMOTE_APP  ?= /srv/mom-map
 
-.PHONY: deploy ontology-pull sync sync-app sync-gateway publish startdev rebuild seed-spaceapi seed-bundle bundle-to-csv csv-to-bundle heartbeat devdeploy reset vps-rebuild vps-seed vps-reset help endpoint deploy-genjson bernard-copy load-ontology vps-load-ontology vps-load-suppliers suppliers-csv suppliers-geocode suppliers-ttl
+.PHONY: deploy ontology-pull sync sync-app sync-gateway publish startdev rebuild seed-spaceapi seed-bundle bundle-to-csv csv-to-bundle heartbeat devdeploy reset vps-rebuild vps-seed vps-reset help endpoint load-ontology vps-load-ontology vps-load-suppliers suppliers-csv suppliers-geocode suppliers-ttl
 .PHONY: mac-up mac-down mac-init mac-reset mac-heartbeat mac-test
 .PHONY: c-reset c-activate c-demo c-all
 .PHONY: ca-reachable ca-timeout ca-dns-fail ca-http-error caxis-a
@@ -165,7 +165,7 @@ help:
 	@echo "make reset         — DESTRUCTIVE: wipe Oxigraph + heartbeat DB, then devdeploy"
 	@echo "── VPS ──────────────────────────────────────────────────────────────"
 	@echo "make deploy        — deploy mom-vps head to the MoM VPS (CI builds images; needs gh)"
-	@echo "  (publish, sync, sync-app, sync-gateway, deploy-genjson, vps-rebuild, vps-reset are retired stubs)"
+	@echo "  (publish, sync, sync-app, sync-gateway, vps-rebuild, vps-reset are retired stubs)"
 	@echo "make vps-seed [LIST=… NETWORK=…] — seed SpaceAPI list on VPS (default: directory.spaceapi.io, network=spaceapi)"
 	@echo "make vps-seed-bundle BUNDLE=… NETWORK=… [SOURCE=…] — seed Path B bundle (grey/claimable pins, no endpoint)"
 	@echo "── CANARY ───────────────────────────────────────────────────────────"
@@ -625,11 +625,3 @@ vps-c-demo-off: vps-stage-scripts
 ## Retired: the gateway is Caddy in the vps-infra repo, not nginx confs from here.
 sync-gateway:
 	@echo "make sync-gateway is retired: the gateway is Caddy, in the vps-infra repo (gateway/sites/mom-map.caddy)."; exit 1
-
-## genjson/ is baked into the maps-web image now (no fast rsync loop on the MoM VPS).
-bernard-copy:
-	python3 -c "import yaml, json, sys; json.dump(yaml.safe_load(open('web/genjson/bernard_copy.yaml')), open('web/genjson/bernard_copy.json','w'), ensure_ascii=False, indent=2)"
-	@echo "✓ bernard_copy.json regenerated"
-
-deploy-genjson: bernard-copy
-	@echo "genjson is part of the maps-web image: commit, push to mom-vps, then make deploy."; exit 1
