@@ -48,11 +48,12 @@ rsynced to Hetzner and home deploys from its own repo. The app's copy lives in `
   `genjson.`, `/` included, is a 301 to home (query kept); `web/genjson/` is gone; smoke test updated. Ships by
   merge, no gateway change. A draft still in a browser on genjson's origin is no longer forwarded: the way in was
   open for the length of one deploy. (AC2's "transition period" was therefore minutes, by choice: usage is low.)
+- [x] **S5a (now, repo only):** `import-a-space-batch.md` says `ssh mom`, two compose comments reworded, the geocode-cap options written down; decided: accept, look at the log after a week.
 - [ ] **S5, Hetzner leftovers (on or after 2026-11-15, the end of the rollback window; last slice):** resolve the
   table in `deferred-work.md` ("Hetzner leftovers"): the remaining `infra/gateway-nginx/` confs, the Makefile
   retired stubs, the legacy halves of `vps-topology.md` and `operate-the-vps.md`, `ssh hetzner` in
   `import-a-space-batch.md`, the compose comments; then the Hetzner box items and DNS TTLs (Nicolas, on the
-  servers). Decide the `/api/geocode` per-IP cap. The story closes when S4 and S5 are done.
+  servers). The `/api/geocode` cap is decided (accept). The story closes when S4 and S5 are done.
 - [x] **Nominatim identity** (own commit, not a slice): `_USER_AGENT` is `MapsOfMaking-geocode/1.0 (+https://mapsofmaking.org; contact …)`,
   and the `/api/geocode` docstring says what is true now.
 

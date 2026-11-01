@@ -98,7 +98,7 @@ a canonical `mom:Space` array, the same shape as `data/archive/moms_seed.json`.
 # Local first (verify on http://localhost:8080 before VPS). Needs the dev stack up.
 make seed-bundle BUNDLE=data/seed-lists/BE.bundle.json NETWORK=be
 
-# Then VPS (requires ssh to hetzner)
+# Then the MoM VPS (needs `ssh mom`; the Makefile's REMOTE)
 make vps-seed-bundle BUNDLE=data/seed-lists/BE.bundle.json NETWORK=be
 ```
 
@@ -117,7 +117,7 @@ registered a live endpoint is safe from a re-import.
 
 ```bash
 # Count seeded spaces in Oxigraph
-ssh hetzner 'docker exec maps-link-handler python3 -c "
+ssh mom 'docker exec maps-link-handler python3 -c "
 import httpx
 r = httpx.post(\"http://oxigraph:7878/query\",
     data=\"SELECT (COUNT(*) AS ?n) WHERE { GRAPH ?g { ?s a <https://mapsofmaking.org/ns/mom#Space> } }\",
