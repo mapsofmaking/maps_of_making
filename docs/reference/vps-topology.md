@@ -28,7 +28,7 @@ Internet ──► nginx-gateway (host: hetzner-gateway stack)
 |---|---|---|
 | `mapsofmaking.org` | **Primary** | Serves the app |
 | `mapsofmaking.com` | Active | 301 → `mapsofmaking.org` |
-| `admin.mapsofmaking.org` | Active | Admin UI |
+| `admin.mapsofmaking.org` | Retired 2026-11 | Was a login stub; a future admin would use Solid OIDC |
 | `genjson.mapsofmaking.org` | Active | Bernard's Workshop JSON composer |
 | `mothersand.mapsofmaking.org` | Active | Mother Sand website |
 

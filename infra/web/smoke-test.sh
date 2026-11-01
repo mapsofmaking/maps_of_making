@@ -17,8 +17,6 @@ cleanup
 docker pull -q curlimages/curl:8.11.1 >/dev/null
 docker build -q -f infra/web/Dockerfile -t $IMG . >/dev/null
 docker network create $NET >/dev/null
-HASH=$(docker run --rm $IMG caddy hash-password --plaintext smoke)
-
 # Stubs answer with their name and the path they received.
 stub() {  # stub <name> <port>
   conf=$(printf ':%s {\n\trespond "%s {uri}"\n}\n' "$2" "$1")
@@ -27,7 +25,7 @@ stub() {  # stub <name> <port>
 }
 stub oxigraph 7878
 stub mak-link-handler 8000
-docker run -d --name smoke-web --network $NET -e MAP_ADMIN_PASSWORD_HASH="$HASH" $IMG >/dev/null
+docker run -d --name smoke-web --network $NET $IMG >/dev/null
 sleep 2
 
 # status <expected> <curl args...>
@@ -51,11 +49,7 @@ W=http://smoke-web
 status 200 $W/
 status 200 $W/health
 status 404 $W/no-such-file
-status 401 $W/admin/
-status 401 -H Host:admin.mapsofmaking.org $W/
-status 401 -u admin:wrong -H Host:admin.mapsofmaking.org $W/
-status 200 -u admin:smoke -H Host:admin.mapsofmaking.org $W/
-status 200 -u admin:smoke $W/admin/
+status 404 $W/admin/
 status 200 -H Host:genjson.mapsofmaking.org $W/
 status 200 -H Host:mothersand.mapsofmaking.org $W/
 status 403 -X POST $W/sparql/update
@@ -66,7 +60,6 @@ body 'mak-link-handler /api/geocode' -H Host:genjson.mapsofmaking.org $W/api/geo
 body 'mak-link-handler /claim/abc' $W/claim/abc
 body 'genjson' -H Host:genjson.mapsofmaking.org $W/
 header 'Content-Security-Policy: frame-ancestors *' -H Host:test.mapsofmaking.org $W/
-header 'X-Frame-Options: DENY' -u admin:smoke -H Host:admin.mapsofmaking.org $W/
 header 'X-Frame-Options: SAMEORIGIN' -H Host:genjson.mapsofmaking.org $W/
 header "'unsafe-eval'" -H Host:mothersand.mapsofmaking.org $W/
 header 'Access-Control-Allow-Origin: *' $W/sparql/query

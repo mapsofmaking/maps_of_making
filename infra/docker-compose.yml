@@ -10,8 +10,8 @@ services:
 
   # ─────────────────────────────────────────────────────────────────
   # maps-web — the app's web server (Caddy, infra/web/Caddyfile).
-  # Serves web/ (baked into the image), routes /api, /claim, /sparql and
-  # the admin login, and maps admin./genjson./mothersand. hosts to their
+  # Serves web/ (baked into the image), routes /api, /claim and /sparql,
+  # and maps genjson./mothersand. hosts to their
   # sections. Joins the gateway network: the host's gateway sends every
   # Maps of Making hostname here, unchanged, and does TLS.
   # ─────────────────────────────────────────────────────────────────
@@ -29,11 +29,6 @@ services:
     volumes:
       - ../web/data:/srv/data:ro
       - ../web/canary:/srv/canary:ro
-    environment:
-      # Admin login. Hash from `caddy hash-password`; unset, maps-web will not
-      # start (no admin area without a password).
-      - MAP_ADMIN_USER=${MAP_ADMIN_USER:-admin}
-      - MAP_ADMIN_PASSWORD_HASH=${MAP_ADMIN_PASSWORD_HASH:-}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost/health"]
       interval: 30s
