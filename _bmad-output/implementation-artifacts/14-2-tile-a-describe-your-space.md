@@ -1,7 +1,6 @@
 # Story 14.2: Tile A — Describe Your Space
 
-Status: ready-for-dev — rewritten 2026-10-31 after reading genjson against the storyboard (A1, A1 on a
-phone, A2)
+Status: done (live 2026-10-31, mom-home `sha-537450a`)
 
 ## Story
 
@@ -87,7 +86,54 @@ read.
 ### AC8 — One copy of the words
 **Then** every line tile A shows (lead, labels, hints, geocoding messages, Bernard's A2 lines) is in
 `onboarding.ttl` (14.1 AC2: the app's single source); no YAML or generated JSON copy in the app
-**And** `tests/test_bernard_voice_completeness.py` reads the Turtle.
+**And** the voice check reads the Turtle: mom-home `src/tree/voice.test.ts` (2026-10-31: the check
+lives with the tree it reads; maps_of_making's `tests/test_bernard_voice_completeness.py` keeps checking
+genjson's YAML until 14.8 retires both) carries genjson's forbidden phrases, no em-dash, and checks every
+line tile A uses is in the tree and nothing unused is.
+
+## Tasks
+
+Built in mom-home, one vertical slice at a time, each reviewed live by Nicolas before the next.
+
+- [x] S1 `dd84e41`: tile A's fields from genjson; `onb:lead` instead of a Bernard line (AC1, AC2, AC3);
+  Bernard introduces themselves at the card (`onb:saidDone`, AC6)
+- [x] S2 `b7714fa`: the keyboard flow, one beat at a time, `inert` until reached (AC4)
+- [x] S3 `674d1e4`: geocoding through home's own `/api/geocode`, city fallback with a note, manual
+  country and coordinates, genjson's meter (AC5); focus lands on "Publish it"; no "Done" chip
+- [x] S4–S6 `537450a`:
+  - draft kept with the kit's `makeDraftStore`, 30 days, key `mom-home:draft:space`, resumed with its
+    pin and no new geocoder call; "Start over" asks in the page (AC7)
+  - genjson's visible normalisers (`https://`, Matrix `#`; a `matrix.to` link is left alone)
+  - phone: slim folded strip (six hexes, +N, See all), "Add more" fold, `enterkeyhint`, `onb:leadShort`
+    (AC2, AC3, AC4)
+  - tile A's words in the tree: `onb:field` nodes and `onb:ui*` lines; voice and completeness check in
+    mom-home `src/tree/voice.test.ts` (AC8)
+  - example: Weld Done, Rue de l'Étincelle 12 (fictional), Marolles, Bruxelles
+
+### Live check (2026-10-31)
+
+`home.mapsofmaking.org` at `sha-537450a`, Playwright against production: the example geocodes through the
+street fallback to 50.8371, 4.3458 · Marolles, Pentagone, Bruxelles · BE; the normalisers add and say;
+after a reload the form and pin come back with no geocoder call; Start over empties the form and the
+stored draft. Locally (same build), Chromium and Firefox at 390×844: strip shown and toolbar hidden,
+Enter in city goes to "Add more", the strip unfolds and Fold returns focus to it, no horizontal scroll.
+mom-home `npm run verify`: 259 tests, 54 audit checks.
+
+### Review Findings
+
+Code review 2026-10-31 of S4–S6 (medium). Fixed in `537450a`: a late geocoder answer restored a cleared
+draft; a `matrix.to` link got a `#`; Enter-submit skipped the normalisers; a malformed stored draft could
+break the page; one words reader per page (warn once); hex markup shared by toolbar and strip.
+
+Not fixed, deferred:
+- [ ] Non-http schemes in website/logo are kept as typed. The card doesn't render them as links today;
+  validate at the pod write → Story 14.3
+- [ ] A resumed draft whose geocoder answer had no country (country typed by hand) hides the typed
+  country, and one with an empty place name reads as "set by hand". Rare (Nominatim sends both) →
+  Story 14.3, when the draft is written
+- [ ] The folded row's own words ("Show all", "See all ›", "+ N to discover") and the preview labels are
+  14.1 page chrome, still in code; AC8 covers tile A → move them to the tree with the tile that next
+  changes them
 
 ## How home reaches the geocoder
 

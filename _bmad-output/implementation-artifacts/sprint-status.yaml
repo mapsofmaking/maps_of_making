@@ -293,7 +293,7 @@ development_status:
   epic-14: in-progress
   14-0-spike-account-to-first-write-flow: done  # report 14-0-spike-report.md
   14-1-onboard-scaffold-fog-map-shell: done
-  14-2-tile-a-describe-your-space: ready-for-dev  # genjson tier 0 gate + optional tier 1; rewritten 2026-10-31
+  14-2-tile-a-describe-your-space: done  # live 2026-10-31, mom-home sha-537450a
   14-3-tile-b-pod-door-account-creation: backlog  # needs 14.0 report (ADR 010 amendment accepted 2026-10-30)
   14-4-tile-b-pod-door-first-publish: backlog  # line before redirect chosen in 14.0; needs 14-7
   14-5-tile-b-self-host-door: backlog
