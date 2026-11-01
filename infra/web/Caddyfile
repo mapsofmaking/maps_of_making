@@ -4,11 +4,10 @@
 # Serves web/ and routes to the app's backends. Plain HTTP on :80: TLS,
 # hostnames and the server's front door are the host's gateway, which sends
 # every Maps of Making host here unchanged. Everything the app decides lives
-# in this file: which host shows which section, paths, headers, admin login.
+# in this file: which host shows which section, paths, headers.
 #
 # Hosts are matched on their first label, so the same file serves
 # mapsofmaking.org, the .com, a test subdomain and localhost:
-#   admin.*        → /admin/        (login)
 #   genjson.*      → /genjson/      (+ its /api/)
 #   mothersand.*  → /mothersand/
 #   anything else  → the map
@@ -37,17 +36,15 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
-	@admin_host expression {host}.startsWith("admin.")
 	@genjson_host expression {host}.startsWith("genjson.")
 	@mothersand_host expression {host}.startsWith("mothersand.")
 
 	# ── Host → section ───────────────────────────────────────────────────────
 	# A section host shows its folder at its root. Top-level `rewrite` runs
 	# before every `handle` below (Caddy's directive order), so the path
-	# routes (login on /admin/, the backends) apply to the rewritten path.
+	# routes (the backends) apply to the rewritten path.
 	# Not inside a `route` block: `route` sorts after `handle` and would
 	# never run.
-	rewrite @admin_host /admin{uri}
 	rewrite @mothersand_host /mothersand{uri}
 	# genjson's page calls /api/ on its own host: keep that path as is.
 	@genjson_page {
@@ -58,7 +55,6 @@
 
 	# ── Headers per section ─────────────────────────────────────────────────
 	# The map is embedded in other sites (iframe): allow any parent.
-	header @admin_host X-Frame-Options "DENY"
 	header @genjson_host {
 		X-Frame-Options "SAMEORIGIN"
 		Content-Security-Policy "default-src 'self' 'unsafe-inline'"
@@ -67,7 +63,7 @@
 		X-Frame-Options "SAMEORIGIN"
 		Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval'"
 	}
-	@map_host not expression {host}.startsWith("admin.") || {host}.startsWith("genjson.") || {host}.startsWith("mothersand.")
+	@map_host not expression {host}.startsWith("genjson.") || {host}.startsWith("mothersand.")
 	header @map_host Content-Security-Policy "frame-ancestors *"
 
 	# ── Health check (compose healthcheck) ─────────────────────────────────
@@ -146,17 +142,6 @@
 		header Cache-Control "no-cache"
 		@turtle path *.ttl
 		header @turtle Content-Type "text/turtle; charset=utf-8"
-		file_server
-	}
-
-	# ── Admin area (login) ──────────────────────────────────────────────────
-	# The hash comes from .env (MAP_ADMIN_PASSWORD_HASH, made with
-	# `caddy hash-password`). Unset, Caddy refuses to start: no admin area
-	# without a password.
-	handle /admin/* {
-		basic_auth {
-			{$MAP_ADMIN_USER:admin} {$MAP_ADMIN_PASSWORD_HASH}
-		}
 		file_server
 	}
 

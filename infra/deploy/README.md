@@ -32,13 +32,10 @@ sudo -u deploy git clone -q --branch mom-vps https://github.com/mapsofmaking/map
 #    a tracked symlink to it: compose reads it from infra/.
 sudo -u deploy sh -c 'umask 077; { echo GATEWAY_NETWORK=proxy; echo COMPOSE_PROFILES=; echo "LINK_SECRET=$(openssl rand -hex 32)"; echo "BOT_KEY_SECRET=$(openssl rand -base64 32 | tr -- "+/" "-_")"; } > /srv/mom-map/infra/.env'
 
-# 3. Admin login: type the password at the prompt (not echoed).
-printf 'Admin password: '; stty -echo; read -r P; stty echo; echo; H=$(printf '%s\n' "$P" | docker run --rm -i caddy:2.11.4-alpine caddy hash-password); unset P; echo "MAP_ADMIN_PASSWORD_HASH='$H'" | sudo -u deploy tee -a /srv/mom-map/infra/.env >/dev/null
-
-# 4. The deploy script, root-owned copy.
+# 3. The deploy script, root-owned copy.
 sudo install -o root -g root -m 755 /srv/mom-map/infra/deploy/mom-map-deploy /usr/local/sbin/mom-map-deploy
 
-# 5. CI's public key, forced to the script (key made on the workstation, below).
+# 4. CI's public key, forced to the script (key made on the workstation, below).
 sudo -u deploy sh -c 'umask 077; mkdir -p /home/deploy/.ssh; printf "restrict,command=\"/usr/local/sbin/mom-map-deploy\" %s\n" "$(cat /tmp/mom-map-ci.pub)" >> /home/deploy/.ssh/authorized_keys' && rm /tmp/mom-map-ci.pub
 ```
 
