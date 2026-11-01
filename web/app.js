@@ -1405,11 +1405,8 @@ function glyphColorExpr(surface) {
     const ctaBtn = $('#btn-wizard-cta');
     if (ctaBtn) {
       ctaBtn.addEventListener('click', () => {
-        const draft = localStorage.getItem('genjson_draft');
-        const url = draft
-          ? 'https://genjson.mapsofmaking.org/?resume=1'
-          : 'https://genjson.mapsofmaking.org/';
-        window.open(url, '_blank', 'noopener');
+        // Home resumes its own draft; the map's origin never held one.
+        window.open('https://home.mapsofmaking.org/', '_blank', 'noopener');
       });
     }
   }

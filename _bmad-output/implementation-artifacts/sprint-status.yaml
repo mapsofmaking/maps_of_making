@@ -299,7 +299,7 @@ development_status:
   14-5-tile-b-self-host-door: backlog
   14-6-tile-c-change-it-once: backlog
   14-7-register-heartbeat-accept-turtle: ready-for-dev  # blocks 14-4 (pod door writes space.ttl)
-  14-8-retire-genjson: backlog  # after 14.2 is live
+  14-8-retire-genjson: in-progress  # S1-S3 done (S1 live), S4 end of transition + S5 Hetzner leftovers (>= 2026-11-15) wait for dates
   epic-14-retrospective: optional
 
   # Ad-hoc quick-dev slices (not epic-scoped)

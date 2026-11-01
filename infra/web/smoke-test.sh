@@ -56,9 +56,12 @@ status 403 -X POST $W/sparql/update
 status 204 -X OPTIONS $W/sparql/update
 body 'oxigraph /query?query=ASK' "$W/sparql/query?query=ASK"
 body 'mak-link-handler /api/space/x/raw' $W/api/space/x/raw
-body 'mak-link-handler /api/geocode' -H Host:genjson.mapsofmaking.org $W/api/geocode
+status 301 -H Host:genjson.mapsofmaking.org $W/anything
+status 301 -H Host:genjson.mapsofmaking.org $W/api/geocode
+header 'Location: https://home.mapsofmaking.org/?resume=1' -H Host:genjson.mapsofmaking.org "$W/old/path?resume=1"
+header 'Location: https://home.mapsofmaking.org/' -H Host:genjson.mapsofmaking.org $W/old/path
 body 'mak-link-handler /claim/abc' $W/claim/abc
-body 'genjson' -H Host:genjson.mapsofmaking.org $W/
+body 'from-genjson' -H Host:genjson.mapsofmaking.org $W/
 header 'Content-Security-Policy: frame-ancestors *' -H Host:test.mapsofmaking.org $W/
 header 'X-Frame-Options: SAMEORIGIN' -H Host:genjson.mapsofmaking.org $W/
 header "'unsafe-eval'" -H Host:mothersand.mapsofmaking.org $W/

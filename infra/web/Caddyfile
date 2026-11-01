@@ -8,7 +8,7 @@
 #
 # Hosts are matched on their first label, so the same file serves
 # mapsofmaking.org, the .com, a test subdomain and localhost:
-#   genjson.*      → /genjson/      (+ its /api/)
+#   genjson.*      → the forwarder at /, a 301 to home elsewhere (14.8)
 #   mothersand.*  → /mothersand/
 #   anything else  → the map
 # =============================================================================
@@ -46,10 +46,17 @@
 	# Not inside a `route` block: `route` sorts after `handle` and would
 	# never run.
 	rewrite @mothersand_host /mothersand{uri}
-	# genjson's page calls /api/ on its own host: keep that path as is.
+	# genjson is retired (Story 14.8): home.mapsofmaking.org replaced it. Only
+	# `/` still serves a page, one that forwards a draft kept in this browser to
+	# home (web/genjson/index.html); every other path is a 301 to home, the
+	# query kept. `redir` runs before `rewrite`, on the address as it came.
+	@genjson_query expression `{host}.startsWith("genjson.") && {path} != "/" && {query} != ""`
+	redir @genjson_query https://home.mapsofmaking.org/?{query} 301
+	@genjson_other expression `{host}.startsWith("genjson.") && {path} != "/"`
+	redir @genjson_other https://home.mapsofmaking.org/ 301
 	@genjson_page {
 		expression {host}.startsWith("genjson.")
-		not path /api/*
+		path /
 	}
 	rewrite @genjson_page /genjson{uri}
 

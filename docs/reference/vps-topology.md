@@ -36,7 +36,7 @@ Internet ──► nginx-gateway (host: hetzner-gateway stack)
 | `mapsofmaking.org` | **Primary** | Serves the app (MoM VPS since 2026-11-01) |
 | `mapsofmaking.com` | Active | 301 → `mapsofmaking.org` |
 | `admin.mapsofmaking.org` | Retired 2026-11 | Was a login stub; a future admin would use Solid OIDC |
-| `genjson.mapsofmaking.org` | Active | Bernard's Workshop JSON composer |
+| `genjson.mapsofmaking.org` | Retired (14.8) | `/` forwards a saved draft to `home.`; any other path 301s to `home.mapsofmaking.org` |
 | `mothersand.mapsofmaking.org` | Active | Mother Sand website |
 
 Wildcard cert lives at `/etc/letsencrypt/live/mapsofmaking.org/` and covers `.org` + `.com`.
@@ -86,9 +86,8 @@ before trusting it on a real deploy. Until then the twins stay as-is.
 | `startdev` `rebuild` `heartbeat` `devdeploy` `reset` | 🟢 local stack core |
 | `seed-spaceapi` `seed-bundle` `bundle-to-csv` `csv-to-bundle` | 🟢 seeding (see [import-a-space-batch.md](../how-to/import-a-space-batch.md)) |
 | `load-ontology` `vps-load-ontology` | 🟢 clean mirror pair |
-| `publish` `sync` `sync-app` `sync-gateway` `deploy-genjson` | 🟢 VPS deploy |
+| `publish` `sync` `sync-app` `sync-gateway` | 🟢 VPS deploy |
 | `vps-rebuild` | 🟡 keep — `publish` minus the rsync; use only when VPS code is already current |
-| `bernard-copy` | 🟡 keep — local YAML→JSON build step, dep of `deploy-genjson` (don't read its help line as a VPS op) |
 | `vps-seed` `vps-seed-bundle` `vps-reset` | 🟡 keep — **merge candidates** (see above) |
 | `c-*` `ca-*` `cb-*` `cc-*` `caxis-*` `c-demo*` `endpoint` | 🟢 canary local |
 | `vps-c*` `vps-stage-scripts` `_vps-push` | 🟢 canary VPS twins (the good pattern) |
