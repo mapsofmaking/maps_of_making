@@ -212,7 +212,7 @@ services:
 
 networks:
   gateway:
-    external: true        # shared with the host's gateway (hetzner-gateway, or Caddy on MoM)
+    external: true        # shared with the host's gateway (Caddy on the MoM VPS)
     name: ${GATEWAY_NETWORK:-gateway}   # MoM: GATEWAY_NETWORK=proxy in .env
   internal:
     driver: bridge        # maps-web ↔ oxigraph, mak-agent-bot, mak-link-handler
