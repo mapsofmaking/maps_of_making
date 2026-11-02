@@ -294,7 +294,7 @@ development_status:
   14-0-spike-account-to-first-write-flow: done  # report 14-0-spike-report.md
   14-1-onboard-scaffold-fog-map-shell: done
   14-2-tile-a-describe-your-space: done  # live 2026-10-31, mom-home sha-537450a
-  14-3-tile-b-pod-door-account-creation: in-progress  # 2026-11-02: S0-S4 live, S5 on production passed in Chromium/WebKit/Firefox (flow B rerun pending, Safari/iOS deferred); code review patched in mom-home PR #6 + vps-infra PR #13, awaiting merge+deploy
+  14-3-tile-b-pod-door-account-creation: review  # 2026-11-02: live (mom-home sha-cd34baa, gateway 02f53cd); S5 passed in Chromium/WebKit/Firefox flow A; code review patched; flow B rerun 2026-11-03, Safari/iOS deferred (no device)
   14-4-tile-b-pod-door-first-publish: backlog  # line before redirect chosen in 14.0; 14-7 done (live 2026-11-01); needs 14-3
   14-5-tile-b-self-host-door: backlog
   14-6-tile-c-change-it-once: backlog
