@@ -85,7 +85,7 @@ for a workshop in <locality> can find you now."; the pin and its popup **read ba
 labelled so, never a drawing); the file's address as plain text (not boxed like a field), a design-system
 `Copyable` (the text is the button, with the copy icon); and one button, "See it on the map ↗", opening `https://mapsofmaking.org/?space=<id>` in a new
 tab, focused on the pin with its card open
-**And** Bernard closes by pointing at the next tile: "That's the hard part done. But hours change, stuff happen:
+**And** Bernard closes by pointing at the next tile: "That's the hard part done. But hours change, stuff happens:
 when something's different, update it once. Here, or later at home.mapsofmaking.org." with "Update it
 once →" as the primary button to tile C ("See it on the map ↗" steps back to a plain button) (decided 2026-10-30: "come back and sign in" gave no cue what to do next).
 **And** the word "pod" unlocks.
@@ -168,13 +168,11 @@ merges, then the image is deployed by bumping `HOME_TAG` on the VPS.
   quirk), 14.3 (pod ready from the pod, not the marker; the draft prefilled for another WebID's workbench moves to the
   pod; typed passphrases dropped on tile navigation, a polish item). Heartbeat and `/.account/` hardening are 14.9's.
 
-### Open questions for Nicolas (not blocking S1)
-1. **Type Index, not a WebID-document link** (AC2): confirm. It keeps `/profile/` untouched, which is the safer
-   write, and `settings/mom-home.ttl` already does it.
-2. **After a successful publish, is the draft cleared from the browser?** Proposed: yes, once the file is read back;
-   "Start over" in tile A then reads the pod.
-3. **The closing line:** AC4b's Bernard text says "stuff happen" (decided 2026-10-30): fix the grammar to "stuff
-   happens"?
+### Decisions (Nicolas, 2026-11-03)
+1. **Type Index, not a WebID-document link** (AC2): confirmed. `/profile/` is never written.
+2. **The draft is cleared from the browser** once the file is written and read back; "Start over" in tile A then
+   reads the pod.
+3. **The closing line says "stuff happens"** (AC4b grammar fixed; the tree's `sayNext` too).
 
 ## Done gate
 A new coordinator, on a phone, goes from tile A to their pin opened on the map, against
