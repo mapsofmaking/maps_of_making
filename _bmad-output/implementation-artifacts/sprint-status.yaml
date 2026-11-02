@@ -294,7 +294,7 @@ development_status:
   14-0-spike-account-to-first-write-flow: done  # report 14-0-spike-report.md
   14-1-onboard-scaffold-fog-map-shell: done
   14-2-tile-a-describe-your-space: done  # live 2026-10-31, mom-home sha-537450a
-  14-3-tile-b-pod-door-account-creation: backlog  # needs 14.0 report (ADR 010 amendment accepted 2026-10-30)
+  14-3-tile-b-pod-door-account-creation: in-progress  # 2026-11-02: S0 live (overlay 7.2.0-13 register, gateway rate limit), S1+S2 live (mom-home sha-f381274); next S3 account calls, copied from solid-backoffice css-account.ts
   14-4-tile-b-pod-door-first-publish: backlog  # line before redirect chosen in 14.0; 14-7 done (live 2026-11-01); needs 14-3
   14-5-tile-b-self-host-door: backlog
   14-6-tile-c-change-it-once: backlog
