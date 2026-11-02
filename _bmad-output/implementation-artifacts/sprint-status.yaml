@@ -295,7 +295,7 @@ development_status:
   14-1-onboard-scaffold-fog-map-shell: done
   14-2-tile-a-describe-your-space: done  # live 2026-10-31, mom-home sha-537450a
   14-3-tile-b-pod-door-account-creation: review  # 2026-11-02: live (mom-home sha-cd34baa, gateway 02f53cd); S5 passed in Chromium/WebKit/Firefox flow A; code review patched; flow B rerun 2026-11-03, Safari/iOS deferred (no device)
-  14-4-tile-b-pod-door-first-publish: backlog  # line before redirect chosen in 14.0; 14-7 done (live 2026-11-01); needs 14-3
+  14-4-tile-b-pod-door-first-publish: in-progress  # 2026-11-03: story ready, S1 built (mom-home PR #7: Put it on the map writes space.ttl); next S2 public read, S3 on the map, S4 done from the pod; flow B rerun runs in S6
   14-5-tile-b-self-host-door: backlog
   14-6-tile-c-change-it-once: backlog
   14-7-register-heartbeat-accept-turtle: done  # live 2026-11-01 (map 8186276, PR #59); unblocks 14-4
