@@ -929,3 +929,16 @@ Two real gaps surfaced, not fixed here — need their own decision/story:
 - **Design-system copy pin has no CI integrity check; DEV-only `?done=`/`?workbench=` params untested.**
 - **Comments cite story/session/person dates that will rot; no tests for `renderPage` or `main.ts` flows.**
 - **Blank tile A form marks "describe" done (decided 2026-10-31: leave).** Placeholder until 14.2 adds validation. `src/workbench/page.ts`.
+
+## Deferred from: code review of story 14-3-tile-b-pod-door-account-creation (2026-11-02)
+
+- Pod-ready comes from a one-shot tab marker, not the signed-in WebID and pod root → Story 14.4 (done checks read the pod).
+- Password step succeeds but the reply is lost: the retry reads "already exists" as email-taken (recovery: sign in at the pod with that email).
+- Resume with a different passphrase: the account-API login fails quietly, flow B.
+- `creating` page-local vs `pending` module-level: two page instances could both create → only if a page is re-made mid-create.
+- A draft from the same browser prefills a different WebID's workbench → Story 14.4 (draft moves to the pod).
+- Typed passphrases are dropped when leaving tile B and returning (not an error) → polish pass at the end of 14.4.
+- `/.account/login/password/` is unlimited on a server that advertises registration (password guessing) → with Story 14.9's hardening, or its own.
+- xcaddy plugins unpinned in vps-infra `gateway/Dockerfile` (`caddy-ratelimit`, `caddy-dns/ovh`): pin to the versions in the running image.
+- `OPEN_REGISTRATION` is not tied to the gateway limit (only documented in `.env.example`).
+- A taken-name suggestion for a reserved name may itself be reserved.
