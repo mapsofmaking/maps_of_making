@@ -290,18 +290,18 @@ development_status:
   # 2026-10-30 storyboard review: app renamed home.mapsofmaking.org (onboarding signed out, workbench signed in);
   #   pod door writes space.ttl (14.7 now blocks 14.4); copy SSOT = mom-home public/onboarding.ttl. Canvas:
   #   https://claude.ai/artifact/4XunMfUzzmjBk7PVjYfjvW
-  epic-14: in-progress
+  epic-14: in-progress  # 2026-11-03: planning moved to the mapsofmaking org project and issues (mom-home #11-#20, maps_of_making #65); story files here are frozen references, decisions in mom-home docs/decisions.md
   14-0-spike-account-to-first-write-flow: done  # report 14-0-spike-report.md
   14-1-onboard-scaffold-fog-map-shell: done
   14-2-tile-a-describe-your-space: done  # live 2026-10-31, mom-home sha-537450a
-  14-3-tile-b-pod-door-account-creation: review  # 2026-11-02: live (mom-home sha-cd34baa, gateway 02f53cd); S5 passed in Chromium/WebKit/Firefox flow A; code review patched; flow B rerun 2026-11-03, Safari/iOS deferred (no device)
-  14-4-tile-b-pod-door-first-publish: in-progress  # 2026-11-03: story ready, S1 built (mom-home PR #7: Put it on the map writes space.ttl); next S2 public read, S3 on the map, S4 done from the pod; flow B rerun runs in S6
-  14-5-tile-b-self-host-door: backlog
-  14-6-tile-c-change-it-once: backlog
+  14-3-tile-b-pod-door-account-creation: done  # 2026-11-03: flow B passed; Safari/iOS check open as a good first issue (mom-home #17)
+  14-4-tile-b-pod-door-first-publish: in-progress  # S1 live (home sha-438323a); remaining slices are mom-home issues #11-#16
+  14-5-tile-b-self-host-door: backlog  # mom-home #18
+  14-6-tile-c-change-it-once: backlog  # mom-home #19
   14-7-register-heartbeat-accept-turtle: done  # live 2026-11-01 (map 8186276, PR #59); unblocks 14-4
   14-8-retire-genjson: done  # live 2026-11-01 (map 01095c8, home sha-940b468); Hetzner clean-up continues in deferred-work.md from 2026-11-15
-  14-9-heartbeat-hardening: draft  # written 2026-11-01 from production logs; AC1-2 security first
-  14-10-tile-what-counts-as-a-change: backlog  # decided 2026-11-01: own edits count; automation-changed fields only if the coordinator opts in; next to tile C (needs 14-6)
+  14-9-heartbeat-hardening: draft  # maps_of_making #65; written 2026-11-01 from production logs; AC1-2 security first
+  14-10-tile-what-counts-as-a-change: backlog  # mom-home #20; decided 2026-11-01: own edits count; automation-changed fields only if the coordinator opts in; next to tile C (needs 14-6)
   epic-14-retrospective: optional
 
   # Ad-hoc quick-dev slices (not epic-scoped)

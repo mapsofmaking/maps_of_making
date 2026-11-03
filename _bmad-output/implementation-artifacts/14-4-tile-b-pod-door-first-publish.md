@@ -122,7 +122,7 @@ Nicolas before the next (feedback: review each slice). Tests with each slice; `n
 vitest with `--root` (a wrong root scans the whole disk and runs out of memory). Slices land as small PRs; Nicolas
 merges, then the image is deployed by bumping `HOME_TAG` on the VPS.
 
-- [ ] **S1 The file.** `lib/spacefile.ts`: draft → Turtle (the normalisers of AC2, deterministic, no clock), tested
+- [x] **S1 The file.** (live 2026-11-02 `sha-baa1d14`, mom-home PR #7; 2026-11-03 `sha-e1092a1`, PR #8: signed in, "Show me my card" draws the card from the draft, not done, it was silent before; found by Nicolas on `nicolas-test`; real-pod write still to confirm) `lib/spacefile.ts`: draft → Turtle (the normalisers of AC2, deterministic, no clock), tested
   against `tests/fixtures/space/atelier-du-canal.ttl` copied into mom-home pinned to a maps_of_making commit (the
   same draft values give the same file; the map's parser reads it to `atelier-du-canal.json`'s statements, 14.7's
   parity test). The "Put it on the map" button on the signed-in tile B view writes `space.ttl` (`If-None-Match: *`),

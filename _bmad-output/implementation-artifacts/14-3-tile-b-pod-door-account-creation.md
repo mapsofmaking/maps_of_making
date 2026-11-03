@@ -1,6 +1,6 @@
 # Story 14.3: Tile B, Pod Door — One-Step Account, Password, WebID and Pod
 
-Status: review (2026-11-02: S0-S5 live, code review patched; flow B and Safari/iOS still to test, see S5; 14.0 spike report `14-0-spike-report.md`)
+Status: done (2026-11-03; Safari/iOS check is mom-home #17. 2026-11-02: S0-S5 live, code review patched; flow B passed 2026-11-03; Safari/iOS still to test, see S5; 14.0 spike report `14-0-spike-report.md`)
 
 ## Story
 
@@ -107,16 +107,20 @@ Built in mom-home, one vertical slice at a time, each reviewed live by Nicolas b
 - [x] S2 (live 2026-11-02: mom-home PR #4, `sha-f381274`; 306 tests, 54 audit checks; sends nothing, "Create it" validates and says creation comes next) The pod form (AC2): address suggested from the space name with `slugify` (`src/lib/pod.ts`), live URL, email prefilled from the draft's `contact.email`, passphrase twice with Show; format checked as typed (debounced) and on blur with the server's rules (`PodNameGuard`: `^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`, reserved names are the server's, its answer wins); "taken" shows after "Create it" (14.0: no free-name check exists); fields keep what was typed on every error; `onb:sayConsent` shown before the button.
 - [x] S3 (live 2026-11-02 with S4: mom-home PR #5, `sha-33dae4e`; built as `33745fc` on branch `epic-14-14-3-s3-register`; 323 tests, 54 audit checks; until S4, success says the pod is ready and stops; live probe 2026-11-02 from Node against `pod.mapsofmaking.org`: `nicolas-test` answered 400 "Pod creation failed: There already is a resource at …" → `name-taken`, the retry reused the same account (no second passphrase POST), the pod was made, the account-API login answered 200; throwaway accounts `zz-s3-probe-*` and one orphan from a rate-limited try, both gone with the pre-launch wipe; the cookie itself is checked in a browser in S5) `src/lib/register.ts` (AC3, AC5): copy of solid-backoffice `src/lib/css-account.ts` (`createAccount`; the TypeScript port of pocpod0's `registerAccount`, already resuming on the same account for the page's life and tested against a real CSS 7 by `npm run test:pods`; pocpod0 is retired, and solid-css-overlay is the server, whose own sign-up page is CSS's stock flow). Check and add what it lacks: resume state keyed by session, not pod name; login through the account API right after the pod (`controls.password.login`, `credentials: "include"`) to set `css-account`; passphrase never stored, logged or kept after the POST. Empty name throws before any fetch. One error type per AC5 case (taken, email refused, weak passphrase, unreachable, half-finished), each with one action.
 - [x] S4 (live 2026-11-02, mom-home PR #5, `sha-33dae4e`; 333 tests; tab-only marker `mom-home:pod-made` holds WebID + pod; tile A is NOT marked done from the browser draft, so until 14.4 the hexes show A open while the step shows B's hand-off) Hand-off (AC6): sign-in redirect, the return state, tile B "pod ready" view; check the draft survives the round trip.
-- [~] S5 (flow B deferred to 2026-11-03, tested alongside 14.4; Safari/iOS deferred), run 2026-11-02 on production (`home.` `sha-33dae4e`, `pod.` 7.2.0-13, gateway with the CORS 429), Playwright 1.64.1:
+- [~] S5 (flow B passed 2026-11-03; Safari/iOS deferred), run 2026-11-02 on production (`home.` `sha-33dae4e`, `pod.` 7.2.0-13, gateway with the CORS 429), Playwright 1.64.1:
   - Chromium, flow A: "Taken. Try nicolas-test-anderlecht." on the address, email locked, consent only (no login page),
     Authorize, back home signed in, tile B says the pod is ready; marker spent. 11.4 s.
   - WebKit (Playwright's Ubuntu image), flow A: the same, consent only. 16.0 s.
   - Firefox (same image), flow A: the same, consent only. 11.7 s. Failed requests on the way: the expected 400 on the taken
     name, and `404 GET <pod>/settings/mom-home.ttl` (home reading its settings file on a brand-new pod, handled: the
     fold falls back to the width).
-  - Not yet: flow B (the cookie really cleared before the provider's page). Two attempts: the first dropped the wrong
-    thing (`route.fetch` shares the cookie jar), the second (`s5b.py`, `context.clear_cookies` on the first provider
-    document) hit the rate limit (5 creations per IP per hour) before reaching the form. Rerun 2026-11-03 (`s5b.py chromium B`, one creation).
+  - Chromium, flow B, 2026-11-03 (`home.` `sha-e1092a1`): passed, 17.3 s. Cookies cleared on the first document
+    request to the pod server (`s5b.py`), so `/.oidc/auth` arrives without the account cookie, as in a browser that
+    never kept it: the provider shows its login page, then consent, Authorize, back home signed in, tile B ready.
+    Failed requests: the expected 400 on the taken name and the settings 404. An earlier attempt that cleared the
+    cookie later (on the first `/.account/` page, after `/.oidc/auth` had already picked consent) left the consent
+    page unable to call its own API ("This page could not reach the server"): an artefact of the test, no real
+    browser drops a cookie mid-redirect.
   - Safari on iOS and macOS: deferred, nobody on the project has a device (`mom-home` `docs/manual-tests.md` §12).
   - Throwaway accounts made: `zz-s5-*` (Chromium, WebKit, Firefox, the flow B attempts), `zz-s3-probe-*`, one orphan from a
     rate-limited try; all go with the pre-launch wipe.
