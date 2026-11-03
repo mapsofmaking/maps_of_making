@@ -1137,6 +1137,52 @@ ORDER BY DESC(?snapshotDate)
     return snapshots
 
 
+# ── One space as the map draws it (Story 14.4 S3, mom-home #13) ─────────────
+#
+# Home reads the pin back after registering: the coordinator sees where the map
+# put them, never a drawing of where home thinks they are. Read from the same
+# spaces.geojson the map loads (so it lags the registration until the background
+# rematerialize lands: 404 means "not on the map yet", ask again). The file is
+# ~4.6 MB, so it is parsed once per change (its mtime), not per request.
+
+_pin_cache: dict = {"mtime": None, "by_id": {}}
+
+
+def _features_by_id() -> dict:
+    path = Path(GEOJSON_OUTPUT)
+    try:
+        mtime = path.stat().st_mtime_ns
+    except FileNotFoundError:
+        return {}
+    if _pin_cache["mtime"] != mtime:
+        data = json.loads(path.read_text())
+        _pin_cache["by_id"] = {
+            f["properties"]["id"]: f for f in data.get("features", []) if f.get("properties", {}).get("id")
+        }
+        _pin_cache["mtime"] = mtime
+    return _pin_cache["by_id"]
+
+
+@app.get("/api/space/{space_id}/pin")
+async def get_space_pin(space_id: str):
+    if not _SPACE_ID_RE.match(space_id):
+        raise HTTPException(status_code=400, detail={"error": "bad_space_id"})
+    feature = _features_by_id().get(space_id)
+    if feature is None:
+        raise HTTPException(status_code=404, detail={"error": "not_on_map"})
+    props = feature.get("properties", {})
+    lon, lat = feature.get("geometry", {}).get("coordinates", [None, None])[:2]
+    return {
+        "id": space_id,
+        "name": props.get("name", ""),
+        "lat": lat,
+        "lon": lon,
+        "city": props.get("city", ""),
+        "country": props.get("country", ""),
+        "address": props.get("address", ""),
+    }
+
+
 @app.get("/api/space/{space_id}/raw")
 async def get_space_raw(space_id: str):
     """Fetch raw endpoint JSON for a space from the cached snapshot.
