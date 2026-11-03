@@ -159,7 +159,10 @@ async def _find_graph_by_endpoint(oxigraph_endpoint: str, endpoint_url: str) -> 
     already stored under a different slug (e.g. a bundle-seeded slug with a city suffix
     was claimed before the original name-only slug was confirmed, or vice versa).
     """
-    safe_url = endpoint_url.strip()
+    # Spliced into SPARQL as <...>: an address that could end the IRI is never looked up.
+    safe_url = safe_iri(endpoint_url.strip())
+    if safe_url is None:
+        return None
     sparql = f"""PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 SELECT ?graph WHERE {{
   GRAPH ?graph {{
@@ -1181,6 +1184,23 @@ async def get_space_pin(space_id: str):
         "country": props.get("country", ""),
         "address": props.get("address", ""),
     }
+
+
+@app.get("/api/space-by-endpoint")
+async def get_space_by_endpoint(url: str):
+    """The map's id for a space file's address, or 404 (Story 14.4 S4, mom-home #14).
+
+    Home asks it at sign-in: tile B is done when the map holds the space's address.
+    Read from Oxigraph (the registration itself), not from spaces.geojson, which
+    lags. Same lookup register-url dedups with.
+    """
+    if safe_iri(url.strip()) is None:
+        raise HTTPException(status_code=400, detail={"error": "bad_url"})
+    graph = await _find_graph_by_endpoint(OXIGRAPH_ENDPOINT, url)
+    space_id = graph.rsplit("/", 1)[-1] if graph else None
+    if not space_id or not _SPACE_ID_RE.match(space_id):
+        raise HTTPException(status_code=404, detail={"error": "not_registered"})
+    return {"id": space_id}
 
 
 @app.get("/api/space/{space_id}/raw")
