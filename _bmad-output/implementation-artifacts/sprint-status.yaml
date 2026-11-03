@@ -295,7 +295,7 @@ development_status:
   14-1-onboard-scaffold-fog-map-shell: done
   14-2-tile-a-describe-your-space: done  # live 2026-10-31, mom-home sha-537450a
   14-3-tile-b-pod-door-account-creation: done  # 2026-11-03: flow B passed; Safari/iOS check open as a good first issue (mom-home #17)
-  14-4-tile-b-pod-door-first-publish: in-progress  # S1 live (home sha-438323a); remaining slices are mom-home issues #11-#16
+  14-4-tile-b-pod-door-first-publish: done  # 2026-11-03, home sha-e30aa53; slices = mom-home #11-#16; follow-ups #32, maps_of_making #70
   14-5-tile-b-self-host-door: backlog  # mom-home #18
   14-6-tile-c-change-it-once: backlog  # mom-home #19
   14-7-register-heartbeat-accept-turtle: done  # live 2026-11-01 (map 8186276, PR #59); unblocks 14-4
