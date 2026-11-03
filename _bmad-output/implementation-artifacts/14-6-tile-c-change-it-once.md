@@ -20,6 +20,9 @@ So that I see "don't repeat yourself" happen instead of being told about it.
 is refused with a plain hint
 **When** it is done and reopened on a later visit
 **Then** the hexes fold into the row and the tile opens straight onto the tool (AC0b)
+*(Superseded 2026-11-03, after the live pass of S3: the page never folds by itself; only the
+coordinator's Fold / Show all does. The tile still opens straight onto the tool. mom-home
+`docs/decisions.md`, #38.)*
 **And** there is no "First time" or "Done" badge: which mode opens is read from the pod (AC5), the
 coordinator doesn't need to see the switch.
 
@@ -113,6 +116,9 @@ Live: hours changed in the tile appear on the map card and in the raw source wit
   Bernard's voice closes the gap instead: one line in `onboarding.ttl` on `:change`, said as the hexes
   fold, naming the toggle (draft: "I'll fold the map up here. It's one click away, top right: Show
   all."). The line is Nicolas's to word.
+  **Dropped 2026-11-03** (built in mom-home #47, reverted in #49): live, folding as the map caught up
+  changed two things at once, moving the layout while the coordinator looked for the new hours. No
+  planned fold, no line teaching it; the toggle is found by curiosity.
 - Map follow-up (outside Epic 14, → backlog): `web/app.js` refetches `/data/spaces.geojson` on
   `visibilitychange` when the tab comes back after > 30 s hidden. Then a coordinator who keeps the map in
   another tab sees the change on switching back, and AC2's reload hint can go. Home and the map are on
