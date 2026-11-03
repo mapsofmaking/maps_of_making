@@ -1,6 +1,6 @@
 # Story 14.3: Tile B, Pod Door — One-Step Account, Password, WebID and Pod
 
-Status: review (2026-11-02: S0-S5 live, code review patched; flow B passed 2026-11-03; Safari/iOS still to test, see S5; 14.0 spike report `14-0-spike-report.md`)
+Status: done (2026-11-03; Safari/iOS check is mom-home #17. 2026-11-02: S0-S5 live, code review patched; flow B passed 2026-11-03; Safari/iOS still to test, see S5; 14.0 spike report `14-0-spike-report.md`)
 
 ## Story
 
