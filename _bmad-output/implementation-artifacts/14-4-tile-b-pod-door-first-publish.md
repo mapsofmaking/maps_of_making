@@ -1,8 +1,7 @@
 # Story 14.4: Tile B, Pod Door — First Publish (sign in, write, make public, register)
 
-Status: ready-for-dev (2026-11-03). Its dependencies are live: 14.2 (tile A), 14.3 (account, pod, sign-in; in
-`review`, flow B and Safari/iOS still to test), 14.7 (the map reads Turtle). Sign-in follows the flow observed in
-14.0 (`14-0-spike-report.md`).
+Status: done (2026-11-03). All six slices live on home (`sha-e30aa53`), pods on CSS 7.3.0-3. Planning moved to
+mom-home issues #11-#16 and the org project on 2026-11-03; this file is the frozen reference.
 
 ## Story
 
@@ -127,18 +126,18 @@ merges, then the image is deployed by bumping `HOME_TAG` on the VPS.
   same draft values give the same file; the map's parser reads it to `atelier-du-canal.json`'s statements, 14.7's
   parity test). The "Put it on the map" button on the signed-in tile B view writes `space.ttl` (`If-None-Match: *`),
   reads it back, and shows the step. AC1, AC2.
-- [ ] **S2 Public read.** `lib/acl.ts`: a helper that takes a resource (14.6 reuses it for a logo), hand-written WAC
+- [x] **S2 Public read.** (live, mom-home #12) `lib/acl.ts`: a helper that takes a resource (14.6 reuses it for a logo), hand-written WAC
   Turtle per ADR 003; writes `space.ttl.acl`; then an anonymous `fetch` (`credentials: "omit"`) must return 200
   before the next step. AC3. Test the four ADR rules and the refusal.
-- [ ] **S3 On the map.** `POST /api/register-url` through home's own `/api/` proxy; the response's `space_uri`
+- [x] **S3 On the map.** (live, mom-home #13; map `GET /api/space/{id}/pin`) `POST /api/register-url` through home's own `/api/` proxy; the response's `space_uri`
   (`urn:mak:space/<slug>`) gives the id for `https://mapsofmaking.org/?space=<slug>`; the threshold view (pin read
   back from the map, labelled live; the file's address as a `Copyable`; "See it on the map ↗"; Bernard's closing line
   and "Update it once →" to tile C); the "pod" word unlocks. AC4, AC4b.
-- [ ] **S4 Done from the pod.** Type Index registration of the space, the lookup in `main.ts`, the two done checks,
+- [x] **S4 Done from the pod.** (live, mom-home #14; map `GET /api/space-by-endpoint`; Type Index rule in mom-home docs/decisions.md; overlay 7.3.0-3 puts the links in new profiles) Type Index registration of the space, the lookup in `main.ts`, the two done checks,
   the draft cleared after the file is written and read back, the tab marker retired. AC6.
-- [ ] **S5 Failures and resume.** The step list with each failure message in the tree, resume from the failed step,
+- [x] **S5 Failures and resume.** (live `sha-09eaf74`, mom-home PR #31: sign-in seeds the steps from the pod) The step list with each failure message in the tree, resume from the failed step,
   expired session, one press at a time; tests for every row of AC5. AC5.
-- [ ] **S6 Live run on production** against `pod.mapsofmaking.org` with a throwaway account (flow A in Chromium,
+- [x] **S6 Live run on production** (closed 2026-11-03 by Nicolas: Firefox live runs flow A and B; polish PRs #33-#35, `sha-e30aa53`: real map under card preview and threshold, threshold in two columns, sign out link, honest pod word. Not run: Chromium/WebKit/phone pass and the whole-story review; signed-in smoke test → mom-home #32; `[mx]` → maps_of_making #70) against `pod.mapsofmaking.org` with a throwaway account (flow A in Chromium,
   Firefox, WebKit; flow B, deferred from 14.3, run here first), phone width, then the polish pass Nicolas planned at
   the end of this story (the small details of 14.3 and 14.4 together).
 
