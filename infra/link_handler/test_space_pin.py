@@ -18,7 +18,7 @@ def _feature(sid, lon, lat, name="Weld Done"):
     return {
         "type": "Feature",
         "geometry": {"type": "Point", "coordinates": [lon, lat]},
-        "properties": {"id": sid, "name": name, "city": "Marolles", "country": "Belgium", "address": "Rue de l'Étincelle 12", "opening_hours": "Mo 9-12"},
+        "properties": {"id": sid, "name": name, "city": "Marolles", "country": "Belgium", "address": "Rue de l'Étincelle 12", "opening_hours": "Mo 9-12", "logo": "https://weld-done.example/logo"},
     }
 
 
@@ -35,7 +35,8 @@ async def test_returns_the_pin_the_map_draws(geojson):
     _write(geojson, [_feature("weld-done", 4.3458, 50.8371)])
     pin = await main.get_space_pin("weld-done")
     assert pin == {"id": "weld-done", "name": "Weld Done", "lat": 50.8371, "lon": 4.3458,
-                   "city": "Marolles", "country": "Belgium", "address": "Rue de l'Étincelle 12", "opening_hours": "Mo 9-12"}
+                   "city": "Marolles", "country": "Belgium", "address": "Rue de l'Étincelle 12", "opening_hours": "Mo 9-12",
+                   "logo": "https://weld-done.example/logo"}
 
 
 @pytest.mark.asyncio
