@@ -1185,6 +1185,8 @@ async def get_space_pin(space_id: str):
         "address": props.get("address", ""),
         # Tile C (Story 14.6 S2, mom-home #37): the card's hours as the map holds them, to show the change landed.
         "opening_hours": props.get("opening_hours", ""),
+        # Tile C's logo (14.6 S6, mom-home #41): the address the map draws the card's logo from.
+        "logo": props.get("logo", ""),
     }
 
 
