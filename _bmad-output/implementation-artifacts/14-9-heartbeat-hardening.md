@@ -86,6 +86,12 @@ third consecutive failure (~30 minutes), the reason of the last failure kept; on
 **Then** each tick logs one summary: dispatched, fetched, not modified (304), changed, unreachable,
 skipped, rebuild done or skipped, duration. (Also the first number the analytics design can use.)
 
+### AC8 — Operator actions are not public (added 2026-11-03, found during 14.4 S3)
+**Then** the link_handler routes that run operator work (a whole heartbeat tick, one space's tick, the map
+file's rematerialize) answer only from inside the server: the public gateway refuses them, the public routes
+(register, validate, raw, snapshots, pin, geocode) are unchanged
+**And** a test holds the gateway to that list, so a new operator route isn't public by default.
+
 ## What counts as a change: decided, a tile of its own (Nicolas, 2026-11-01)
 
 Not this story's to settle: it becomes a tile in home's workbench, next to tile C (story 14.10). The
