@@ -163,3 +163,60 @@ async def test_write_payload_fields_never_writes_freshness_predicates_for_turtle
     body = "\n".join(ox.updates)
     for pred in ("observedAt", "updatedAt", "openNow", "lastOpenChange"):
         assert f"mom#{pred}" not in body
+
+
+def _apply(updates: list[str], before: str, graph_uri: str):
+    """The updates run on a real store holding `before` in `graph_uri` (rdflib's SPARQL Update), read back."""
+    from rdflib import Dataset, URIRef
+    ds = Dataset()
+    ds.graph(URIRef(graph_uri)).parse(data=before, format="turtle")
+    for update in updates:
+        ds.update(update)
+    return ds.graph(URIRef(graph_uri))
+
+
+_BEFORE = """
+@prefix schema: <https://schema.org/> . @prefix mom: <https://mapsofmaking.org/ns/mom#> .
+<urn:mak:space/x> a mom:Space ; schema:name "Atelier" ;
+  schema:geo [ schema:latitude 1.0 ; schema:longitude 2.0 ] ;
+  mom:geolocationFidelity "city-level" ; mom:geolocationNote "pinned to the city centre" .
+"""
+
+
+@pytest.mark.asyncio
+async def test_a_space_s_own_turtle_moves_its_pin(space_server, db):
+    """Story 14.6 AC1b (mom-home #40): the file's new coordinates replace the old pin, nothing of it left over."""
+    t, _ = await fetch_snapshot("t", serve(space_server, TTL, "text/turtle"), db_path=db)
+    lat, lon = t["payload"]["fields"]["schema:geo"]["lat"], t["payload"]["fields"]["schema:geo"]["lon"]
+    with FakeOxigraph() as ox:
+        await write_payload_fields("x", t["payload"], "urn:mak:space/x", "urn:mak:space/x", ox.url, fields=fields_for(t), moves=True)
+    g = _apply(ox.updates, _BEFORE, "urn:mak:space/x")
+    q = """PREFIX schema: <https://schema.org/> SELECT ?lat ?lon WHERE { <urn:mak:space/x> schema:geo ?g . ?g schema:latitude ?lat ; schema:longitude ?lon }"""
+    assert [(float(r.lat), float(r.lon)) for r in g.query(q)] == [(lat, lon)]
+    # The old node's coordinates went with it, and the seed's word on how exact the old pin was.
+    assert len([o for _, p, o in g if str(p) == "https://schema.org/latitude"]) == 1
+    assert not [p for _, p, _ in g if "geolocation" in str(p)]
+    assert any(str(p) == "https://schema.org/name" for _, p, _ in g)  # the rest of the space stays
+
+
+@pytest.mark.asyncio
+async def test_a_spaceapi_payload_keeps_the_registration_pin(space_server, db):
+    j, _ = await fetch_snapshot("j", serve(space_server, JSON_TEXT, "application/json"), db_path=db)
+    with FakeOxigraph() as ox:
+        await write_payload_fields("x", j["payload"], "urn:mak:space/x", "urn:mak:space/x", ox.url, fields=fields_for(j))
+    g = _apply(ox.updates, _BEFORE, "urn:mak:space/x")
+    q = """PREFIX schema: <https://schema.org/> SELECT ?lat WHERE { <urn:mak:space/x> schema:geo/schema:latitude ?lat }"""
+    assert [float(r.lat) for r in g.query(q)] == [1.0]
+    assert any("geolocationFidelity" in str(p) for _, p, _ in g)
+
+
+@pytest.mark.asyncio
+async def test_an_unmoved_pin_keeps_the_seed_s_notes(space_server, db):
+    """Only a real move drops how exact the old pin was: an hours edit leaves it (review of #76)."""
+    t, _ = await fetch_snapshot("t", serve(space_server, TTL, "text/turtle"), db_path=db)
+    lat, lon = t["payload"]["fields"]["schema:geo"]["lat"], t["payload"]["fields"]["schema:geo"]["lon"]
+    with FakeOxigraph() as ox:
+        await write_payload_fields("x", t["payload"], "urn:mak:space/x", "urn:mak:space/x", ox.url, fields=fields_for(t), moves=True)
+    g = _apply(ox.updates, _BEFORE.replace("1.0", str(lat)).replace("2.0", str(lon)), "urn:mak:space/x")
+    assert any("geolocationFidelity" in str(p) for _, p, _ in g)
+    assert len([o for _, p, o in g if str(p) == "https://schema.org/latitude"]) == 1
