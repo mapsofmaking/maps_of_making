@@ -38,7 +38,7 @@ async def test_a_turtle_space_is_fetched_and_kept_as_written(space_server, db):
     assert snap["media_type"] == "text/turtle" and snap["raw_text"] == TTL
     assert snap["fetch_status"] == "ok" and snap["observed_at"]
     assert snap["payload"]["fields"]["schema:name"] == "Atelier du Canal"
-    assert snap["payload"]["contact"] == {"email": "contact@atelierducanal.example", "matrix": "#atelier:matrix.org"}
+    assert snap["payload"]["contact"] == [{"type": "email", "value": "contact@atelierducanal.example"}, {"type": "matrix", "value": "#atelier:matrix.org"}]
 
 
 @pytest.mark.asyncio

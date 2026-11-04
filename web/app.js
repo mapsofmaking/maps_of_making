@@ -868,29 +868,47 @@ function glyphColorExpr(surface) {
     return null;
   }
 
-  function _contactChannel(key) {
-    const SVG_ICONS = {
-      email: '<path d="M1.5 3h11l-5.5 5L1.5 3zm-1 1v7.5c0 .3.2.5.5.5h12c.3 0 .5-.2.5-.5V4l-6.5 5.5L.5 4z"/>',
-      twitter: '<path d="M13 1.5L8.5 6.7l5 5.8H11L7.5 8.4 3.5 12.5H1l4.7-5.4L1.2 1.5H4L7.2 5l3.7-3.5H13z"/>',
-      mastodon: '<path d="M7 1C4.2 1 2 3 2 5.5v3C2 10.5 3.8 12 6 12c.4.6.9 1 1 1s.6-.4 1-1c2.2 0 4-1.5 4-3.5v-3C12 3 9.8 1 7 1zm0 1.5c2 0 3.5 1.3 3.5 3V9c0 1.1-1.1 2-2.5 2l-.4.6-.6-.6C5.6 11 4.5 10.1 4.5 9V5.5C4.5 4.3 5.8 2.5 7 2.5zM5.5 5v3.5h1V5h-1zm2 0v3.5h1V5h-1z"/>',
-      facebook: '<path d="M8.5 2H7C5.9 2 5 2.9 5 4v1H3.5v2H5v5h2V7h1.5l.5-2H7V4.2c0-.4.2-.7.7-.7H8.5V2z"/>',
-    };
-    const URL_KEYS = new Set(['twitter', 'mastodon', 'facebook', 'website', 'ml', 'blog']);
-    const TEXT_LABELS = { phone: '[ph]', irc: '[#]', website: '↗', ml: '↗', matrix: '[mx]', foursquare: '[fs]' };
+  // Contact pictos: the design system's ContactPicto (tokens/icons/contact.svg) for the handle types home
+  // writes, keyed like home's tree; the older SpaceAPI keys keep theirs. A key with no picto shows a tag.
+  const CONTACT_ICONS = {
+    email: '<path d="M1.5 3h11l-5.5 5L1.5 3zm-1 1v7.5c0 .3.2.5.5.5h12c.3 0 .5-.2.5-.5V4l-6.5 5.5L.5 4z"/>',
+    phone: '<path d="M3.3 1.5 5 1.3l1.1 2.9-1.3.9a7 7 0 0 0 4.1 4.1l.9-1.3 2.9 1.1-.2 1.7c-.1.6-.6 1-1.2 1A10.4 10.4 0 0 1 2.3 2.7c0-.6.4-1.1 1-1.2z"/>',
+    matrix: '<path d="M1 1.5h2.5v1.3H2.3v8.4h1.2v1.3H1zM13 1.5h-2.5v1.3h1.2v8.4h-1.2v1.3H13zM4.3 4.8h1.1v.6c.3-.4.8-.7 1.4-.7.6 0 1 .3 1.2.7.3-.4.8-.7 1.4-.7 1 0 1.5.6 1.5 1.7v3H9.8V6.6c0-.6-.2-.8-.6-.8s-.7.3-.7.8v2.8H7.4V6.6c0-.6-.2-.8-.6-.8s-.7.3-.7.8v2.8H4.3z"/>',
+    signal: '<path d="M7 1.5a5.5 5.5 0 0 0-4.8 8.2L1.5 12.5l2.9-.7A5.5 5.5 0 1 0 7 1.5zm0 1.4a4.1 4.1 0 1 1-2.2 7.6l-.3-.2-1 .3.3-1-.2-.3A4.1 4.1 0 0 1 7 2.9z"/>',
+    telegram: '<path d="M12.8 2.2 1.3 6.6c-.6.2-.6 1 0 1.2l2.8.9 1.1 3.4c.1.4.6.5.9.2l1.6-1.5 2.9 2.1c.4.3.9.1 1-.4l2-9.5c.1-.6-.4-1-.8-.8zM5.2 8.5l5.4-3.6-4.2 4.3-.3 1.9z"/>',
+    discord: '<path d="M11.6 3.2a10 10 0 0 0-2.5-.8l-.3.6a9 9 0 0 0-3.6 0l-.3-.6a10 10 0 0 0-2.5.8C.8 5.6.4 7.9.6 10.2a10 10 0 0 0 3 1.5l.6-1-1-.5.3-.2a7 7 0 0 0 7 0l.3.2-1 .5.6 1a10 10 0 0 0 3-1.5c.3-2.7-.4-5-1.8-7zM5.2 8.8c-.6 0-1-.5-1-1.2s.4-1.2 1-1.2 1 .6 1 1.2-.4 1.2-1 1.2zm3.6 0c-.6 0-1-.5-1-1.2s.4-1.2 1-1.2 1 .6 1 1.2-.4 1.2-1 1.2z"/>',
+    mattermost: '<path d="M8.7 1.5 6.2 5.6a1.6 1.6 0 1 0 2.8 1.6l.3-4.7zM5.6 2a5.4 5.4 0 1 0 5.6.5l-.1 1.6a4 4 0 1 1-5.8-.7z"/>',
+    link: '<path d="M6 8a2.5 2.5 0 0 0 3.5 0l2-2A2.5 2.5 0 0 0 8 2.5l-.8.8.9.9.8-.8a1.2 1.2 0 0 1 1.7 1.7l-2 2a1.2 1.2 0 0 1-1.7 0zM8 6a2.5 2.5 0 0 0-3.5 0l-2 2A2.5 2.5 0 0 0 6 11.5l.8-.8-.9-.9-.8.8a1.2 1.2 0 0 1-1.7-1.7l2-2a1.2 1.2 0 0 1 1.7 0z"/>',
+    twitter: '<path d="M13 1.5L8.5 6.7l5 5.8H11L7.5 8.4 3.5 12.5H1l4.7-5.4L1.2 1.5H4L7.2 5l3.7-3.5H13z"/>',
+    mastodon: '<path d="M7 1C4.2 1 2 3 2 5.5v3C2 10.5 3.8 12 6 12c.4.6.9 1 1 1s.6-.4 1-1c2.2 0 4-1.5 4-3.5v-3C12 3 9.8 1 7 1zm0 1.5c2 0 3.5 1.3 3.5 3V9c0 1.1-1.1 2-2.5 2l-.4.6-.6-.6C5.6 11 4.5 10.1 4.5 9V5.5C4.5 4.3 5.8 2.5 7 2.5zM5.5 5v3.5h1V5h-1zm2 0v3.5h1V5h-1z"/>',
+    facebook: '<path d="M8.5 2H7C5.9 2 5 2.9 5 4v1H3.5v2H5v5h2V7h1.5l.5-2H7V4.2c0-.4.2-.7.7-.7H8.5V2z"/>',
+  };
+  const CONTACT_TAGS = { irc: '[#]', website: '↗', ml: '↗', foursquare: '[fs]' };
 
-    const action = URL_KEYS.has(key) ? 'url' : 'copy';
+  function _contactChannel(key) {
     let node;
-    if (SVG_ICONS[key]) {
+    if (CONTACT_ICONS[key]) {
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('viewBox', '0 0 14 14'); svg.setAttribute('fill', 'currentColor');
       svg.setAttribute('width', '15'); svg.setAttribute('height', '15');
-      svg.innerHTML = SVG_ICONS[key];
+      svg.innerHTML = CONTACT_ICONS[key];
       node = svg;
     } else {
-      const label = TEXT_LABELS[key] || '[' + key.slice(0, 2) + ']';
-      node = document.createTextNode(label);
+      node = document.createTextNode(CONTACT_TAGS[key] || '[' + String(key).slice(0, 2) + ']');
     }
-    return { node, action };
+    return node;
+  }
+
+  // A space's contact as a list of handles: a Turtle file's list as the map read it (mom-home #39), or a
+  // SpaceAPI contact object (one value per key), which is still how JSON sources and older snapshots hold it.
+  function _contactHandles(contact) {
+    if (Array.isArray(contact)) {
+      return contact.filter((h) => h && typeof h.type === 'string' && typeof h.value === 'string');
+    }
+    if (contact && typeof contact === 'object') {
+      return Object.entries(contact).filter(([, v]) => typeof v === 'string').map(([type, value]) => ({ type, value }));
+    }
+    return [];
   }
 
   // ───────────────────────────── detail drawer
@@ -1000,28 +1018,26 @@ function glyphColorExpr(surface) {
 
       // Contact — always rendered
       factsKids.push(el('span', { class: 'sp-fact-key' }, ['Contact']));
-      const hasContact = s.contact && typeof s.contact === 'object' && Object.keys(s.contact).length > 0;
+      const hasContact = _contactHandles(s.contact).length > 0;
+      // Each handle: its picto; a link opens (http(s) only), anything else is copied.
       const channelsFor = (contact) => {
         const channelsDiv = el('div', { class: 'sp-channels' });
-        Object.entries(contact).forEach(([key, val]) => {
-          const { node: iconNode, action } = _contactChannel(key);
-          const btn = el('button', { class: 'sp-channel', title: `${key}: ${val}` }, []);
-          btn.appendChild(iconNode);
+        for (const { type, value } of _contactHandles(contact)) {
+          const opens = /^https?:\/\//i.test(value);
+          const btn = el('button', { class: 'sp-channel', title: `${type}: ${value}`, 'aria-label': `${type}: ${value}`, type: 'button' }, []);
+          btn.appendChild(_contactChannel(type));
           btn.addEventListener('click', () => {
-            if (action === 'url') {
-              const safeVal = String(val);
-              if (safeVal.startsWith('https://') || safeVal.startsWith('http://')) {
-                window.open(safeVal, '_blank', 'noopener');
-              }
+            if (opens) {
+              window.open(value, '_blank', 'noopener');
             } else {
-              navigator.clipboard.writeText(String(val)).then(() => {
+              navigator.clipboard.writeText(value).then(() => {
                 btn.textContent = '✓';
-                setTimeout(() => { btn.innerHTML = ''; btn.appendChild(_contactChannel(key).node); }, 1500);
+                setTimeout(() => { btn.innerHTML = ''; btn.appendChild(_contactChannel(type)); }, 1500);
               }).catch(() => {});
             }
           });
           channelsDiv.appendChild(btn);
-        });
+        }
         return channelsDiv;
       };
       if (hasContact) {
@@ -1029,14 +1045,14 @@ function glyphColorExpr(surface) {
       } else {
         const contactVal = el('span', { class: 'sp-fact-val' }, [el('em', { class: 'sp-fact-empty' }, ['—'])]);
         factsKids.push(contactVal);
-        // A Turtle space (Story 14.7) keeps email and Matrix in its own file, not in the index:
+        // A Turtle space (Story 14.7) keeps its contact handles in its own file, not in the index:
         // the card reads them from the source as the map last read it.
         if (kind !== 'seeded' && s.id) {
           fetch(`/api/space/${encodeURIComponent(s.id)}/raw`)
             .then(r => r.json())
             .then(result => {
               const c = result && result.contact;
-              if (c && typeof c === 'object' && Object.keys(c).length && contactVal.isConnected) {
+              if (_contactHandles(c).length && contactVal.isConnected) {
                 contactVal.innerHTML = '';
                 contactVal.appendChild(channelsFor(c));
               }

@@ -1226,7 +1226,8 @@ async def get_space_raw(space_id: str):
     media_type = snap.get("media_type") or "application/json"
     if media_type == "text/turtle":
         # Story 14.7 AC3: the source as written. The contact is read from it, not from the
-        # index (email and Matrix stay out of the graph by decision), for the card to show.
+        # index (handles stay out of the graph by decision), for the card to show: a list of
+        # {type, value} (mom-home #39), or a dict in snapshots read before it. The card takes both.
         payload = snap["payload"] if isinstance(snap["payload"], dict) else {}
         out = {"raw": snap.get("raw_text") or "", "mediaType": media_type, "snapshotDate": snap.get("observed_at", "")}
         contact = payload.get("contact") or {}

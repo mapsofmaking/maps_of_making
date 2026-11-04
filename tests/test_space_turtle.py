@@ -4,7 +4,7 @@ Offline: no Oxigraph, no HTTP. The parity test is AC5: the two fixtures
 (docs/reference/space-file.md's example, as Turtle and as SpaceAPI JSON) give the
 same statements in the space's graph. The one difference, by decision, is
 `schema:contactJson`: the JSON path keeps contact in the index, the Turtle path
-leaves email and Matrix in the source (they come back as `contact`).
+leaves the contact handles in the source (they come back as `contact`, a list).
 """
 from __future__ import annotations
 
@@ -62,7 +62,37 @@ def test_parity_turtle_and_json_write_the_same_statements():
 
 def test_the_turtle_contact_is_the_json_contact():
     contact = json.loads(_json_fields()["schema:contactJson"])
-    assert parse_space_turtle(_ttl(), URL).contact == contact
+    handles = parse_space_turtle(_ttl(), URL).contact
+    assert {h["type"]: h["value"] for h in handles} == contact
+
+
+def test_every_handle_home_writes_reaches_the_card():
+    """The contract (handles.ttl, pinned in mom-home): every kind, two of one, blank and named contact points."""
+    p = parse_space_turtle((FIXTURES / "handles.ttl").read_text(), URL)
+    assert p.error is None
+    assert sorted((h["type"], h["value"]) for h in p.contact) == sorted([
+        ("email", "contact@atelierducanal.example"), ("email", "atelier@atelierducanal.example"),
+        ("phone", "+32 2 123 45 67"), ("matrix", "#atelier:matrix.org"), ("signal", "https://signal.group/#atelier"),
+        ("telegram", "https://t.me/atelierducanal"), ("discord", "https://discord.gg/atelier"),
+        ("discord", "https://discord.gg/repaircafe"), ("mattermost", "https://chat.example.org/atelier"),
+        ("link", "https://forum.atelierducanal.example/"),
+    ])
+    # Contact points come in a fixed order whatever the graph's: by kind, then value.
+    assert [h["type"] for h in p.contact[3:]] == ["matrix", "signal", "telegram", "discord", "discord", "mattermost", "link"]
+
+
+def test_a_handle_the_map_cant_show_safely_is_left_out():
+    p = _space('<#space> a mom:Space ; schema:name "Lab" ; schema:email "not an address" ; schema:telephone "call us" ;'
+               ' schema:contactPoint [ schema:contactType "Discord" ; schema:url <javascript:alert(1)> ] ,'
+               ' [ schema:contactType "Fax" ; schema:url <https://fax.example/> ] ,'
+               ' [ schema:contactType "Telegram" ; schema:url <https://t.me/ok> ] .')
+    assert p.contact == [{"type": "telegram", "value": "https://t.me/ok"}]
+
+
+def test_handles_are_capped():
+    points = " , ".join(f'[ schema:contactType "Link" ; schema:url <https://x.example/{i}> ]' for i in range(40))
+    p = _space(f'<#space> a mom:Space ; schema:name "Lab" ; schema:contactPoint {points} .')
+    assert len(p.contact) == 20
 
 
 def test_the_fixture_reads_as_the_reference_doc_says():
@@ -210,4 +240,4 @@ def test_the_matrix_room_comes_from_the_matrix_to_link():
     p = _space('<#space> a mom:Space ; schema:name "Lab" ; schema:contactPoint [ schema:contactType "matrix" ;'
                ' schema:url <https://matrix.to/#/%23room:matrix.org> ] ; schema:contactPoint [ schema:contactType "Phone" ;'
                ' schema:url <https://x.example/> ] .')
-    assert p.contact == {"matrix": "#room:matrix.org"}
+    assert p.contact == [{"type": "matrix", "value": "#room:matrix.org"}]  # "Phone" is not a contact-point kind: a number is schema:telephone

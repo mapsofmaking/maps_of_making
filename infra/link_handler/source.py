@@ -161,8 +161,14 @@ def as_spaceapi(parsed: ParsedSpace) -> dict:
     for src, dst in (("schema:url", "url"), ("schema:logo", "logo"), ("schema:description", "description"), ("schema:openingHours", "opening_hours")):
         if f.get(src):
             out[dst] = f[src]
-    if parsed.contact:
-        out["contact"] = dict(parsed.contact)
+    # SpaceAPI's contact is one value per key, of its own keys: the first email, phone and Matrix room.
+    # The full list of handles stays in the snapshot for the card (snapshot_parts).
+    contact: dict[str, str] = {}
+    for h in parsed.contact:
+        if h["type"] in ("email", "phone", "matrix") and h["type"] not in contact:
+            contact[h["type"]] = h["value"]
+    if contact:
+        out["contact"] = contact
     return out
 
 

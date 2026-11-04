@@ -23,12 +23,34 @@
 | country (derived) | yes | `location.country_code` | `schema:address/schema:addressCountry` | `mom:countryCode` (two letters), and in `mom:address` |
 | lat, lon (geocoded) | yes | `location.lat`, `location.lon` | `schema:geo [ schema:latitude ; schema:longitude ]` | same |
 | description | no | `description` | `schema:description` | `schema:description` |
-| contact email | no | `contact.email` | `schema:email` | not kept (below) |
-| Matrix room | no | `contact.matrix` | `schema:contactPoint [ schema:contactType "Matrix" ; schema:url <https://matrix.to/#/…> ]` | not kept (below) |
+| contact handles (tile C) | no | `contact` (SpaceAPI's keys: `email`, `phone`, `matrix`, one each) | one or many, by kind (table below) | not kept (below) |
 | website | no | `url` | `schema:url` (IRI) | `schema:url` |
 | logo | no | `logo` | `schema:logo` (IRI) | `schema:logo` |
 | opening hours (tile C) | no | `opening_hours` | `schema:openingHours` | `schema:openingHours` |
 | networks (join tile) | no | `mom.memberOf` | `mom:memberOf` (IRIs) | `mom:memberOf` |
+
+### Contact handles
+
+A space gives one handle or many, several of one kind allowed (mom-home #39). Each kind lives in one
+place in the file. The `contactType` strings and the keys are an agreement between home's writer (its
+tree's `onb:ContactType`) and the map's reader (`spaceapi_extract/turtle.py` `_contact`); the card shows
+each handle with the design system's ContactPicto of the same key. The pinned contract is
+`tests/fixtures/space/handles.ttl` (re-pinned in mom-home).
+
+| Key | Turtle | What the card gets (`value`) |
+|---|---|---|
+| `email` | `schema:email "…"` (one statement per address) | the address; copied on click |
+| `phone` | `schema:telephone "+…"` (international form) | the number; copied on click |
+| `matrix` | `schema:contactPoint [ schema:contactType "Matrix" ; schema:url <https://matrix.to/#/…> ]` | the room (`#room:server`); copied |
+| `signal` | contact point, `contactType "Signal"`, `url` a group link | the link; opened |
+| `telegram` | contact point, `contactType "Telegram"`, `url <https://t.me/…>` | the link; opened |
+| `discord` | contact point, `contactType "Discord"`, `url` an invite link | the link; opened |
+| `mattermost` | contact point, `contactType "Mattermost"`, `url` the team or channel | the link; opened |
+| `link` | contact point, `contactType "Link"`, `url` any other page | the link; opened |
+
+A contact point may be a blank node or a named one (home names the ones it adds, `<#contact-<key>-<n>>`).
+`contactType` is read in any case. A value the map can't show safely (not an address, not a number, a
+link that isn't plain `http(s)`), an unknown kind, and handles past the twentieth are left out.
 
 `location.address` is written `"<street>, <postcode> <city>, <CC>"`, the
 order `parse_locality_from_free_address` reads (`scripts/spaceapi_extract/address.py`).
@@ -102,8 +124,11 @@ source as the map last read it.
    could end an IRI in SPARQL; relative IRIs resolve against the document.
    Lengths are capped (name 200, description 5000), coordinates range-checked,
    at most 5000 statements and 1 MiB of Turtle.
-5. **Email and Matrix** stay out of the index. They are read from the source
-   as the map last read it: `/api/space/{id}/raw` returns them for the card.
+5. **Contact handles** stay out of the index. They are read from the source
+   as the map last read it: `/api/space/{id}/raw` returns them for the card as a
+   list of `{type, value}` (snapshots read before 2026-11-04 hold a SpaceAPI-style
+   object; the card takes both). The SpaceAPI view of a Turtle file (`as_spaceapi`,
+   for the validators) keeps SpaceAPI's own keys: the first email, phone and room.
 6. **Namespace.** `http://schema.org/` is read as `https://schema.org/`.
 7. **Asking and telling apart.** The map asks `Accept: text/turtle,
    application/ld+json;q=0.9, application/json;q=0.8` (Turtle first: a CSS pod
