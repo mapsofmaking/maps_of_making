@@ -341,6 +341,7 @@ async def write_payload_fields(
     subject: str,
     oxigraph_endpoint: str,
     fields: Optional[dict] = None,
+    moves: bool = False,
 ) -> None:
     """Re-extract payload fields (address, contact, description, …) and write to Oxigraph.
 
@@ -352,6 +353,11 @@ async def write_payload_fields(
       mom:updatedAt    → write_updated_at()
       mom:openNow      → write_open_now()
       mom:lastOpenChange → write_open_now()
+
+    `moves`: the file is the space's own Turtle (Story 14.7), so its schema:geo is the
+    owner's word and the pin follows it (Story 14.6 AC1b, mom-home #40: a space that
+    moves). The old geo node goes whole, and the seed's notes on how exact the old pin
+    was go with it. A SpaceAPI JSON payload keeps the registration's pin.
     """
     _FRESHNESS_AXIS = frozenset({
         f"{MOM_NS}observedAt", f"{MOM_NS}updatedAt",
@@ -360,8 +366,8 @@ async def write_payload_fields(
 
     # `fields` is given for a Turtle snapshot (fields_for); otherwise read the SpaceAPI payload.
     extracted = fields if fields is not None else {**extract_core(payload), **extract_mom(payload)}
-    # Skip name/geo — those are the registration anchor and don't drift
-    _SKIP = {"schema:name", "schema:geo"}
+    # Skip name/geo — those are the registration anchor and don't drift (geo does, from the space's own Turtle: `moves`)
+    _SKIP = {"schema:name"} if moves else {"schema:name", "schema:geo"}
     all_fields = {k: v for k, v in extracted.items() if k not in _SKIP}
 
     # Build per-predicate DELETE WHERE + INSERT DATA blocks
@@ -384,6 +390,17 @@ async def write_payload_fields(
             f"  }}\n"
             f"}}"
         )
+        if curie == "schema:geo":
+            # The pin moves: the old node's coordinates, then the link, then how exact the old pin was.
+            delete_block = " ;\n".join(
+                f"DELETE WHERE {{ GRAPH <{graph_uri}> {{ {pattern} }} }}"
+                for pattern in (
+                    f"<{subject}> <{pred_uri}> ?g . ?g ?gp ?go .",
+                    f"<{subject}> <{pred_uri}> ?v .",
+                    f"<{subject}> <{MOM_NS}geolocationFidelity> ?f .",
+                    f"<{subject}> <{MOM_NS}geolocationNote> ?n .",
+                )
+            )
         insert_block = (
             f"INSERT DATA {{\n"
             f"  GRAPH <{graph_uri}> {{\n"
@@ -439,7 +456,10 @@ async def run_space_pipeline(
         except Exception as e:
             logger.warning("[axis-b] %s mom:updatedAt write failed (non-fatal): %s", uid, e)
         try:
-            await write_payload_fields(uid, snap["payload"], graph_uri, subject, oxigraph_endpoint, fields=fields_for(snap))
+            await write_payload_fields(
+                uid, snap["payload"], graph_uri, subject, oxigraph_endpoint,
+                fields=fields_for(snap), moves=snap.get("media_type") == TURTLE_TYPE,
+            )
         except Exception as e:
             logger.warning("[payload-fields] %s write failed (non-fatal): %s", uid, e)
     else:
@@ -470,7 +490,10 @@ async def run_space_pipeline(
         # ops_payload_field_backfill memory: same gap, different field set).
         try:
             if await _payload_fields_absent(oxigraph_endpoint, graph_uri, subject):
-                await write_payload_fields(uid, snap["payload"], graph_uri, subject, oxigraph_endpoint, fields=fields_for(snap))
+                await write_payload_fields(
+                uid, snap["payload"], graph_uri, subject, oxigraph_endpoint,
+                fields=fields_for(snap), moves=snap.get("media_type") == TURTLE_TYPE,
+            )
                 logger.info("[payload-fields] %s backfilled (was absent, content unchanged)", uid)
         except Exception as e:
             logger.warning("[payload-fields] %s backfill check/write failed (non-fatal): %s", uid, e)
