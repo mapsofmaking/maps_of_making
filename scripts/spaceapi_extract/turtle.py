@@ -7,8 +7,9 @@ both (docs/reference/space-file.md). The result's `fields` has the shape
 
 The file is untrusted: a pod has other writers. Only the allow-list below is
 read, every IRI that can reach a SPARQL `<...>` is checked, lengths are capped.
-Email and the Matrix room are not graph fields (the index does not hold them);
-they come back in `contact`, for the card to show from the source.
+The contact handles are not graph fields (the index does not hold them); they
+come back in `contact`, a list of {type, value}, for the card to show from the
+source: every handle, several of one type allowed (docs/reference/space-file.md).
 
 Pure function: no HTTP, no SPARQL, no Oxigraph. Errors are values.
 """
@@ -37,10 +38,10 @@ _COUNTRY = re.compile(r"^[A-Za-z]{2}$")
 
 @dataclass
 class ParsedSpace:
-    """`fields`: graph fields (CURIE keys). `contact`: email / matrix, not in the graph. `error`: why nothing was read."""
+    """`fields`: graph fields (CURIE keys). `contact`: the handles, [{type, value}], not in the graph. `error`: why nothing was read."""
 
     fields: dict[str, Any] = field(default_factory=dict)
-    contact: dict[str, str] = field(default_factory=dict)
+    contact: list[dict[str, str]] = field(default_factory=list)
     error: Optional[str] = None
     error_code: Optional[str] = None
 
@@ -188,25 +189,55 @@ def _member_of(view: _View, subject: Any) -> list[str]:
     return sorted(out)  # a graph has no order; the written statements should not depend on it
 
 
-def _contact(view: _View, subject: Any) -> dict[str, str]:
-    out: dict[str, str] = {}
-    email = _text(view.one(subject, SCHEMA + "email"), _CAPS["contact"])
-    if email:
-        out["email"] = email
+# The kinds of handle a contact point may carry (schema:contactType, any case) and the card's key for each.
+# The same list as home's tree (onb:ContactType) and the design system's ContactPicto.
+_CONTACT_TYPES = {"matrix": "matrix", "signal": "signal", "telegram": "telegram", "discord": "discord", "mattermost": "mattermost", "link": "link"}
+_PHONE = re.compile(r"^\+?[0-9][0-9 ().-]{4,40}$")
+_EMAIL = re.compile(r"^[^\s@<>\"]+@[^\s@<>\"]+\.[^\s@<>\"]+$")
+MAX_HANDLES = 20
+
+
+def _contact(view: _View, subject: Any) -> list[dict[str, str]]:
+    """Every handle the file gives, in a fixed order (a graph has none): emails, phones, then contact points by type and value.
+
+    A value is what the card shows and copies, or the link it opens: an email address, a phone number, a Matrix
+    room, an http(s) link. Anything else (an unknown type, a link that isn't http(s), a value too long) is left out.
+    """
+    out: list[dict[str, str]] = []
+    for value in sorted(view.objects(subject, SCHEMA + "email"), key=str):
+        email = _text(value, _CAPS["contact"])
+        if email and _EMAIL.match(email.removeprefix("mailto:")):
+            out.append({"type": "email", "value": email.removeprefix("mailto:")})
+    for value in sorted(view.objects(subject, SCHEMA + "telephone"), key=str):
+        phone = _text(value, _CAPS["contact"])
+        if phone and _PHONE.match(phone.removeprefix("tel:")):
+            out.append({"type": "phone", "value": phone.removeprefix("tel:")})
+    points: list[dict[str, str]] = []
     for node in view.objects(subject, SCHEMA + "contactPoint"):
         if isinstance(node, Literal):
             continue
         kind = _text(view.one(node, SCHEMA + "contactType"), 40)
+        key = _CONTACT_TYPES.get((kind or "").lower())
         url = view.one(node, SCHEMA + "url")
-        if kind and kind.lower() == "matrix" and isinstance(url, (URIRef, Literal)):
-            room = str(url).strip()
+        if not key or not isinstance(url, (URIRef, Literal)):
+            continue
+        link = str(url).strip()
+        if key == "matrix":
             marker = "matrix.to/#/"
-            if marker in room:
-                room = unquote(room.split(marker, 1)[1])[: _CAPS["contact"]]
-                if room and not _BAD_IRI.search(room):
-                    out["matrix"] = room
-                    break
-    return out
+            if marker not in link:
+                continue
+            room = unquote(link.split(marker, 1)[1])[: _CAPS["contact"]]
+            if room and not _BAD_IRI.search(room):
+                points.append({"type": "matrix", "value": room})
+        elif len(link) <= _CAPS["contact"] and safe_iri(link):
+            points.append({"type": key, "value": link})
+    # A graph has no order: sorted, so the same file always gives the same card.
+    out += sorted(points, key=lambda h: (list(_CONTACT_TYPES).index(h["type"]), h["value"]))
+    unique: list[dict[str, str]] = []
+    for h in out:
+        if h not in unique:
+            unique.append(h)
+    return unique[:MAX_HANDLES]
 
 
 def parse_space_turtle(text: str, base_url: str) -> ParsedSpace:

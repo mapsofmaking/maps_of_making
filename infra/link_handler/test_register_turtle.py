@@ -200,7 +200,7 @@ async def test_the_snapshot_keeps_the_source_as_written(space_server, tmp_path, 
         snap = read_snapshot("atelier-du-canal")
         assert snap["media_type"] == "text/turtle" and snap["raw_text"] == TTL
         assert snap["payload"]["fields"]["schema:name"] == "Atelier du Canal"
-        assert snap["payload"]["contact"]["email"] == "contact@atelierducanal.example"
+        assert {"type": "email", "value": "contact@atelierducanal.example"} in snap["payload"]["contact"]
 
         await main.register_url(main.UrlRequest(url=serve(space_server, JSON_TEXT, "text/plain", "/j")), BackgroundTasks())
         snap = read_snapshot("atelier-du-canal")
@@ -230,7 +230,7 @@ async def test_raw_returns_the_turtle_as_written_with_its_contact(space_server, 
         await main.register_url(main.UrlRequest(url=serve(space_server, TTL, "text/turtle", "/t")), BackgroundTasks())
     raw = await main.get_space_raw("atelier-du-canal")
     assert raw["mediaType"] == "text/turtle" and raw["raw"] == TTL and raw["snapshotDate"]
-    assert raw["contact"] == {"email": "contact@atelierducanal.example", "matrix": "#atelier:matrix.org"}
+    assert raw["contact"] == [{"type": "email", "value": "contact@atelierducanal.example"}, {"type": "matrix", "value": "#atelier:matrix.org"}]
 
 
 @pytest.mark.asyncio
