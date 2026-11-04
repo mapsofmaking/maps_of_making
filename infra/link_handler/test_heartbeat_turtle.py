@@ -208,3 +208,15 @@ async def test_a_spaceapi_payload_keeps_the_registration_pin(space_server, db):
     q = """PREFIX schema: <https://schema.org/> SELECT ?lat WHERE { <urn:mak:space/x> schema:geo/schema:latitude ?lat }"""
     assert [float(r.lat) for r in g.query(q)] == [1.0]
     assert any("geolocationFidelity" in str(p) for _, p, _ in g)
+
+
+@pytest.mark.asyncio
+async def test_an_unmoved_pin_keeps_the_seed_s_notes(space_server, db):
+    """Only a real move drops how exact the old pin was: an hours edit leaves it (review of #76)."""
+    t, _ = await fetch_snapshot("t", serve(space_server, TTL, "text/turtle"), db_path=db)
+    lat, lon = t["payload"]["fields"]["schema:geo"]["lat"], t["payload"]["fields"]["schema:geo"]["lon"]
+    with FakeOxigraph() as ox:
+        await write_payload_fields("x", t["payload"], "urn:mak:space/x", "urn:mak:space/x", ox.url, fields=fields_for(t), moves=True)
+    g = _apply(ox.updates, _BEFORE.replace("1.0", str(lat)).replace("2.0", str(lon)), "urn:mak:space/x")
+    assert any("geolocationFidelity" in str(p) for _, p, _ in g)
+    assert len([o for _, p, o in g if str(p) == "https://schema.org/latitude"]) == 1

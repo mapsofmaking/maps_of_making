@@ -391,14 +391,21 @@ async def write_payload_fields(
             f"}}"
         )
         if curie == "schema:geo":
-            # The pin moves: the old node's coordinates, then the link, then how exact the old pin was.
-            delete_block = " ;\n".join(
+            # How exact the old pin was goes only when the pin really moves (an hours edit keeps the seed's word);
+            # then the old node's coordinates, then the link.
+            lat, lon = float(val["lat"]), float(val["lon"])
+            notes = " ".join(
+                f"DELETE {{ GRAPH <{graph_uri}> {{ <{subject}> <{MOM_NS}{p}> ?x }} }} "
+                f"WHERE {{ GRAPH <{graph_uri}> {{ <{subject}> <{MOM_NS}{p}> ?x . "
+                f"FILTER NOT EXISTS {{ <{subject}> <{pred_uri}> ?k . ?k <{SCHEMA_NS}latitude> ?la ; <{SCHEMA_NS}longitude> ?lo . "
+                f"FILTER (?la = {lat} && ?lo = {lon}) }} }} }} ;"
+                for p in ("geolocationFidelity", "geolocationNote")
+            )
+            delete_block = notes + "\n" + " ;\n".join(
                 f"DELETE WHERE {{ GRAPH <{graph_uri}> {{ {pattern} }} }}"
                 for pattern in (
                     f"<{subject}> <{pred_uri}> ?g . ?g ?gp ?go .",
                     f"<{subject}> <{pred_uri}> ?v .",
-                    f"<{subject}> <{MOM_NS}geolocationFidelity> ?f .",
-                    f"<{subject}> <{MOM_NS}geolocationNote> ?n .",
                 )
             )
         insert_block = (
