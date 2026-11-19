@@ -176,6 +176,28 @@ def _geo(view: _View, subject: Any, fields: dict[str, Any]) -> None:
         fields["schema:geo"] = {"lat": lat, "lon": lon}
 
 
+def _area_values(view: _View, subject: Any) -> list[Any]:
+    """What `schema:areaServed` holds: a node `[ schema:identifier "BE-VLG" ; schema:name "Flanders" ]`
+    as {code, name}, or a bare code (the first shape, 2026-11-19), for `clean_areas` to clean."""
+    out: list[Any] = []
+    for o in view.objects(subject, SCHEMA + "areaServed"):
+        if isinstance(o, Literal):
+            out.append(str(o))
+        elif isinstance(o, (BNode, URIRef)):
+            code = view.one(o, SCHEMA + "identifier")
+            if isinstance(code, Literal):
+                out.append({"code": str(code), "name": _area_name(view.objects(o, SCHEMA + "name"))})
+    return out
+
+
+def _area_name(names: list[Any]) -> str:
+    """One name of several (a graph has no order): untagged first, then English, then the smallest."""
+    literals = [n for n in names if isinstance(n, Literal) and str(n).strip()]
+    if not literals:
+        return ""
+    return str(min(literals, key=lambda n: (n.language is not None, (n.language or "").lower() != "en", str(n))))
+
+
 def _iri_field(view: _View, subject: Any, predicate: str) -> Optional[str]:
     o = view.one(subject, predicate)
     raw = str(o) if isinstance(o, (URIRef, Literal)) else ""
@@ -281,7 +303,7 @@ def parse_space_turtle(text: str, base_url: str) -> ParsedSpace:
         fields["mom:memberOf"] = members
     # A network (2026-11-19): the areas it serves, how coarse its pin is (after schema:geo: the heartbeat's
     # geo write clears the old fidelity first), and, with no address, the country of its areas.
-    areas = clean_areas(str(o) for o in view.objects(subject, SCHEMA + "areaServed") if isinstance(o, Literal))
+    areas = clean_areas(_area_values(view, subject))
     if areas:
         fields["schema:areaServed"] = areas
         if "mom:countryCode" not in fields and "mom:address" not in fields and country_of(areas):

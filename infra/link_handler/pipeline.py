@@ -409,6 +409,16 @@ async def write_payload_fields(
                     f"<{subject}> <{pred_uri}> ?v .",
                 )
             )
+        if curie == "schema:areaServed":
+            # A network's areas are nodes (2026-11-19): the old nodes go whole, then the links,
+            # and with them any bare code an earlier file wrote.
+            delete_block = " ;\n".join(
+                f"DELETE WHERE {{ GRAPH <{graph_uri}> {{ {pattern} }} }}"
+                for pattern in (
+                    f"<{subject}> <{pred_uri}> ?g . ?g ?gp ?go .",
+                    f"<{subject}> <{pred_uri}> ?v .",
+                )
+            )
         insert_block = (
             f"INSERT DATA {{\n"
             f"  GRAPH <{graph_uri}> {{\n"

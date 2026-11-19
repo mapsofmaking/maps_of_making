@@ -234,6 +234,29 @@ async def test_a_network_s_tick_writes_its_area_and_keeps_its_new_fidelity(space
     g = _apply(ox.updates, before, "urn:mak:space/x")
     values = lambda name: sorted(str(o) for _, p, o in g if str(p).endswith(name))  # noqa: E731
     assert values("geolocationFidelity") == ["region"]
-    assert values("areaServed") == ["BE-VLG"]
+    assert values("identifier") == ["BE-VLG"]
+    q = """PREFIX schema: <https://schema.org/> SELECT ?code ?name WHERE {
+      <urn:mak:space/x> schema:areaServed [ a schema:AdministrativeArea ; schema:identifier ?code ; schema:name ?name ] }"""
+    assert [(str(r.code), str(r.name)) for r in g.query(q)] == [("BE-VLG", "Flanders")]
     assert values("countryCode") == ["BE"]
     assert values("latitude") == ["51.0378"]
+
+
+@pytest.mark.asyncio
+async def test_a_network_s_tick_replaces_its_old_areas_whole(space_server, db):
+    """The areas are nodes (2026-11-19): a tick takes the old ones away whole, nodes and bare codes alike,
+    and leaves one node per area of the file, nothing stray."""
+    from fakes import NETWORK_TTL
+    t, _ = await fetch_snapshot("n", serve(space_server, NETWORK_TTL, "text/turtle"), db_path=db)
+    before = _BEFORE.replace("mom:Space", "mom:Network") + """
+<urn:mak:space/x> schema:areaServed "BE-WAL",
+  [ a schema:AdministrativeArea ; schema:identifier "BE-VLG" ; schema:name "Vlaanderen" ],
+  [ a schema:AdministrativeArea ; schema:identifier "BE-BRU" ; schema:name "Brussels" ] .
+"""
+    with FakeOxigraph() as ox:
+        await write_payload_fields("x", t["payload"], "urn:mak:space/x", "urn:mak:space/x", ox.url, fields=fields_for(t), moves=True)
+    g = _apply(ox.updates, before, "urn:mak:space/x")
+    assert [str(o) for _, p, o in g if str(p) == "https://schema.org/identifier"] == ["BE-VLG"]
+    assert len([1 for _, p, _ in g if str(p) == "https://schema.org/areaServed"]) == 1
+    assert sorted(str(o) for _, p, o in g if str(p) == "https://schema.org/name") == ["Atelier", "Flanders"]
+    assert not [o for _, _, o in g if str(o) in ("BE-WAL", "BE-BRU", "Brussels", "Vlaanderen")]

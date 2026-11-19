@@ -121,27 +121,40 @@ description, website, logo, contact handles, `memberOf`) is as for a space.
 | Field | Required | SpaceAPI JSON (self-host) | Turtle `space.ttl` (pod) | Map graph after ingest |
 |---|---|---|---|---|
 | kind | yes | `mom.kind: "network"` | the node is typed `mom:Network, schema:Organization` (subject stays `<#space>`) | `a mom:Network, schema:Organization` (a space: `a mom:Space`) |
-| area served | yes | `mom.areaServed` (a list; one string accepted) | `schema:areaServed "BE-VLG"` (one statement per area) | `schema:areaServed`, one literal per area |
+| area served | yes | `mom.areaServed`, a list of `{"code", "name"}` | `schema:areaServed [ a schema:AdministrativeArea ; schema:identifier "BE-VLG" ; schema:name "Flanders" ]` (one node per area) | `schema:areaServed`, the same node per area (code, and name when there is one) |
 | pin fidelity | yes | `mom.geolocationFidelity` | `mom:geolocationFidelity` | `mom:geolocationFidelity` |
 | lat, lon | yes | `location.lat`, `location.lon` | `schema:geo [ schema:latitude ; schema:longitude ]` | same |
 | country | no | `location.country_code` | none: derived from the areas | `mom:countryCode` (given, or the one country all areas are in) |
 | address | — | none (no `location.address`) | none (no `schema:address`) | none: the card says "Serves …" instead |
 
-- **Area codes** are ISO 3166-1 alpha-2 (`BE`) or ISO 3166-2 (`BE-VLG`
-  Flanders, `BE-WAL` Wallonia, `BE-BRU` Brussels). Read in any case, written
-  upper case, sorted; anything else is left out; at most 10.
+- **An area** is a code and a name, anywhere in the world. The code is ISO
+  3166-1 alpha-2 (`BE`) or ISO 3166-2 (`BE-VLG` Flanders, `FR-IDF`
+  Île-de-France, `GB-SCT` Scotland): read in any case, written upper case
+  (`^[A-Z]{2}(-[A-Z0-9]{1,3})?$`); an area without a valid code is left out.
+  The name is a plain literal, the name the network's file gives (home takes
+  it from the area search below), one line, at most 200 characters. One area
+  per code (two of one code: a name beats none, then the smaller name),
+  sorted by code, at most 10.
+- **The first shape is still read** (decided with Nicolas, 2026-11-19): a bare
+  code, `schema:areaServed "BE-VLG"` in Turtle or `"BE-VLG"` in the JSON list
+  (or `"areaServed": "BE-VLG"`), is an area without a name. The map then
+  names a country in English from its code, and shows a subdivision's code
+  (Belgium's three regions by name).
 - **Fidelity** takes the ontology's values: `exact`, `approximate`, `city`,
   `region` (added for networks), `country`. A network uses `region` for a
   subdivision and `country` for a country. Any other value is left out.
 - **The pin** is the area's centre as the geocode proxy gives it (below):
-  home asks `POST /api/geocode {"area": "BE-VLG"}` and writes the answer's
-  `lat`, `lon` and `fidelity` into the file.
+  home searches the area by name, `POST /api/geocode {"area_search":
+  "Flanders"}`, and writes the chosen candidate's `code`, `name`, `lat`,
+  `lon` and `fidelity` into the file (`{"area": "BE-VLG"}` gives the centre
+  of a code already known).
 - **Same name as a space.** A network never claims a seeded space of the same
   name (the claim-merge on registration matches the same kind only), and if
   `urn:mak:space/<slug>` already holds a space, the network is registered as
   `urn:mak:space/<slug>-network` (a space meeting a network: `<slug>-space`).
 - **The map's file** (`spaces.geojson`) gives every feature `kind`
-  (`"space"` | `"network"`) and `area_served` (a list of codes).
+  (`"space"` | `"network"`) and `area_served`, a list of `{"code", "name"}`
+  (`name` is `""` for a bare code). The card says "Serves Flanders".
 
 ```turtle
 @prefix schema: <https://schema.org/> .
@@ -153,7 +166,7 @@ description, website, logo, contact handles, `memberOf`) is as for a space.
   schema:url <https://maakbib.be/> ;
   schema:logo <https://maakbib.be/wp-content/uploads/2026/08/logo-maakbib-kleur.svg> ;
   schema:email "info@decreatievestem.be" ;
-  schema:areaServed "BE-VLG" ;
+  schema:areaServed [ a schema:AdministrativeArea ; schema:identifier "BE-VLG" ; schema:name "Flanders" ] ;
   schema:geo [ a schema:GeoCoordinates ;
     schema:latitude 51.0378 ; schema:longitude 4.2406 ] ;
   mom:geolocationFidelity "region" .
@@ -169,7 +182,7 @@ description, website, logo, contact handles, `memberOf`) is as for a space.
   "description": "MaakBib helpt bibliotheken en jeugdwerkingen met kennis en een netwerk om een maakplaats of fablab uit te bouwen en te runnen.",
   "contact": { "email": "info@decreatievestem.be" },
   "state": { "open": null },
-  "mom": { "kind": "network", "areaServed": ["BE-VLG"], "geolocationFidelity": "region" }
+  "mom": { "kind": "network", "areaServed": [{"code": "BE-VLG", "name": "Flanders"}], "geolocationFidelity": "region" }
 }
 ```
 
@@ -178,18 +191,61 @@ geocode proxy returns for `BE-VLG`.
 
 ### The geocode proxy, for an area
 
-`POST /api/geocode` takes either shape:
+`POST /api/geocode` takes three shapes:
 
 | Request | For | Nominatim is asked | `fidelity` |
 |---|---|---|---|
 | `{"address", "city", "postcode"?, "country_code"?}` | a space (as before) | the joined address | `exact` with a street, `city` without |
-| `{"area": "BE-VLG"}` | a network, a subdivision | the code, `featuretype=state`, `countrycodes=be`; kept only if the answer's `ISO3166-2-lvl*` is the code | `region` |
+| `{"area": "BE-VLG"}` | a network, a subdivision | the code, `countrycodes=be`, five answers (no `featuretype`: geopy sends it as `featureType`, which Nominatim misreads); the first whose deepest `ISO3166-2-lvl*` is the code is kept | `region` |
 | `{"area": "BE"}` | a network, a country | `country=BE`, `featuretype=country` | `country` |
 
 The answer keeps its keys and adds two: `{lat, lon, country_code, postcode,
 display_name, fidelity, area}`. No match: `lat`/`lon`/`display_name` null,
 `area` still the code asked. A body with neither shape, or an `area` that is
 not an ISO code: 422. Nominatim down: 503. The 1 req/s limit is unchanged.
+
+#### Searching an area by its name
+
+> Decided with Nicolas, 2026-11-19: a network's area works anywhere in the
+> world, so home asks for it by name rather than by a code from a list.
+
+`{"area_search": "Flanders", "lang": "en"}` (`lang` optional, default `en`,
+two letters) answers the areas the name may be:
+
+```json
+{"candidates": [
+  {"code": "BE-VLG", "name": "Flanders", "display_name": "Flanders, Belgium",
+   "lat": 51.0377778, "lon": 4.2405556, "fidelity": "region"}
+]}
+```
+
+- Nominatim is asked the name as free text, with `addressdetails`, ten
+  answers, `accept-language` set to `lang`, and no `featuretype`.
+- An answer is kept when Nominatim files it (`addresstype`) as a `country`,
+  `state`, `region` or `province` **and** it has an ISO code of its own: a
+  country its `country_code` (upper case), fidelity `country`; a subdivision
+  the `ISO3166-2-lvl*` key that comes right after its own component in
+  Nominatim's `address` and is the deepest one there, fidelity `region`. A
+  province with no code of its own (only its region's) is left out; so are
+  cities, towns, counties and streets, even one with a code (Paris, `FR-75C`).
+  One exception, seen live: a `county` whose `address` also names it, under
+  the same name, as a `state`, `region` or `province` is that area
+  (Brussels-Capital: `county, region, ISO3166-2-lvl4: BE-BRU`).
+- `name` is the answer's own name in `lang` (else the first part of
+  `display_name`). Each code once, in Nominatim's order, at most 5; none
+  found: `{"candidates": []}`.
+- An empty `area_search` or one over 100 characters, or a `lang` that is not
+  two letters: 422. Nominatim down: 503. One search is one Nominatim call:
+  the 1 req/s limit is unchanged.
+
+Seen live on 2026-11-19 (`lang` en): Flanders, Île-de-France, Bavaria,
+Catalonia and Scotland each come back as a `state` with their own `lvl4` code
+(`BE-VLG`, `FR-IDF`, `DE-BY`, `ES-CT`, `GB-SCT`); "Scotland" also brings two
+US counties named Scotland, left out. West Flanders comes back as a `state`
+with its own `lvl6` code (`BE-VWV`) before Flanders' `lvl4`. Wallonia is a
+`state` (`BE-WAL`). "Brussels" comes back only as cities, so it finds no
+area; "Brussels-Capital Region" finds `BE-BRU` "Brussels-Capital" (a
+`county`, the exception above).
 
 ## What the map does with Turtle (Story 14.7)
 

@@ -816,13 +816,28 @@ function glyphColorExpr(surface) {
   };
   function countryLabel(c) { return COUNTRY_LABELS[c] || c; }
 
-  // A network (2026-11-19) serves areas, ISO 3166 codes, rather than sitting at an address.
-  // Belgium and its regions by name; any other code shows as itself.
-  const AREA_NAMES = { BE: 'Belgium', 'BE-VLG': 'Flanders', 'BE-WAL': 'Wallonia', 'BE-BRU': 'Brussels' };
-  function areaLabel(code) { return AREA_NAMES[code] || code; }
+  // A network (2026-11-19) serves areas, each {code, name} (an ISO 3166 code and the name its file
+  // gives), rather than sitting at an address. No name (a file of the first shape, a bare code):
+  // a country by the browser's own English name for it, Belgium's regions from the list below,
+  // any other code as itself.
+  const AREA_NAMES = { 'BE-VLG': 'Flanders', 'BE-WAL': 'Wallonia', 'BE-BRU': 'Brussels' };
+  let regionNames = null;
+  try { regionNames = new Intl.DisplayNames(['en'], { type: 'region' }); } catch (e) { regionNames = null; }
+  function areaLabel(area) {
+    const code = typeof area === 'string' ? area : (area && area.code) || '';
+    const name = typeof area === 'string' ? '' : (area && area.name) || '';
+    if (name) return name;
+    if (code.length === 2 && regionNames) {
+      try {
+        const label = regionNames.of(code);
+        return label && label !== 'Unknown Region' ? label : code;
+      } catch (e) { return code; }
+    }
+    return AREA_NAMES[code] || code;
+  }
   function isNetwork(s) { return s.kind === 'network'; }
   function servesLine(s) {
-    const areas = (s.area_served || []).map(areaLabel);
+    const areas = (s.area_served || []).map((a) => areaLabel(a)).filter(Boolean);
     return areas.length ? 'Serves ' + areas.join(', ') : 'Network';
   }
   // How coarse the pin is, said once, for a network placed at the centre of its area.
