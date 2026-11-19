@@ -548,7 +548,13 @@ async def _fetch_and_validate(url: str) -> dict:
     name = schema.resolved_name
     lat = schema.resolved_lat
     lon = schema.resolved_lon
-    subset_info = classify_subset(schema)
+    # A network (mom:Network) or a space: what the file says it is (2026-11-19). The subset ladder
+    # (pin → card → SpaceAPI) and its "add openingHours" hint are a space's (M1): none for a network.
+    kind = source.turtle.kind if source.kind == "turtle" else kind_of(data)
+    subset_info = classify_subset(schema) if kind != "network" else {
+        "subset": None, "subset_score": None, "missing_card_fields": [], "unlock_message": None,
+        "next_subset": None, "next_unlock": None,
+    }
 
     result = {
         "reachable": True,
@@ -558,6 +564,7 @@ async def _fetch_and_validate(url: str) -> dict:
         "coords_found": lat is not None and lon is not None,
         "lat": lat,
         "lon": lon,
+        "kind": kind,
         "subset": subset_info["subset"],
         "subset_score": subset_info["subset_score"],
         "missing_card_fields": subset_info["missing_card_fields"],
@@ -1057,8 +1064,7 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=422, detail={"error": "space name contains no ASCII-compatible characters; cannot generate a URI slug"})
 
     is_turtle = source is not None and source.kind == "turtle"
-    # A network (mom:Network) or a space: what the file says it is (2026-11-19).
-    kind = source.turtle.kind if is_turtle else kind_of(data)
+    kind = result["kind"]  # a network or a space, as _fetch_and_validate read the file
 
     # Dedup by endpointUrl first: if any existing graph (seeded OR confirmed) already
     # carries this URL, reuse its URI. Prevents a duplicate graph when the same real
@@ -1123,9 +1129,6 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
             cls = classify_subset(schema_obj)
         except Exception as e:
             logger.warning("classify_subset failed for %s (non-fatal): %s", slug, e)
-    else:
-        for key in ("subset", "subset_score", "missing_card_fields", "unlock_message", "next_subset", "next_unlock"):
-            result[key] = None
 
     sparql_update = _build_sparql_update(
         graph_uri, space_uri, name, lat, lon, req.url, data,
@@ -1187,6 +1190,9 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
     return {
         "status": "confirmed",
         "space_uri": space_uri,
+        # The map's id for it (_id_of): `<slug>`, or `network_<slug>` for a network (M1). Clients take
+        # this rather than parsing space_uri.
+        "id": slug,
         "space_name": name,
         "kind": kind,
         "subset": result.get("subset"),

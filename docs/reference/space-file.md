@@ -155,8 +155,9 @@ a card of its own, and its members.
   name (the claim-merge on registration matches the same kind only). The two
   never share a graph or an id either (identity, below).
 - **No subset ladder.** The space's ladder (pin → card → SpaceAPI) and its
-  "Level up: add openingHours" hint are not a network's: its registration
-  answers `subset` and `next_unlock` null and writes neither.
+  "Level up: add openingHours" hint are not a network's: `validate-url` and
+  `register-url` answer `subset` and `next_unlock` null for it (and `kind:
+  "network"`), and registration writes neither.
 - **The map's file** (`spaces.geojson`) gives every feature `kind`
   (`"space"` | `"network"`) and `area_served`, a list of `{"code", "name"}`
   (`name` is `""` for a bare code). A network's feature also has `members`
@@ -183,7 +184,9 @@ one (`maakbib`, `network_maakbib`). The lookups by id serve both kinds: there
 is no `/api/network/…`. `GET /api/space/{id}/pin`, `/raw`, `POST
 /api/heartbeat-space/{id}` and `/api/bot/deploy-key/{id}` take
 `network_<slug>`; `GET /api/space-by-endpoint` answers it for a network's
-address; `POST /api/register-url` answers `space_uri: urn:mak:network/<slug>`.
+address; `POST /api/register-url` answers `space_uri: urn:mak:network/<slug>`
+and the id itself, `id: network_<slug>` (`id` comes for a space too: read it
+rather than parsing `space_uri`).
 The heartbeat ticks a network as it ticks a space; the endpoint dedupe finds
 it by its address under either prefix.
 

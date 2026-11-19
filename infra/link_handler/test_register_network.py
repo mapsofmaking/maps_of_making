@@ -195,6 +195,20 @@ async def test_a_network_gets_no_space_subset_or_level_up_hint(space_server, tmp
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("body, content_type", [(NETWORK_TTL, "text/turtle"), (NETWORK_JSON, "application/json")], ids=["turtle", "json"])
+async def test_validating_a_network_tells_no_space_ladder(space_server, body, content_type):
+    out = await main.validate_url(main.UrlRequest(url=serve(space_server, body, content_type, "/n")))
+    assert out["kind"] == "network" and out["schema_valid"] and out["coords_found"]
+    assert out["next_unlock"] is None and out["subset"] is None and out["unlock_message"] is None
+
+
+@pytest.mark.asyncio
+async def test_validating_a_space_still_tells_its_ladder(space_server):
+    out = await main.validate_url(main.UrlRequest(url=serve(space_server, TTL, "text/turtle", "/s")))
+    assert out["kind"] == "space" and out["subset"] in ("mom:required", "mom:card", "spaceapi:compatible")
+
+
+@pytest.mark.asyncio
 async def test_a_space_still_claims_its_seeded_record(space_server, tmp_path, monkeypatch):
     seeded = SEEDED_MAAKBIB.replace("MaakBib", "Atelier du Canal").replace("urn:mak:space/maakbib", "urn:mak:space/adc-anderlecht")
     monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
@@ -215,6 +229,8 @@ async def test_a_space_does_not_drop_a_registered_network_of_the_same_name(space
         rows = ox.select(main._SPARQL_SELECT)
     assert first["space_uri"] == "urn:mak:network/maakbib"
     assert second["space_uri"] == "urn:mak:space/maakbib"
+    # The map's id comes with the answer, so no client parses the IRI (mom-home's onmap.ts did).
+    assert (first["id"], second["id"]) == ("network_maakbib", "maakbib")
     kinds = {f["properties"]["id"]: f["properties"]["kind"] for f in map(main._binding_to_feature, rows)}
     assert kinds == {"network_maakbib": "network", "maakbib": "space"}
 

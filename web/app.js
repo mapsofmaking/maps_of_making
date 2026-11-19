@@ -1767,8 +1767,10 @@ function glyphColorExpr(surface) {
       // submitted name (endpoint-dedup and claim-merge reuse the existing graph), so
       // trust the response over any local guess, and check the shape before using it
       // to navigate.
-      // A network's id is network_<slug> (M1): urn:mak:network/<slug>.
-      const rawSpaceId = ((reg.space_uri || '').startsWith('urn:mak:network/') ? 'network_' : '') + ((reg.space_uri || '').split('/').pop() || '');
+      // The map's id comes with the answer (`id`: a network's is network_<slug>, M1); parsing the IRI
+      // is the fallback for an older link handler.
+      const rawSpaceId = typeof reg.id === 'string' ? reg.id
+        : ((reg.space_uri || '').startsWith('urn:mak:network/') ? 'network_' : '') + ((reg.space_uri || '').split('/').pop() || '');
       const spaceId = /^[a-zA-Z0-9_-]{1,64}$/.test(rawSpaceId) ? rawSpaceId : null;
       const hasSpace = Boolean(spaceId);
 
