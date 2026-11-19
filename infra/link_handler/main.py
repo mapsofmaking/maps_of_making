@@ -1328,7 +1328,10 @@ def _area_query(area: str) -> tuple[Any, dict]:
     cc = area[:2].lower()
     if len(area) == 2:
         return {"country": area}, {"featuretype": "country", "country_codes": cc}
-    return area, {"featuretype": "state", "country_codes": cc}
+    # No featuretype for a subdivision: geopy sends it as `featureType`, which Nominatim reads
+    # differently and answers with the provinces inside the region (BE-VLG gave West-Vlaanderen,
+    # 2026-11-19). Several answers are asked; `_pick_area` keeps the area itself.
+    return area, {"country_codes": cc, "exactly_one": False, "limit": 5}
 
 
 def _area_matches(area: str, address: dict) -> bool:
@@ -1338,7 +1341,18 @@ def _area_matches(area: str, address: dict) -> bool:
         return False
     if len(area) == 2:
         return True
-    return any(k.startswith("ISO3166-2-lvl") and str(v).upper() == area for k, v in address.items())
+    # The deepest ISO3166-2 level is the place itself: a province inside Flanders also carries
+    # `ISO3166-2-lvl4: BE-VLG`, but its own code (lvl6) is BE-VWV.
+    levels = sorted((k for k in address if k.startswith("ISO3166-2-lvl")), key=lambda k: int(k.rsplit("lvl", 1)[1] or 0))
+    return bool(levels) and str(address[levels[-1]]).upper() == area
+
+
+def _pick_area(area: str, location: Any) -> Any:
+    """The first answer that is the area itself (Nominatim gives one, or a list when asked for several)."""
+    for loc in (location if isinstance(location, list) else [location] if location is not None else []):
+        if _area_matches(area, loc.raw.get("address", {}) or {}):
+            return loc
+    return None
 
 
 async def _nominatim(query: Any, **kwargs):
@@ -1378,9 +1392,8 @@ async def geocode(req: GeocodeRequest):
             raise HTTPException(status_code=422, detail={"error": "bad_area", "message": "area is an ISO 3166-1 or 3166-2 code, e.g. BE or BE-VLG"})
         fidelity = "country" if len(area) == 2 else "region"
         query, kwargs = _area_query(area)
-        location = await _nominatim(query, **kwargs)
-        addr = (location.raw.get("address", {}) or {}) if location is not None else {}
-        if location is None or not _area_matches(area, addr):
+        location = _pick_area(area, await _nominatim(query, **kwargs))
+        if location is None:
             return {**_NO_RESULT, "fidelity": None, "area": area}
         return {
             "lat": location.latitude,
