@@ -265,9 +265,10 @@ async def _payload_fields_absent(
     confirmed fetch — but that only fires on content_changed=True, so an
     endpoint whose payload never drifts would otherwise never get these
     fields written at all, not just "until the next change" (see
-    ops_payload_field_backfill)."""
+    ops_payload_field_backfill). A network has no locality: its areas served count instead
+    (2026-11-19), or its fields would be rewritten every tick."""
     sparql = f"""PREFIX schema: <{SCHEMA_NS}>
-ASK {{ GRAPH <{graph_uri}> {{ <{subject}> schema:addressLocality ?c }} }}"""
+ASK {{ GRAPH <{graph_uri}> {{ {{ <{subject}> schema:addressLocality ?c }} UNION {{ <{subject}> schema:areaServed ?c }} }} }}"""
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.post(
             f"{oxigraph_endpoint}/query",

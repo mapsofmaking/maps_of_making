@@ -27,7 +27,8 @@ _scripts_dir = os.environ.get("SCRIPTS_DIR") or str(Path(__file__).resolve().par
 if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 
-from spaceapi_extract import escape_literal, extract_core, extract_mom, triples_for
+from spaceapi_extract import escape_literal, extract_core, extract_mom, kind_of, triples_for
+from spaceapi_extract.area import clean_area
 from spaceapi_extract.turtle import safe_iri
 
 from pipeline import run_space_pipeline
@@ -114,9 +115,15 @@ SELECT ?graph ?subject ?endpointUrl WHERE {
     return out
 
 
-async def _find_seeded_graph_by_name(oxigraph_endpoint: str, name: str) -> Optional[str]:
+# The class each kind of registration is typed with (a network: 2026-11-19, docs/reference/space-file.md).
+_KIND_TYPE = {"space": f"{MOM}Space", "network": f"{MOM}Network"}
+
+
+async def _find_seeded_graph_by_name(oxigraph_endpoint: str, name: str, kind: str = "space") -> Optional[str]:
     """Find a bundle-seeded graph (mom:source starts with 'scraped-') matching the
-    given space name (case-insensitive). Returns the graph URI or None.
+    given space name (case-insensitive) and of the same kind. Returns the graph URI or None.
+
+    Same kind only: a network never claims a seeded space that happens to share its name.
 
     Used by register_url to claim a Path B record in place when a coordinator
     self-registers a SpaceAPI URL whose name matches a previously-seeded bundle
@@ -128,7 +135,8 @@ async def _find_seeded_graph_by_name(oxigraph_endpoint: str, name: str) -> Optio
 PREFIX schema: <https://schema.org/>
 SELECT ?graph WHERE {{
   GRAPH ?graph {{
-    ?s schema:name ?n ;
+    ?s a <{_KIND_TYPE[kind]}> ;
+       schema:name ?n ;
        mom:source ?src .
     FILTER(LCASE(STR(?n)) = LCASE("{safe}"))
     FILTER(STRSTARTS(STR(?src), "scraped-"))
@@ -150,6 +158,31 @@ SELECT ?graph WHERE {{
         return None
     rows = resp.json().get("results", {}).get("bindings", [])
     return rows[0]["graph"]["value"] if rows else None
+
+
+async def _graph_kind(oxigraph_endpoint: str, graph_uri: str) -> Optional[str]:
+    """'space' or 'network': what the graph at `graph_uri` holds, or None (empty, or the lookup failed)."""
+    sparql = f"""SELECT ?t WHERE {{
+  GRAPH <{graph_uri}> {{ ?s a ?t . FILTER(?t IN (<{_KIND_TYPE['space']}>, <{_KIND_TYPE['network']}>)) }}
+}} LIMIT 1"""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{oxigraph_endpoint}/query",
+                content=sparql,
+                headers={
+                    "Content-Type": "application/sparql-query",
+                    "Accept": "application/sparql-results+json",
+                },
+            )
+            resp.raise_for_status()
+    except httpx.HTTPError as e:
+        logger.warning("[register] kind lookup failed for %s: %s", graph_uri, e)
+        return None
+    rows = resp.json().get("results", {}).get("bindings", [])
+    if not rows:
+        return None
+    return "network" if rows[0]["t"]["value"] == _KIND_TYPE["network"] else "space"
 
 
 async def _find_graph_by_endpoint(oxigraph_endpoint: str, endpoint_url: str) -> Optional[str]:
@@ -251,7 +284,7 @@ _SPARQL_SELECT = """PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
-SELECT ?spaceUri ?name ?latitude ?longitude
+SELECT ?spaceUri ?type ?name ?latitude ?longitude
        ?geolocationFidelity ?geolocationNote
        ?street ?postcode ?city ?country ?address ?countryCode ?timeZone
        ?website ?profileUrl ?endpointUrl ?openNow ?lastOpenChange
@@ -259,10 +292,12 @@ SELECT ?spaceUri ?name ?latitude ?longitude
        ?subset ?nextUnlock
        (GROUP_CONCAT(DISTINCT ?specialty; separator="|") AS ?specialties)
        (GROUP_CONCAT(DISTINCT STR(?memberOf); separator="|") AS ?networkMemberships)
+       (GROUP_CONCAT(DISTINCT STR(?area); separator="|") AS ?areasServed)
 WHERE {
   {
     GRAPH ?spaceGraph {
-      ?spaceUri a mom:Space ;
+      # A space, or a network (2026-11-19): ?type tells them apart.
+      ?spaceUri a ?type ;
         schema:name ?name ;
         schema:geo [
           schema:latitude ?latitude ;
@@ -292,6 +327,8 @@ WHERE {
       OPTIONAL { ?spaceUri mom:lastOpenChange ?lastOpenChange }
       OPTIONAL { ?spaceUri mom:subset ?subset }
       OPTIONAL { ?spaceUri mom:nextUnlock ?nextUnlock }
+      OPTIONAL { ?spaceUri schema:areaServed ?area }
+      FILTER (?type IN (mom:Space, mom:Network))
     }
     FILTER (STRSTARTS(STR(?spaceGraph), "urn:mak:space/"))
   }
@@ -300,6 +337,7 @@ WHERE {
     # Canary space (diagnostic instrument — isolated named graph, not on urn:mak:space/).
     GRAPH <urn:mak:canary> {
       ?spaceUri a mom:Space ;
+        a ?type ;
         schema:name ?name ;
         schema:geo [
           schema:latitude ?latitude ;
@@ -319,10 +357,11 @@ WHERE {
       OPTIONAL { ?spaceUri mom:source ?source }
       OPTIONAL { ?spaceUri schema:contactJson ?contactJson }
       OPTIONAL { ?spaceUri mom:memberOf ?memberOf }
+      FILTER (?type = mom:Space)
     }
   }
 }
-GROUP BY ?spaceUri ?name ?latitude ?longitude
+GROUP BY ?spaceUri ?type ?name ?latitude ?longitude
          ?geolocationFidelity ?geolocationNote
          ?street ?postcode ?city ?country ?address ?countryCode ?timeZone
          ?website ?profileUrl ?endpointUrl ?openNow ?lastOpenChange
@@ -534,10 +573,14 @@ async def _fetch_and_validate(url: str) -> dict:
 def _build_sparql_update(graph_uri: str, space_uri: str, name: str, lat: float, lon: float,
                           endpoint_url: str, data: dict,
                           subset: str = "", next_unlock: Optional[str] = None,
-                          turtle_fields: Optional[dict] = None, profile_url: Optional[str] = None) -> str:
+                          turtle_fields: Optional[dict] = None, profile_url: Optional[str] = None,
+                          kind: str = "space") -> str:
     # Registration envelope — identity + metadata (not extractable from payload)
+    # A network is typed mom:Network, schema:Organization (2026-11-19); a space keeps mom:Space alone.
+    types = [f"<{space_uri}> a <{MOM}Network> .", f"<{space_uri}> a <{SCHEMA}Organization> ."] if kind == "network" \
+        else [f"<{space_uri}> a <{MOM}Space> ."]
     envelope = [
-        f"<{space_uri}> a <{MOM}Space> .",
+        *types,
         f"<{space_uri}> <{SCHEMA}name> {escape_literal(name)} .",
         f"<{space_uri}> <{SCHEMA}geo> [ <{SCHEMA}latitude> {lat} ; <{SCHEMA}longitude> {lon} ] .",
         f"<{space_uri}> <{MOM}endpointUrl> <{endpoint_url}> .",
@@ -618,6 +661,9 @@ def _binding_to_feature(b: dict) -> Optional[dict]:
         "properties": {
             "id": space_id,
             "uri": space_uri,
+            # "space" or "network" (2026-11-19). A network has no address: it serves areas (ISO 3166 codes).
+            "kind": "network" if b.get("type", {}).get("value") == _KIND_TYPE["network"] else "space",
+            "area_served": [a for a in b.get("areasServed", {}).get("value", "").split("|") if a],
             "name": name,
             "geolocationFidelity": b.get("geolocationFidelity", {}).get("value", ""),
             "geolocationNote": b.get("geolocationNote", {}).get("value", ""),
@@ -982,6 +1028,10 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
     if not slug:
         raise HTTPException(status_code=422, detail={"error": "space name contains no ASCII-compatible characters; cannot generate a URI slug"})
 
+    is_turtle = source is not None and source.kind == "turtle"
+    # A network (mom:Network) or a space: what the file says it is (2026-11-19).
+    kind = source.turtle.kind if is_turtle else kind_of(data)
+
     # Dedup by endpointUrl first: if any existing graph (seeded OR confirmed) already
     # carries this URL, reuse its URI. Prevents a duplicate graph when the same real
     # space was seeded under a compound slug (name+city) and later self-registered
@@ -993,7 +1043,7 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
         space_uri = existing_endpoint_uri
         # Drop any orphaned seeded graph with the same name but a different URI
         # (e.g. compound-slug seed openfab-ixelles alongside confirmed openfab).
-        orphan_uri = await _find_seeded_graph_by_name(OXIGRAPH_ENDPOINT, name)
+        orphan_uri = await _find_seeded_graph_by_name(OXIGRAPH_ENDPOINT, name, kind)
         if orphan_uri and orphan_uri != existing_endpoint_uri:
             logger.info("[register] dropping orphaned seeded graph %s (same name, different slug)", orphan_uri)
             try:
@@ -1010,14 +1060,27 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
         # exists with the same name, claim it in place — same URI, drop+reinsert as
         # self-registered. Handles the VOW/RFF Path B → coordinator flow without
         # needing to parse a city out of the SpaceAPI address string.
-        claimed_uri = await _find_seeded_graph_by_name(OXIGRAPH_ENDPOINT, name)
+        claimed_uri = await _find_seeded_graph_by_name(OXIGRAPH_ENDPOINT, name, kind)
         if claimed_uri:
             logger.info("[register] claim-merge: %r matches seeded graph %s", name, claimed_uri)
             graph_uri = claimed_uri
             space_uri = claimed_uri
         else:
+            # A network and a space of the same name would share a slug: the graph there is of
+            # the other kind, so this one takes its own (`<slug>-network`, `<slug>-space`) rather
+            # than dropping it.
+            other = await _graph_kind(OXIGRAPH_ENDPOINT, f"urn:mak:space/{slug}")
+            if other is not None and other != kind:
+                logger.info("[register] %r: urn:mak:space/%s holds a %s; registering as %s-%s", name, slug, other, slug, kind)
+                slug = f"{slug}-{kind}"
             graph_uri = f"urn:mak:space/{slug}"
             space_uri = f"urn:mak:space/{slug}"
+
+    # The snapshot and the first tick go under the id the map uses for this graph (its last segment),
+    # as the heartbeat does: a re-registered network (`<slug>-network`) or a claimed seed must not
+    # write under another record's name.
+    if space_uri.startswith("urn:mak:space/"):
+        slug = space_uri.rsplit("/", 1)[-1]
 
     cls: dict = {}
     reg_observed_at = mint_observed_at()
@@ -1027,12 +1090,12 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
     except Exception as e:
         logger.warning("classify_subset failed for %s (non-fatal): %s", slug, e)
 
-    is_turtle = source is not None and source.kind == "turtle"
     sparql_update = _build_sparql_update(
         graph_uri, space_uri, name, lat, lon, req.url, data,
         subset=cls.get("subset", ""), next_unlock=cls.get("next_unlock"),
         turtle_fields=source.turtle.fields if is_turtle else None,
         profile_url=safe_iri(req.url.split("#", 1)[0]) if is_turtle else None,
+        kind=kind,
     )
 
     try:
@@ -1086,6 +1149,7 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
         "status": "confirmed",
         "space_uri": space_uri,
         "space_name": name,
+        "kind": kind,
         "subset": result.get("subset"),
         "subset_score": result.get("subset_score"),
         "unlock_message": result.get("unlock_message"),
@@ -1244,29 +1308,43 @@ async def get_space_raw(space_id: str):
 # ── Geocode proxy (Story 9.3 / AC6) ─────────────────────────────────────────
 
 class GeocodeRequest(BaseModel):
-    address: str
-    city: str
+    # A space sends its address and city (as before); a network sends only `area` (2026-11-19).
+    address: str = ""
+    city: str = ""
     postcode: str = ""
     # country_code is now DERIVED, not demanded (Story 9.12 §2): the wizard no
     # longer sends it. Kept optional so it still sharpens the query when present.
     country_code: str = ""
+    # An ISO 3166-1 (`BE`) or 3166-2 (`BE-VLG`) code: the area a network serves.
+    area: str = ""
 
 
-@app.post("/api/geocode")
-async def geocode(req: GeocodeRequest):
-    """Proxy Nominatim geocoding for home.mapsofmaking.org and the bot — 1 req/s rate-limited (RateLimiter).
+_NO_RESULT = {"lat": None, "lon": None, "country_code": None, "postcode": None, "display_name": None}
 
-    Returns {lat, lon, country_code, display_name} on success, nulls on no-result,
-    503 on error. country_code is DERIVED from Nominatim address components (Story
-    9.12 §2: "ask the address, derive the rest") so the form need not demand it.
-    The 1 req/s limit is this process's, shared by every caller; there is no per-IP
-    cap in front of it (the old Hetzner nginx one is gone).
-    """
-    # Drop empty parts so a missing postcode/country doesn't poison the query.
-    query = ", ".join(p for p in (req.address, req.city, req.postcode, req.country_code) if p)
+
+def _area_query(area: str) -> tuple[Any, dict]:
+    """The Nominatim request for an ISO 3166 code: a country by its code (structured), a
+    subdivision by its code (Nominatim indexes them; the answer is checked below)."""
+    cc = area[:2].lower()
+    if len(area) == 2:
+        return {"country": area}, {"featuretype": "country", "country_codes": cc}
+    return area, {"featuretype": "state", "country_codes": cc}
+
+
+def _area_matches(area: str, address: dict) -> bool:
+    """Is Nominatim's answer the area asked for? A country by its code; a subdivision by its
+    ISO3166-2-lvl<n> key (Flanders comes back as `state`, Brussels as `region`: the key is the test)."""
+    if (address.get("country_code") or "").upper() != area[:2]:
+        return False
+    if len(area) == 2:
+        return True
+    return any(k.startswith("ISO3166-2-lvl") and str(v).upper() == area for k, v in address.items())
+
+
+async def _nominatim(query: Any, **kwargs):
     try:
-        location = await asyncio.get_running_loop().run_in_executor(
-            None, lambda: _geocode(query, addressdetails=True)
+        return await asyncio.get_running_loop().run_in_executor(
+            None, lambda: _geocode(query, addressdetails=True, **kwargs)
         )
     except (GeocoderTimedOut, GeocoderUnavailable, GeocoderServiceError) as exc:
         logger.warning("Nominatim unavailable for query %r: %s", query, exc)
@@ -1275,8 +1353,54 @@ async def geocode(req: GeocodeRequest):
         logger.warning("Nominatim unexpected error for query %r: %s", query, exc)
         raise HTTPException(status_code=503, detail={"error": "geocoding_unavailable"})
 
+
+@app.post("/api/geocode")
+async def geocode(req: GeocodeRequest):
+    """Proxy Nominatim geocoding for home.mapsofmaking.org and the bot — 1 req/s rate-limited (RateLimiter).
+
+    Two shapes:
+    - a space: `{address, city, postcode?, country_code?}` (as before);
+    - a network: `{area}`, an ISO 3166-1/-2 code (`BE`, `BE-VLG`), 2026-11-19: the centre
+      of that area, Nominatim's point for it.
+
+    Returns {lat, lon, country_code, postcode, display_name, fidelity, area} on success,
+    nulls on no-result (and `fidelity`/`area` still say what was asked), 422 when neither
+    shape is given or the area is not an ISO code, 503 on error. country_code is DERIVED
+    from Nominatim address components (Story 9.12 §2: "ask the address, derive the rest").
+    `fidelity` is mom:geolocationFidelity's value for the pin: `exact` (with a street),
+    `city`, `region` (a subdivision), `country`.
+    The 1 req/s limit is this process's, shared by every caller; there is no per-IP
+    cap in front of it (the old Hetzner nginx one is gone).
+    """
+    if req.area:
+        area = clean_area(req.area)
+        if area is None:
+            raise HTTPException(status_code=422, detail={"error": "bad_area", "message": "area is an ISO 3166-1 or 3166-2 code, e.g. BE or BE-VLG"})
+        fidelity = "country" if len(area) == 2 else "region"
+        query, kwargs = _area_query(area)
+        location = await _nominatim(query, **kwargs)
+        addr = (location.raw.get("address", {}) or {}) if location is not None else {}
+        if location is None or not _area_matches(area, addr):
+            return {**_NO_RESULT, "fidelity": None, "area": area}
+        return {
+            "lat": location.latitude,
+            "lon": location.longitude,
+            "country_code": area[:2],
+            "postcode": None,
+            "display_name": location.address,
+            "fidelity": fidelity,
+            "area": area,
+        }
+
+    if not (req.address.strip() or req.city.strip()):
+        raise HTTPException(status_code=422, detail={"error": "nothing_to_geocode", "message": "send address and city (a space) or area (a network)"})
+
+    # Drop empty parts so a missing postcode/country doesn't poison the query.
+    query = ", ".join(p for p in (req.address, req.city, req.postcode, req.country_code) if p)
+    location = await _nominatim(query)
+
     if location is None:
-        return {"lat": None, "lon": None, "country_code": None, "postcode": None, "display_name": None}
+        return {**_NO_RESULT, "fidelity": None, "area": None}
 
     # Derive what Bernard pulls from the address (Story 9.12 §2): ISO country code
     # (uppercased to match the wizard) and postcode. Either may be absent for some
@@ -1290,4 +1414,6 @@ async def geocode(req: GeocodeRequest):
         "country_code": cc.upper() if cc else None,
         "postcode": addr.get("postcode") or None,
         "display_name": location.address,
+        "fidelity": "exact" if req.address.strip() else "city",
+        "area": None,
     }

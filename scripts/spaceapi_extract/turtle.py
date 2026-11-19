@@ -23,6 +23,8 @@ from urllib.parse import unquote, urldefrag, urlparse
 from rdflib import BNode, Graph, Literal, URIRef
 from rdflib.namespace import RDF
 
+from .area import clean_areas, clean_fidelity, country_of
+
 SCHEMA = "https://schema.org/"
 SCHEMA_HTTP = "http://schema.org/"
 MOM = "https://mapsofmaking.org/ns/mom#"
@@ -44,6 +46,7 @@ class ParsedSpace:
     contact: list[dict[str, str]] = field(default_factory=list)
     error: Optional[str] = None
     error_code: Optional[str] = None
+    kind: str = "space"  # "network" when the node is typed mom:Network (2026-11-19)
 
     @property
     def name(self) -> Optional[str]:
@@ -122,7 +125,9 @@ class _View:
 
 
 def _pick_subject(view: _View, base_url: str) -> tuple[Optional[Any], Optional[ParsedSpace]]:
-    typed = view.subjects_of_type(MOM + "Space", SCHEMA + "Place")
+    # A network (mom:Network, schema:Organization) is read like a space. schema:Organization alone
+    # counts only when nothing else is typed: a pod file may name other organisations (an employer).
+    typed = view.subjects_of_type(MOM + "Space", SCHEMA + "Place", MOM + "Network") or view.subjects_of_type(SCHEMA + "Organization")
     if len(typed) == 1:
         return typed[0], None
     doc = urldefrag(base_url)[0]
@@ -139,7 +144,7 @@ def _pick_subject(view: _View, base_url: str) -> tuple[Optional[Any], Optional[P
             named.append(s)
     if len(named) == 1:
         return named[0], None
-    return None, _fail("no_space", "No space found in the file: expected a node typed mom:Space or schema:Place with a schema:name.")
+    return None, _fail("no_space", "No space found in the file: expected a node typed mom:Space, schema:Place or mom:Network with a schema:name.")
 
 
 def _address(view: _View, subject: Any, fields: dict[str, Any]) -> None:
@@ -274,4 +279,15 @@ def parse_space_turtle(text: str, base_url: str) -> ParsedSpace:
     members = _member_of(view, subject)
     if members:
         fields["mom:memberOf"] = members
-    return ParsedSpace(fields=fields, contact=_contact(view, subject))
+    # A network (2026-11-19): the areas it serves, how coarse its pin is (after schema:geo: the heartbeat's
+    # geo write clears the old fidelity first), and, with no address, the country of its areas.
+    areas = clean_areas(str(o) for o in view.objects(subject, SCHEMA + "areaServed") if isinstance(o, Literal))
+    if areas:
+        fields["schema:areaServed"] = areas
+        if "mom:countryCode" not in fields and "mom:address" not in fields and country_of(areas):
+            fields["mom:countryCode"] = country_of(areas)
+    fidelity = clean_fidelity(str(view.one(subject, MOM + "geolocationFidelity") or "") or None)
+    if fidelity:
+        fields["mom:geolocationFidelity"] = fidelity
+    kind = "network" if (subject, RDF.type, URIRef(MOM + "Network")) in view.triples else "space"
+    return ParsedSpace(fields=fields, contact=_contact(view, subject), kind=kind)

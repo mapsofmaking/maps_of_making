@@ -20,7 +20,7 @@ REPO_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 sys.path.insert(0, str(REPO_ROOT / "infra" / "link_handler"))
 
-from spaceapi_extract import extract_core, extract_mom, parse_space_turtle, triples_for  # noqa: E402
+from spaceapi_extract import extract_core, extract_mom, kind_of, parse_space_turtle, triples_for  # noqa: E402
 from spaceapi_extract.turtle import MAX_TRIPLES, safe_iri  # noqa: E402
 
 FIXTURES = REPO_ROOT / "tests" / "fixtures" / "space"
@@ -241,3 +241,72 @@ def test_the_matrix_room_comes_from_the_matrix_to_link():
                ' schema:url <https://matrix.to/#/%23room:matrix.org> ] ; schema:contactPoint [ schema:contactType "Phone" ;'
                ' schema:url <https://x.example/> ] .')
     assert p.contact == [{"type": "matrix", "value": "#room:matrix.org"}]  # "Phone" is not a contact-point kind: a number is schema:telephone
+
+
+# ── A network (2026-11-19): mom:Network, schema:Organization; areas served, not an address ──
+
+NETWORK_URL = "https://pod.mapsofmaking.org/maakbib/space.ttl"
+
+
+def _network_json() -> dict:
+    return json.loads((FIXTURES / "maakbib.json").read_text())
+
+
+def test_network_parity_turtle_and_json_write_the_same_statements():
+    payload = _network_json()
+    from_json = {**extract_core(payload), **extract_mom(payload)}
+    from_json.pop("schema:contactJson")
+    parsed = parse_space_turtle((FIXTURES / "maakbib.ttl").read_text(), NETWORK_URL)
+    assert parsed.error is None and parsed.kind == "network" and kind_of(payload) == "network"
+    assert parsed.fields == from_json
+    assert isomorphic(_graph(parsed.fields), _graph(from_json))
+
+
+def test_the_network_fixture_reads_as_the_reference_doc_says():
+    f = parse_space_turtle((FIXTURES / "maakbib.ttl").read_text(), NETWORK_URL).fields
+    assert f["schema:name"] == "Maakbib"
+    assert f["schema:geo"] == {"lat": 51.0378, "lon": 4.2406}
+    assert f["schema:areaServed"] == ["BE-VLG"]
+    assert f["mom:geolocationFidelity"] == "region"
+    assert f["mom:countryCode"] == "BE"  # from its area: a network has no address
+    assert "mom:address" not in f and "schema:addressLocality" not in f
+    assert f["schema:url"] == "https://maakbib.be/"
+
+
+def test_a_space_file_is_still_a_space():
+    assert parse_space_turtle(_ttl(), URL).kind == "space"
+    assert kind_of(json.loads((FIXTURES / "atelier-du-canal.json").read_text())) == "space"
+
+
+def test_areas_are_iso_codes_upper_cased_sorted_and_capped():
+    codes = ", ".join(f'"{c}"' for c in ["be-wal", "BE-VLG", "Flanders", "BE_BRU", "B", "NL", "BE-VLG"] + [f"F{chr(65 + i)}" for i in range(15)])
+    p = _space(f'<#space> a mom:Network ; schema:name "Net" ; schema:areaServed {codes} .')
+    areas = p.fields["schema:areaServed"]
+    assert len(areas) == 10 and areas[:3] == ["BE-VLG", "BE-WAL", "FA"]
+    assert "Flanders" not in areas and "BE_BRU" not in areas and "B" not in areas
+    assert "mom:countryCode" not in p.fields  # areas in several countries: no one country
+
+
+def test_an_unknown_fidelity_is_left_out():
+    p = _space('<#space> a mom:Network ; schema:name "Net" ; mom:geolocationFidelity "street" .')
+    assert "mom:geolocationFidelity" not in p.fields
+
+
+def test_an_organization_is_read_only_when_nothing_else_is_typed():
+    p = _space('<#space> a mom:Space ; schema:name "Lab" .\n<#employer> a schema:Organization ; schema:name "Corp" .')
+    assert p.fields["schema:name"] == "Lab" and p.kind == "space"
+    p = _space('<#space> a mom:Network, schema:Organization ; schema:name "Net" .\n<#p> a schema:Person ; schema:name "A" .')
+    assert p.fields["schema:name"] == "Net" and p.kind == "network"
+
+
+def test_json_network_marker_is_cleaned_like_turtle():
+    payload = {"space": "Net", "mom": {"kind": "Network", "areaServed": "be-vlg", "geolocationFidelity": "REGION"}}
+    f = extract_core(payload)
+    assert kind_of(payload) == "network"
+    assert f["schema:areaServed"] == ["BE-VLG"] and f["mom:geolocationFidelity"] == "region" and f["mom:countryCode"] == "BE"
+    assert kind_of({"space": "Lab", "mom": {"kind": "fablab"}}) == "space"
+
+
+def test_area_served_is_one_literal_per_area():
+    out = triples_for(SUBJECT, {"schema:areaServed": ["BE-VLG", "BE-BRU"]})
+    assert out == [f'<{SUBJECT}> <https://schema.org/areaServed> "BE-VLG" .', f'<{SUBJECT}> <https://schema.org/areaServed> "BE-BRU" .']

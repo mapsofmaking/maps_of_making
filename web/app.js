@@ -322,7 +322,8 @@
         type: 'Feature',
         id: s.id,
         geometry: { type: 'Point', coordinates: [lon, lat] },
-        properties: { id: s.id, kind: computeMarker(s), name: s.name, city: s.city, country: s.country },
+        // `network`: a network's pin (2026-11-19) gets a heavier ring. `kind` here is the freshness marker.
+        properties: { id: s.id, kind: computeMarker(s), name: s.name, city: s.city, country: s.country, network: isNetwork(s) },
       });
     }
     return { type: 'FeatureCollection', features };
@@ -396,6 +397,7 @@ function glyphColorExpr(surface) {
           'circle-opacity': 1.0,
           'circle-stroke-width': ['case',
             ['boolean', ['feature-state', 'selected'], false], 2.5,
+            ['boolean', ['get', 'network'], false], 2.2,
             ['==', ['get', 'kind'], 'seeded'], 0.5,
             1.2],
           'circle-stroke-color': ['case', ['boolean', ['feature-state', 'selected'], false], '#FFFFFF', strokeMatchExpr(surface)],
@@ -523,8 +525,11 @@ function glyphColorExpr(surface) {
           el('div', { class: 'sp-name' }, [s.name || s.id]),
           logoBox,
         ]),
-        s.address ? el('div', { class: 'sp-address' }, [s.address]) : null,
+        isNetwork(s) ? el('div', { class: 'sp-address' }, [servesLine(s)])
+          : s.address ? el('div', { class: 'sp-address' }, [s.address]) : null,
+        areaPinNote(s),
         el('div', { class: 'sp-badges-row' }, [
+          isNetwork(s) ? el('span', { class: 'sp-badge sp-badge-tag' }, ['Network']) : null,
           el('span', { class: `sp-badge ${badgeKindClass[kind] || 'sp-badge-tag'}` }, [kindLabel[kind] || kind]),
           ...(s.network_memberships || []).map((n) => el('span', { class: 'sp-badge sp-badge-tag' }, [n.split('/').pop().toUpperCase()])),
         ]),
@@ -811,6 +816,22 @@ function glyphColorExpr(surface) {
   };
   function countryLabel(c) { return COUNTRY_LABELS[c] || c; }
 
+  // A network (2026-11-19) serves areas, ISO 3166 codes, rather than sitting at an address.
+  // Belgium and its regions by name; any other code shows as itself.
+  const AREA_NAMES = { BE: 'Belgium', 'BE-VLG': 'Flanders', 'BE-WAL': 'Wallonia', 'BE-BRU': 'Brussels' };
+  function areaLabel(code) { return AREA_NAMES[code] || code; }
+  function isNetwork(s) { return s.kind === 'network'; }
+  function servesLine(s) {
+    const areas = (s.area_served || []).map(areaLabel);
+    return areas.length ? 'Serves ' + areas.join(', ') : 'Network';
+  }
+  // How coarse the pin is, said once, for a network placed at the centre of its area.
+  function areaPinNote(s) {
+    return isNetwork(s) && ['region', 'country'].includes(s.geolocationFidelity)
+      ? el('div', { class: 'sp-fact-empty sp-area-note' }, ['Pin at the centre of its area'])
+      : null;
+  }
+
   function unique(arr) { return Array.from(new Set(arr)); }
 
   // ───────────────────────────── results list
@@ -830,7 +851,7 @@ function glyphColorExpr(surface) {
     for (const s of visible.slice(0, 200)) {
       const kind = computeMarker(s);
       const locationParts = [s.city, countryLabel(s.country_code)].filter(Boolean);
-      const locationStr = locationParts.join(', ');
+      const locationStr = isNetwork(s) ? 'Network · ' + servesLine(s) : locationParts.join(', ');
       const networkStr = (s.network_memberships || []).length ? ' · ' + s.network_memberships.map((n) => n.split('/').pop().toUpperCase()).join(' · ') : '';
       const item = el('button', { class: 'result', 'data-sid': s.id, 'aria-current': state.selectedId === s.id ? 'true' : 'false', type: 'button' }, [
         el('span', { class: `pin-swatch ${kind}`, style: { marginTop: '2px' } }),
@@ -963,8 +984,13 @@ function glyphColorExpr(surface) {
         el('div', { class: 'sp-name' }, [s.name]),
         logoBox,
       ]),
-      el('div', { class: 'sp-address' }, [s.address || el('em', { class: 'sp-fact-empty' }, ['address not provided'])]),
+      // A network has no address: it serves an area (2026-11-19).
+      isNetwork(s)
+        ? el('div', { class: 'sp-address' }, [servesLine(s)])
+        : el('div', { class: 'sp-address' }, [s.address || el('em', { class: 'sp-fact-empty' }, ['address not provided'])]),
+      areaPinNote(s),
       el('div', { class: 'sp-badges-row' }, [
+        isNetwork(s) ? el('span', { class: 'sp-badge sp-badge-tag' }, ['Network']) : null,
         el('span', { class: `sp-badge ${badgeKindClass[kind] || 'sp-badge-tag'}` }, [kindLabel[kind] || kind]),
         ...(s.network_memberships || []).map((n) => el('span', { class: 'sp-badge sp-badge-tag' }, [networkLabel(n)])),
         s.open_for_hosting ? el('span', { class: 'sp-badge sp-badge-tag' }, ['open for hosting']) : null,

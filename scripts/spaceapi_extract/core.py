@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from .area import clean_areas, clean_fidelity, clean_kind, country_of
+
 
 def extract_core(payload: dict) -> dict[str, Any]:
     """Extract SpaceAPI v15 core fields from a payload dict.
@@ -90,4 +92,26 @@ def extract_core(payload: dict) -> dict[str, Any]:
         if cleaned:
             fields["mom:sdgs"] = cleaned
 
+    # A network (2026-11-19): the areas it serves and how coarse its pin is, after schema:geo
+    # (the heartbeat's geo write clears the old fidelity before this one is written back).
+    if isinstance(mom_block, dict):
+        raw_areas = mom_block.get("areaServed")
+        if isinstance(raw_areas, str):
+            raw_areas = [raw_areas]
+        areas = clean_areas(raw_areas) if isinstance(raw_areas, list) else []
+        if areas:
+            fields["schema:areaServed"] = areas
+            cc = loc.get("country_code") if isinstance(loc, dict) else None
+            if not (isinstance(cc, str) and cc) and country_of(areas):
+                fields["mom:countryCode"] = country_of(areas)
+        fidelity = clean_fidelity(mom_block.get("geolocationFidelity"))
+        if fidelity:
+            fields["mom:geolocationFidelity"] = fidelity
+
     return fields
+
+
+def kind_of(payload: Any) -> str:
+    """'network' or 'space': what a SpaceAPI payload says it is (`mom.kind`)."""
+    mom_block = payload.get("mom") if isinstance(payload, dict) else None
+    return clean_kind(mom_block.get("kind")) if isinstance(mom_block, dict) else "space"
