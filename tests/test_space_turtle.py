@@ -266,7 +266,7 @@ def test_the_network_fixture_reads_as_the_reference_doc_says():
     f = parse_space_turtle((FIXTURES / "maakbib.ttl").read_text(), NETWORK_URL).fields
     assert f["schema:name"] == "Maakbib"
     assert f["schema:geo"] == {"lat": 51.0378, "lon": 4.2406}
-    assert f["schema:areaServed"] == ["BE-VLG"]
+    assert f["schema:areaServed"] == [{"code": "BE-VLG", "name": "Flanders"}]
     assert f["mom:geolocationFidelity"] == "region"
     assert f["mom:countryCode"] == "BE"  # from its area: a network has no address
     assert "mom:address" not in f and "schema:addressLocality" not in f
@@ -281,9 +281,9 @@ def test_a_space_file_is_still_a_space():
 def test_areas_are_iso_codes_upper_cased_sorted_and_capped():
     codes = ", ".join(f'"{c}"' for c in ["be-wal", "BE-VLG", "Flanders", "BE_BRU", "B", "NL", "BE-VLG"] + [f"F{chr(65 + i)}" for i in range(15)])
     p = _space(f'<#space> a mom:Network ; schema:name "Net" ; schema:areaServed {codes} .')
-    areas = p.fields["schema:areaServed"]
+    areas = [a["code"] for a in p.fields["schema:areaServed"]]
     assert len(areas) == 10 and areas[:3] == ["BE-VLG", "BE-WAL", "FA"]
-    assert "Flanders" not in areas and "BE_BRU" not in areas and "B" not in areas
+    assert "FLANDERS" not in areas and "BE_BRU" not in areas and "B" not in areas
     assert "mom:countryCode" not in p.fields  # areas in several countries: no one country
 
 
@@ -303,10 +303,53 @@ def test_json_network_marker_is_cleaned_like_turtle():
     payload = {"space": "Net", "mom": {"kind": "Network", "areaServed": "be-vlg", "geolocationFidelity": "REGION"}}
     f = extract_core(payload)
     assert kind_of(payload) == "network"
-    assert f["schema:areaServed"] == ["BE-VLG"] and f["mom:geolocationFidelity"] == "region" and f["mom:countryCode"] == "BE"
+    assert f["schema:areaServed"] == [{"code": "BE-VLG", "name": ""}]
+    assert f["mom:geolocationFidelity"] == "region" and f["mom:countryCode"] == "BE"
     assert kind_of({"space": "Lab", "mom": {"kind": "fablab"}}) == "space"
 
 
-def test_area_served_is_one_literal_per_area():
-    out = triples_for(SUBJECT, {"schema:areaServed": ["BE-VLG", "BE-BRU"]})
-    assert out == [f'<{SUBJECT}> <https://schema.org/areaServed> "BE-VLG" .', f'<{SUBJECT}> <https://schema.org/areaServed> "BE-BRU" .']
+def test_area_served_is_one_node_per_area():
+    out = triples_for(SUBJECT, {"schema:areaServed": [{"code": "BE-BRU", "name": ""}, {"code": "BE-VLG", "name": 'Flanders "VL"'}]})
+    s = "https://schema.org/"
+    assert out == [
+        f'<{SUBJECT}> <{s}areaServed> [ a <{s}AdministrativeArea> ; <{s}identifier> "BE-BRU" ] .',
+        f'<{SUBJECT}> <{s}areaServed> [ a <{s}AdministrativeArea> ; <{s}identifier> "BE-VLG" ; <{s}name> "Flanders \\"VL\\"" ] .',
+    ]
+
+
+def test_a_snapshot_stored_with_bare_codes_still_writes_area_nodes():
+    """The heartbeat may write fields from a snapshot stored before areas had names."""
+    s = "https://schema.org/"
+    assert triples_for(SUBJECT, {"schema:areaServed": ["be-vlg", "nope"]}) == [
+        f'<{SUBJECT}> <{s}areaServed> [ a <{s}AdministrativeArea> ; <{s}identifier> "BE-VLG" ] .']
+
+
+def test_a_bare_area_code_is_still_read_without_a_name():
+    """The first shape (2026-11-19, before areas had names): a literal code in Turtle, a string in JSON."""
+    p = _space('<#space> a mom:Network ; schema:name "Net" ; schema:areaServed "be-vlg" .')
+    assert p.fields["schema:areaServed"] == [{"code": "BE-VLG", "name": ""}]
+    f = extract_core({"space": "Net", "mom": {"kind": "network", "areaServed": ["BE-VLG", {"code": "nl", "name": "Netherlands"}]}})
+    assert f["schema:areaServed"] == [{"code": "BE-VLG", "name": ""}, {"code": "NL", "name": "Netherlands"}]
+
+
+def test_areas_are_one_per_code_named_when_any_is_and_names_are_cleaned():
+    body = """<#space> a mom:Network ; schema:name "Net" ;
+      schema:areaServed "BE-VLG",
+        [ schema:identifier "be-vlg" ; schema:name "Vlaanderen"@nl, "Flanders"@en ],
+        [ schema:identifier "BE-VLG" ; schema:name "Zz" ],
+        [ schema:identifier "Flanders" ; schema:name "Nope" ],
+        [ schema:name "No code" ],
+        [ schema:identifier "FR-IDF" ; schema:name "  Île-de-\\n France  " ],
+        [ schema:identifier "DE-BY" ; schema:name "%s" ] .""" % ("B" * 300)
+    areas = _space(body).fields["schema:areaServed"]
+    # Flanders: three statements of one code; a name beats none, then the smaller one ("Flanders" < "Zz").
+    assert areas == [{"code": "BE-VLG", "name": "Flanders"}, {"code": "DE-BY", "name": "B" * 200},
+                     {"code": "FR-IDF", "name": "Île-de- France"}]
+    assert _space(body).fields.get("mom:countryCode") is None  # several countries
+
+
+def test_a_json_area_list_is_cleaned_like_turtle():
+    raw = [{"code": "be-wal", "name": "Wallonia"}, {"code": "BE-WAL"}, {"name": "No code"}, {"code": "BE_BRU"}, 42, "BE-VLG"]
+    f = extract_core({"space": "Net", "location": {"lat": 1, "lon": 2}, "mom": {"kind": "network", "areaServed": raw}})
+    assert f["schema:areaServed"] == [{"code": "BE-VLG", "name": ""}, {"code": "BE-WAL", "name": "Wallonia"}]
+    assert f["mom:countryCode"] == "BE"

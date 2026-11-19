@@ -28,7 +28,7 @@ if _scripts_dir not in sys.path:
     sys.path.insert(0, _scripts_dir)
 
 from spaceapi_extract import escape_literal, extract_core, extract_mom, kind_of, triples_for
-from spaceapi_extract.area import clean_area
+from spaceapi_extract.area import clean_area, clean_area_name, clean_areas
 from spaceapi_extract.turtle import safe_iri
 
 from pipeline import run_space_pipeline
@@ -292,7 +292,7 @@ SELECT ?spaceUri ?type ?name ?latitude ?longitude
        ?subset ?nextUnlock
        (GROUP_CONCAT(DISTINCT ?specialty; separator="|") AS ?specialties)
        (GROUP_CONCAT(DISTINCT STR(?memberOf); separator="|") AS ?networkMemberships)
-       (GROUP_CONCAT(DISTINCT STR(?area); separator="|") AS ?areasServed)
+       (GROUP_CONCAT(DISTINCT ?area; separator="\u001e") AS ?areasServed)
 WHERE {
   {
     GRAPH ?spaceGraph {
@@ -327,7 +327,14 @@ WHERE {
       OPTIONAL { ?spaceUri mom:lastOpenChange ?lastOpenChange }
       OPTIONAL { ?spaceUri mom:subset ?subset }
       OPTIONAL { ?spaceUri mom:nextUnlock ?nextUnlock }
-      OPTIONAL { ?spaceUri schema:areaServed ?area }
+      # An area served (2026-11-19): a node with its code and name, or a bare code (the first shape).
+      # "code<US>name", the areas joined by <RS>: control characters never in a cleaned name.
+      OPTIONAL {
+        ?spaceUri schema:areaServed ?areaNode .
+        OPTIONAL { ?areaNode schema:identifier ?areaCode }
+        OPTIONAL { ?areaNode schema:name ?areaName }
+        BIND (CONCAT(IF(isLiteral(?areaNode), STR(?areaNode), STR(?areaCode)), "\u001f", COALESCE(STR(?areaName), "")) AS ?area)
+      }
       FILTER (?type IN (mom:Space, mom:Network))
     }
     FILTER (STRSTARTS(STR(?spaceGraph), "urn:mak:space/"))
@@ -614,6 +621,12 @@ INSERT DATA {{
 }}"""
 
 
+def _areas_served(value: str) -> list[dict[str, str]]:
+    """The map query's areas ("code<US>name" joined by <RS>) as [{code, name}], cleaned as the readers clean them."""
+    pairs = (part.split("\x1f", 1) for part in value.split("\x1e") if part)
+    return clean_areas({"code": p[0], "name": p[1] if len(p) > 1 else ""} for p in pairs)
+
+
 def _parse_contact_json(raw: Optional[str]) -> Optional[dict]:
     if not raw:
         return None
@@ -663,7 +676,7 @@ def _binding_to_feature(b: dict) -> Optional[dict]:
             "uri": space_uri,
             # "space" or "network" (2026-11-19). A network has no address: it serves areas (ISO 3166 codes).
             "kind": "network" if b.get("type", {}).get("value") == _KIND_TYPE["network"] else "space",
-            "area_served": [a for a in b.get("areasServed", {}).get("value", "").split("|") if a],
+            "area_served": _areas_served(b.get("areasServed", {}).get("value", "")),
             "name": name,
             "geolocationFidelity": b.get("geolocationFidelity", {}).get("value", ""),
             "geolocationNote": b.get("geolocationNote", {}).get("value", ""),
@@ -1317,6 +1330,10 @@ class GeocodeRequest(BaseModel):
     country_code: str = ""
     # An ISO 3166-1 (`BE`) or 3166-2 (`BE-VLG`) code: the area a network serves.
     area: str = ""
+    # An area by its name, anywhere in the world ("Flanders"), and the language its names come
+    # back in: the areas it may be (2026-11-19). None: not this shape; "" is refused.
+    area_search: Optional[str] = None
+    lang: Optional[str] = None
 
 
 _NO_RESULT = {"lat": None, "lon": None, "country_code": None, "postcode": None, "display_name": None}
@@ -1355,6 +1372,54 @@ def _pick_area(area: str, location: Any) -> Any:
     return None
 
 
+# What an area search keeps: a country, or a subdivision Nominatim files as one of these.
+# Cities, towns, counties, streets are left out (Brussels the city, Scotland County, Paris), but for
+# a county that is a region under another name (Brussels-Capital, below).
+_AREA_TYPES = ("country", "state", "region", "province")
+MAX_AREA_SEARCH = 100
+MAX_CANDIDATES = 5
+_LANG_RE = re.compile(r"^[a-z]{2}$")
+
+
+def _own_code(raw: dict) -> Optional[str]:
+    """The ISO code of the place itself, or None. A country: its country_code. A subdivision: the
+    ISO3166-2 key Nominatim puts right after the place's own component, when it is the deepest one;
+    a province without a code of its own carries only its parent's (`province, state, lvl4`)."""
+    address = raw.get("address") or {}
+    cc = str(address.get("country_code") or "").upper()
+    kind = raw.get("addresstype")
+    if kind == "country":
+        return clean_area(cc)
+    keys = list(address)
+    if kind == "county":
+        # A region Nominatim files as a county: Brussels-Capital comes back `county, region, lvl4` with
+        # both components its own name (seen live, 2026-11-19). A real county (Scotland County, North
+        # Carolina: `county, state, lvl4`) has another name under its state and stays out.
+        kind = next((k for k in keys if k in _AREA_TYPES[1:] and raw.get("name") and address[k] == raw.get("name")), None)
+    if kind not in _AREA_TYPES[1:] or kind not in keys or keys.index(kind) + 1 >= len(keys):
+        return None
+    own = keys[keys.index(kind) + 1]
+    levels = sorted((k for k in keys if k.startswith("ISO3166-2-lvl")), key=lambda k: int(k.rsplit("lvl", 1)[1] or 0))
+    if not levels or own != levels[-1]:
+        return None
+    code = clean_area(str(address[own]))
+    return code if code and len(code) > 2 and code[:2] == cc else None
+
+
+def _area_candidates(location: Any) -> list[dict[str, Any]]:
+    """The countries and subdivisions among Nominatim's answers, each once, in Nominatim's order."""
+    out: list[dict[str, Any]] = []
+    for loc in (location if isinstance(location, list) else [location] if location is not None else []):
+        raw = loc.raw or {}
+        code = _own_code(raw)
+        if not code or any(c["code"] == code for c in out):
+            continue
+        name = clean_area_name(raw.get("name")) or clean_area_name((loc.address or "").split(",")[0])
+        out.append({"code": code, "name": name, "display_name": loc.address, "lat": loc.latitude,
+                    "lon": loc.longitude, "fidelity": "country" if len(code) == 2 else "region"})
+    return out[:MAX_CANDIDATES]
+
+
 async def _nominatim(query: Any, **kwargs):
     try:
         return await asyncio.get_running_loop().run_in_executor(
@@ -1372,10 +1437,14 @@ async def _nominatim(query: Any, **kwargs):
 async def geocode(req: GeocodeRequest):
     """Proxy Nominatim geocoding for home.mapsofmaking.org and the bot — 1 req/s rate-limited (RateLimiter).
 
-    Two shapes:
+    Three shapes:
     - a space: `{address, city, postcode?, country_code?}` (as before);
     - a network: `{area}`, an ISO 3166-1/-2 code (`BE`, `BE-VLG`), 2026-11-19: the centre
-      of that area, Nominatim's point for it.
+      of that area, Nominatim's point for it;
+    - a network looking for its area by name: `{area_search, lang?}` (2026-11-19), answered
+      `{candidates: [{code, name, display_name, lat, lon, fidelity}]}`, at most 5, maybe none:
+      the countries and subdivisions with an ISO code of their own, names in `lang` (default en).
+      422 for an empty or over-long search or a lang that is not two letters.
 
     Returns {lat, lon, country_code, postcode, display_name, fidelity, area} on success,
     nulls on no-result (and `fidelity`/`area` still say what was asked), 422 when neither
@@ -1386,6 +1455,16 @@ async def geocode(req: GeocodeRequest):
     The 1 req/s limit is this process's, shared by every caller; there is no per-IP
     cap in front of it (the old Hetzner nginx one is gone).
     """
+    if req.area_search is not None:
+        text = req.area_search.strip()
+        if not text or len(text) > MAX_AREA_SEARCH:
+            raise HTTPException(status_code=422, detail={"error": "bad_area_search", "message": f"area_search is a name, 1 to {MAX_AREA_SEARCH} characters"})
+        lang = (req.lang if req.lang is not None else "en").strip().lower()
+        if not _LANG_RE.match(lang):
+            raise HTTPException(status_code=422, detail={"error": "bad_lang", "message": "lang is a two-letter language code, e.g. en"})
+        found = await _nominatim(text, exactly_one=False, limit=10, language=lang)
+        return {"candidates": _area_candidates(found)}
+
     if req.area:
         area = clean_area(req.area)
         if area is None:

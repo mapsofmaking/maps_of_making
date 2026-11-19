@@ -32,6 +32,14 @@ def space_server():
     server.stop()
 
 
+def areas_of(g):
+    """(code, name) of each schema:AdministrativeArea node the subject serves."""
+    q = """PREFIX schema: <https://schema.org/>
+    SELECT ?code ?name WHERE { ?s schema:areaServed ?a . ?a a schema:AdministrativeArea ; schema:identifier ?code .
+                               OPTIONAL { ?a schema:name ?name } }"""
+    return sorted((str(r.code), str(r.name) if r.name is not None else "") for r in g.query(q))
+
+
 async def register(space_server, ox, body, content_type, path):
     url = serve(space_server, body, content_type, path)
     return await main.register_url(main.UrlRequest(url=url), BackgroundTasks())
@@ -50,7 +58,7 @@ async def test_a_network_is_stored_as_a_network_with_its_area_and_fidelity(space
     assert (NETWORK, RDF.type, URIRef(MOM + "Network")) in g
     assert (NETWORK, RDF.type, URIRef(SCHEMA + "Organization")) in g
     assert (NETWORK, RDF.type, URIRef(MOM + "Space")) not in g
-    assert (NETWORK, URIRef(SCHEMA + "areaServed"), Literal("BE-VLG")) in g
+    assert areas_of(g) == [("BE-VLG", "Flanders")]
     assert (NETWORK, URIRef(MOM + "geolocationFidelity"), Literal("region")) in g
     assert (NETWORK, URIRef(MOM + "countryCode"), Literal("BE")) in g
     assert not any(p == URIRef(MOM + "address") for _, p, _ in g)
@@ -107,8 +115,25 @@ async def test_a_network_does_not_take_over_a_seeded_space_of_the_same_name(spac
         features = {f["properties"]["id"]: f["properties"] for f in map(main._binding_to_feature, rows)}
     assert features["maakbib"]["kind"] == "space" and features["maakbib"]["name"] == "MaakBib"
     net = features["maakbib-network"]
-    assert net["kind"] == "network" and net["area_served"] == ["BE-VLG"]
+    assert net["kind"] == "network" and net["area_served"] == [{"code": "BE-VLG", "name": "Flanders"}]
     assert net["geolocationFidelity"] == "region" and net["country_code"] == "BE" and net["address"] == ""
+
+
+@pytest.mark.asyncio
+async def test_the_map_reads_a_bare_area_code_an_earlier_registration_wrote(tmp_path, monkeypatch):
+    """Maakbib's first record (2026-11-19) holds the code alone: the map still shows it, without a name."""
+    legacy = """
+INSERT DATA { GRAPH <urn:mak:space/net> {
+  <urn:mak:space/net> a <https://mapsofmaking.org/ns/mom#Network> ;
+    <https://schema.org/name> "Net" ;
+    <https://schema.org/areaServed> "BE-VLG" ,
+      [ a <https://schema.org/AdministrativeArea> ; <https://schema.org/identifier> "FR-IDF" ; <https://schema.org/name> "Île-de-France | Paris" ] ;
+    <https://schema.org/geo> [ <https://schema.org/latitude> 51.0 ; <https://schema.org/longitude> 4.2 ] .
+} }"""
+    with StoreOxigraph(legacy) as ox:
+        rows = ox.select(main._SPARQL_SELECT)
+    net = main._binding_to_feature(rows[0])["properties"]
+    assert net["area_served"] == [{"code": "BE-VLG", "name": ""}, {"code": "FR-IDF", "name": "Île-de-France | Paris"}]
 
 
 @pytest.mark.asyncio
@@ -123,7 +148,7 @@ async def test_registering_a_network_again_keeps_to_its_own_record(space_server,
         second = await register(space_server, ox, NETWORK_TTL, "text/turtle", "/n")
     assert first["space_uri"] == second["space_uri"] == "urn:mak:space/maakbib-network"
     assert read_snapshot("maakbib") is None
-    assert read_snapshot("maakbib-network")["payload"]["fields"]["schema:areaServed"] == ["BE-VLG"]
+    assert read_snapshot("maakbib-network")["payload"]["fields"]["schema:areaServed"] == [{"code": "BE-VLG", "name": "Flanders"}]
 
 
 @pytest.mark.asyncio
@@ -253,3 +278,123 @@ async def test_geocode_an_address_as_before(monkeypatch):
     assert calls == [("Rue Royale 1, Brussels", {"addressdetails": True})]
     assert out == {"lat": 50.85, "lon": 4.36, "country_code": "BE", "postcode": "1000",
                    "display_name": "Rue Royale 1, 1000 Bruxelles, Belgique", "fidelity": "exact", "area": None}
+
+
+# ── Geocode: an area by its name, anywhere (2026-11-19) ─────────────────────
+# Nominatim's answers as seen live on 2026-11-19 (format json, addressdetails, accept-language en),
+# trimmed to the keys read, in Nominatim's own key order: the place's ISO key follows its own component.
+
+def _found(display, lat, lon, addresstype, name, address):
+    return Location(display, (lat, lon, 0), {"addresstype": addresstype, "name": name, "display_name": display,
+                                              "lat": str(lat), "lon": str(lon), "address": address})
+
+
+S_FLANDERS = _found("Flanders, Belgium", 51.0377778, 4.2405556, "state", "Flanders",
+                    {"state": "Flanders", "ISO3166-2-lvl4": "BE-VLG", "country": "Belgium", "country_code": "be"})
+S_SCOTLAND = _found("Scotland, United Kingdom", 56.7861112, -4.1140518, "state", "Scotland",
+                    {"state": "Scotland", "ISO3166-2-lvl4": "GB-SCT", "country": "United Kingdom", "country_code": "gb"})
+# A county in North Carolina: its only ISO key is its state's.
+S_SCOTLAND_COUNTY = _found("Scotland County, North Carolina, United States", 34.8628902, -79.4903372, "county", "Scotland County",
+                           {"county": "Scotland County", "state": "North Carolina", "ISO3166-2-lvl4": "US-NC",
+                            "country": "United States", "country_code": "us"})
+S_BELGIUM = _found("Belgium", 50.6402809, 4.6667145, "country", "Belgium", {"country": "Belgium", "country_code": "be"})
+# A province with a code of its own (lvl6) inside a region (lvl4): Nominatim files it as a state.
+S_WEST_FLANDERS = _found("West Flanders, Flanders, Belgium", 51.0404747, 2.9994213, "state", "West Flanders",
+                         {"state": "West Flanders", "ISO3166-2-lvl6": "BE-VWV", "ISO3166-2-lvl4": "BE-VLG",
+                          "country": "Belgium", "country_code": "be"})
+# A city that carries a code (Paris is also a département): a city all the same, left out.
+S_PARIS = _found("Paris, Ile-de-France, Metropolitan France, France", 48.8534951, 2.3483915, "city", "Paris",
+                 {"city": "Paris", "ISO3166-2-lvl6": "FR-75C", "state": "Ile-de-France", "ISO3166-2-lvl4": "FR-IDF",
+                  "region": "Metropolitan France", "country": "France", "country_code": "fr"})
+# A province without a code of its own: only its region's comes with it.
+S_LIMBURG_NO_CODE = _found("Limburg, Flanders, Belgium", 51.0, 5.4, "province", "Limburg",
+                           {"province": "Limburg", "state": "Flanders", "ISO3166-2-lvl4": "BE-VLG", "country": "Belgium", "country_code": "be"})
+
+
+@pytest.mark.asyncio
+async def test_area_search_keeps_countries_and_subdivisions_with_their_own_code(monkeypatch):
+    calls = _stub(monkeypatch, [S_SCOTLAND, S_SCOTLAND_COUNTY, S_PARIS, S_LIMBURG_NO_CODE, S_WEST_FLANDERS, S_BELGIUM])
+    out = await main.geocode(main.GeocodeRequest(area_search="  Scotland "))
+    assert calls == [("Scotland", {"addressdetails": True, "exactly_one": False, "limit": 10, "language": "en"})]
+    assert out == {"candidates": [
+        {"code": "GB-SCT", "name": "Scotland", "display_name": "Scotland, United Kingdom",
+         "lat": 56.7861112, "lon": -4.1140518, "fidelity": "region"},
+        {"code": "BE-VWV", "name": "West Flanders", "display_name": "West Flanders, Flanders, Belgium",
+         "lat": 51.0404747, "lon": 2.9994213, "fidelity": "region"},
+        {"code": "BE", "name": "Belgium", "display_name": "Belgium", "lat": 50.6402809, "lon": 4.6667145, "fidelity": "country"},
+    ]}
+
+
+@pytest.mark.asyncio
+async def test_area_search_finds_a_region_nominatim_files_as_a_county(monkeypatch):
+    """Brussels-Capital comes back a `county` that its address also names as `region`, its code after it."""
+    office = _found("Assemblée de la Commission communautaire française, Rue du Lombard, Bruxelles", 50.84, 4.35, "office",
+                    "Assemblée de la Commission communautaire française",
+                    {"office": "Assemblée de la Commission communautaire française", "road": "Rue du Lombard",
+                     "city": "Brussels", "region": "Brussels-Capital", "ISO3166-2-lvl4": "BE-BRU", "country_code": "be"})
+    region = _found("Brussels-Capital, Belgium", 50.8387951, 4.3753041, "county", "Brussels-Capital",
+                    {"county": "Brussels-Capital", "region": "Brussels-Capital", "ISO3166-2-lvl4": "BE-BRU",
+                     "country": "Belgium", "country_code": "be"})
+    _stub(monkeypatch, [office, region, S_SCOTLAND_COUNTY])
+    out = await main.geocode(main.GeocodeRequest(area_search="Brussels-Capital Region"))
+    assert [(c["code"], c["name"], c["fidelity"]) for c in out["candidates"]] == [("BE-BRU", "Brussels-Capital", "region")]
+
+
+@pytest.mark.asyncio
+async def test_area_search_gives_each_code_once_in_nominatim_s_order(monkeypatch):
+    vlaanderen = _found("Vlaanderen, België", 51.0, 4.2, "state", "Vlaanderen",
+                        {"state": "Vlaanderen", "ISO3166-2-lvl4": "BE-VLG", "country": "België", "country_code": "be"})
+    _stub(monkeypatch, [S_BELGIUM, S_FLANDERS, vlaanderen] + [S_BELGIUM] * 3)
+    out = await main.geocode(main.GeocodeRequest(area_search="Flanders"))
+    assert [(c["code"], c["name"]) for c in out["candidates"]] == [("BE", "Belgium"), ("BE-VLG", "Flanders")]
+
+
+@pytest.mark.asyncio
+async def test_area_search_answers_at_most_five(monkeypatch):
+    many = [_found(f"State {i}", 1.0, 2.0, "state", f"State {i}", {"state": f"State {i}", "ISO3166-2-lvl4": f"US-A{i}", "country_code": "us"})
+            for i in range(8)]
+    _stub(monkeypatch, many)
+    out = await main.geocode(main.GeocodeRequest(area_search="State"))
+    assert [c["code"] for c in out["candidates"]] == ["US-A0", "US-A1", "US-A2", "US-A3", "US-A4"]
+
+
+@pytest.mark.asyncio
+async def test_area_search_names_come_in_the_language_asked(monkeypatch):
+    unnamed = _found("Vlaanderen, België / Belgique / Belgien", 51.0, 4.2, "state", "",
+                     {"state": "Vlaanderen", "ISO3166-2-lvl4": "BE-VLG", "country_code": "be"})
+    calls = _stub(monkeypatch, [unnamed])
+    out = await main.geocode(main.GeocodeRequest(area_search="Vlaanderen", lang="NL"))
+    assert calls[0][1]["language"] == "nl"
+    assert out["candidates"][0]["name"] == "Vlaanderen"  # no `name`: the first part of display_name
+
+
+@pytest.mark.asyncio
+async def test_area_search_nothing_found_is_no_candidates(monkeypatch):
+    _stub(monkeypatch, None)
+    assert await main.geocode(main.GeocodeRequest(area_search="Atlantis")) == {"candidates": []}
+    _stub(monkeypatch, [S_PARIS, S_SCOTLAND_COUNTY])
+    assert await main.geocode(main.GeocodeRequest(area_search="Paris")) == {"candidates": []}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", [{"area_search": ""}, {"area_search": "   "}, {"area_search": "x" * 101},
+                                  {"area_search": "Flanders", "lang": "eng"}, {"area_search": "Flanders", "lang": ""},
+                                  {"area_search": "Flanders", "lang": "e1"}])
+async def test_area_search_refuses_an_empty_or_long_search_or_a_bad_lang(monkeypatch, body):
+    calls = _stub(monkeypatch, [S_FLANDERS])
+    with pytest.raises(HTTPException) as err:
+        await main.geocode(main.GeocodeRequest(**body))
+    assert err.value.status_code == 422 and calls == []
+
+
+@pytest.mark.asyncio
+async def test_area_search_nominatim_down_is_503(monkeypatch):
+    from geopy.exc import GeocoderUnavailable
+
+    def down(query, **kwargs):
+        raise GeocoderUnavailable("down")
+
+    monkeypatch.setattr(main, "_geocode", down)
+    with pytest.raises(HTTPException) as err:
+        await main.geocode(main.GeocodeRequest(area_search="Flanders"))
+    assert err.value.status_code == 503

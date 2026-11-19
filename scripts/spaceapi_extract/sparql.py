@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .area import clean_areas
+
 _NS = {
     "schema": "https://schema.org/",
     "mom": "https://mapsofmaking.org/ns/mom#",
@@ -22,7 +24,7 @@ _IRI_PREDS = {"schema:url", "schema:logo", "mom:endpointUrl", "mom:profileUrl"}
 _IRI_LIST_PREDS = {"mom:memberOf"}
 
 # CURIEs whose values are lists of strings (multi-value, one literal triple each)
-_LITERAL_LIST_PREDS = {"schema:knowsAbout", "schema:areaServed"}
+_LITERAL_LIST_PREDS = {"schema:knowsAbout"}
 
 # CURIEs whose string values are ISO-8601 datetime and must carry ^^xsd:dateTime
 _DT_PREDS = {"mom:lastOpenChange", "mom:updatedAt", "mom:observedAt", "mom:lastFetched"}
@@ -59,7 +61,9 @@ def triples_for(subject_uri: str, fields: dict[str, Any]) -> list[str]:
     None values are silently skipped.
     Handles:
       - schema:geo         → blank node with schema:latitude / schema:longitude
-      - schema:knowsAbout, schema:areaServed → one triple per list element (multi-value)
+      - schema:knowsAbout  → one triple per list element (multi-value)
+      - schema:areaServed  → one schema:AdministrativeArea node per {code, name} (a network, 2026-11-19);
+                             no schema:name when the name is ""
       - bool values        → ^^xsd:boolean literal
       - _DT_PREDS          → ^^xsd:dateTime literal
       - _IRI_PREDS         → <IRI> (not a quoted literal)
@@ -82,6 +86,16 @@ def triples_for(subject_uri: str, fields: dict[str, Any]) -> list[str]:
                         f"<{subject_uri}> <{pred_uri}> "
                         f"[ <{lat_uri}> {float(lat)} ; <{lon_uri}> {float(lon)} ] ."
                     )
+            continue
+
+        if curie == "schema:areaServed":
+            # Cleaned again: a snapshot stored before areas had names holds bare codes ("BE-VLG").
+            for item in clean_areas(val if isinstance(val, list) else [val]):
+                node =(f"a <{_NS['schema']}AdministrativeArea> ; "
+                        f"<{_NS['schema']}identifier> {escape_literal(item['code'])}")
+                if item.get("name"):
+                    node += f" ; <{_NS['schema']}name> {escape_literal(item['name'])}"
+                out.append(f"<{subject_uri}> <{pred_uri}> [ {node} ] .")
             continue
 
         if curie == "mom:sdgs":
