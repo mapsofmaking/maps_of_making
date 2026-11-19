@@ -1076,6 +1076,12 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
             graph_uri = f"urn:mak:space/{slug}"
             space_uri = f"urn:mak:space/{slug}"
 
+    # The snapshot and the first tick go under the id the map uses for this graph (its last segment),
+    # as the heartbeat does: a re-registered network (`<slug>-network`) or a claimed seed must not
+    # write under another record's name.
+    if space_uri.startswith("urn:mak:space/"):
+        slug = space_uri.rsplit("/", 1)[-1]
+
     cls: dict = {}
     reg_observed_at = mint_observed_at()
     try:

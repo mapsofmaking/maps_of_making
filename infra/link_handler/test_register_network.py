@@ -112,6 +112,21 @@ async def test_a_network_does_not_take_over_a_seeded_space_of_the_same_name(spac
 
 
 @pytest.mark.asyncio
+async def test_registering_a_network_again_keeps_to_its_own_record(space_server, tmp_path, monkeypatch):
+    """Home registers the same address twice: the second finds the network by its address, and its
+    snapshot goes under the network's id, never the seeded space's of the same name."""
+    from snapshot_store import read_snapshot
+    monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
+    with StoreOxigraph(SEEDED_MAAKBIB) as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        first = await register(space_server, ox, NETWORK_TTL, "text/turtle", "/n")
+        second = await register(space_server, ox, NETWORK_TTL, "text/turtle", "/n")
+    assert first["space_uri"] == second["space_uri"] == "urn:mak:space/maakbib-network"
+    assert read_snapshot("maakbib") is None
+    assert read_snapshot("maakbib-network")["payload"]["fields"]["schema:areaServed"] == ["BE-VLG"]
+
+
+@pytest.mark.asyncio
 async def test_a_space_still_claims_its_seeded_record(space_server, tmp_path, monkeypatch):
     seeded = SEEDED_MAAKBIB.replace("MaakBib", "Atelier du Canal").replace("urn:mak:space/maakbib", "urn:mak:space/adc-anderlecht")
     monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
