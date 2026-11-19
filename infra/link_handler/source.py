@@ -169,6 +169,16 @@ def as_spaceapi(parsed: ParsedSpace) -> dict:
             contact[h["type"]] = h["value"]
     if contact:
         out["contact"] = contact
+    # A network's marker (2026-11-19), as the JSON door writes it.
+    mom: dict[str, Any] = {}
+    if parsed.kind == "network":
+        mom["kind"] = "network"
+    if f.get("schema:areaServed"):
+        mom["areaServed"] = list(f["schema:areaServed"])
+    if f.get("mom:geolocationFidelity"):
+        mom["geolocationFidelity"] = f["mom:geolocationFidelity"]
+    if mom:
+        out["mom"] = mom
     return out
 
 

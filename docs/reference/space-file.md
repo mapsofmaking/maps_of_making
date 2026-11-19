@@ -106,9 +106,96 @@ source as the map last read it.
 }
 ```
 
+## A network
+
+> Decided with Nicolas, 2026-11-19. A network (not a space) registers through
+> the same doors and shows on the map. The fixtures
+> (`tests/fixtures/space/maakbib.{ttl,json}`) and their parity tests
+> (`tests/test_space_turtle.py`, `infra/link_handler/test_register_network.py`)
+> hold the two files together, as for a space.
+
+A network has no address: it **serves an area** and sits on the map at the
+centre of it, saying how coarse that pin is. Everything else (name,
+description, website, logo, contact handles, `memberOf`) is as for a space.
+
+| Field | Required | SpaceAPI JSON (self-host) | Turtle `space.ttl` (pod) | Map graph after ingest |
+|---|---|---|---|---|
+| kind | yes | `mom.kind: "network"` | the node is typed `mom:Network, schema:Organization` (subject stays `<#space>`) | `a mom:Network, schema:Organization` (a space: `a mom:Space`) |
+| area served | yes | `mom.areaServed` (a list; one string accepted) | `schema:areaServed "BE-VLG"` (one statement per area) | `schema:areaServed`, one literal per area |
+| pin fidelity | yes | `mom.geolocationFidelity` | `mom:geolocationFidelity` | `mom:geolocationFidelity` |
+| lat, lon | yes | `location.lat`, `location.lon` | `schema:geo [ schema:latitude ; schema:longitude ]` | same |
+| country | no | `location.country_code` | none: derived from the areas | `mom:countryCode` (given, or the one country all areas are in) |
+| address | — | none (no `location.address`) | none (no `schema:address`) | none: the card says "Serves …" instead |
+
+- **Area codes** are ISO 3166-1 alpha-2 (`BE`) or ISO 3166-2 (`BE-VLG`
+  Flanders, `BE-WAL` Wallonia, `BE-BRU` Brussels). Read in any case, written
+  upper case, sorted; anything else is left out; at most 10.
+- **Fidelity** takes the ontology's values: `exact`, `approximate`, `city`,
+  `region` (added for networks), `country`. A network uses `region` for a
+  subdivision and `country` for a country. Any other value is left out.
+- **The pin** is the area's centre as the geocode proxy gives it (below):
+  home asks `POST /api/geocode {"area": "BE-VLG"}` and writes the answer's
+  `lat`, `lon` and `fidelity` into the file.
+- **Same name as a space.** A network never claims a seeded space of the same
+  name (the claim-merge on registration matches the same kind only), and if
+  `urn:mak:space/<slug>` already holds a space, the network is registered as
+  `urn:mak:space/<slug>-network` (a space meeting a network: `<slug>-space`).
+- **The map's file** (`spaces.geojson`) gives every feature `kind`
+  (`"space"` | `"network"`) and `area_served` (a list of codes).
+
+```turtle
+@prefix schema: <https://schema.org/> .
+@prefix mom: <https://mapsofmaking.org/ns/mom#> .
+
+<#space> a mom:Network, schema:Organization ;
+  schema:name "Maakbib" ;
+  schema:description "MaakBib helpt bibliotheken en jeugdwerkingen met kennis en een netwerk om een maakplaats of fablab uit te bouwen en te runnen." ;
+  schema:url <https://maakbib.be/> ;
+  schema:logo <https://maakbib.be/wp-content/uploads/2026/08/logo-maakbib-kleur.svg> ;
+  schema:email "info@decreatievestem.be" ;
+  schema:areaServed "BE-VLG" ;
+  schema:geo [ a schema:GeoCoordinates ;
+    schema:latitude 51.0378 ; schema:longitude 4.2406 ] ;
+  mom:geolocationFidelity "region" .
+```
+
+```json
+{
+  "api_compatibility": ["15"],
+  "space": "Maakbib",
+  "logo": "https://maakbib.be/wp-content/uploads/2026/08/logo-maakbib-kleur.svg",
+  "url": "https://maakbib.be/",
+  "location": { "country_code": "BE", "lat": 51.0378, "lon": 4.2406 },
+  "description": "MaakBib helpt bibliotheken en jeugdwerkingen met kennis en een netwerk om een maakplaats of fablab uit te bouwen en te runnen.",
+  "contact": { "email": "info@decreatievestem.be" },
+  "state": { "open": null },
+  "mom": { "kind": "network", "areaServed": ["BE-VLG"], "geolocationFidelity": "region" }
+}
+```
+
+The centre (51.0378, 4.2406) is Nominatim's point for Vlaanderen, the one the
+geocode proxy returns for `BE-VLG`.
+
+### The geocode proxy, for an area
+
+`POST /api/geocode` takes either shape:
+
+| Request | For | Nominatim is asked | `fidelity` |
+|---|---|---|---|
+| `{"address", "city", "postcode"?, "country_code"?}` | a space (as before) | the joined address | `exact` with a street, `city` without |
+| `{"area": "BE-VLG"}` | a network, a subdivision | the code, `featuretype=state`, `countrycodes=be`; kept only if the answer's `ISO3166-2-lvl*` is the code | `region` |
+| `{"area": "BE"}` | a network, a country | `country=BE`, `featuretype=country` | `country` |
+
+The answer keeps its keys and adds two: `{lat, lon, country_code, postcode,
+display_name, fidelity, area}`. No match: `lat`/`lon`/`display_name` null,
+`area` still the code asked. A body with neither shape, or an `area` that is
+not an ISO code: 422. Nominatim down: 503. The 1 req/s limit is unchanged.
+
 ## What the map does with Turtle (Story 14.7)
 
-1. **Subject.** The file's `<…/space.ttl#space>` becomes the space's own IRI
+1. **Subject.** The node typed `mom:Space`, `schema:Place` or `mom:Network`
+   (`schema:Organization` only when nothing else is typed) is the space.
+   The file's `<…/space.ttl#space>` becomes the space's own IRI
    (`urn:mak:space/<slug>`); the pod document is kept as `mom:profileUrl`
    (the registered address is also `mom:endpointUrl`, which the heartbeat
    needs). With several space nodes in one file, the `#space` one is read;

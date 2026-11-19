@@ -21,6 +21,9 @@ _IRI_PREDS = {"schema:url", "schema:logo", "mom:endpointUrl", "mom:profileUrl"}
 # CURIEs whose values are lists of URIs (multi-value, IRI-emitted, one triple each)
 _IRI_LIST_PREDS = {"mom:memberOf"}
 
+# CURIEs whose values are lists of strings (multi-value, one literal triple each)
+_LITERAL_LIST_PREDS = {"schema:knowsAbout", "schema:areaServed"}
+
 # CURIEs whose string values are ISO-8601 datetime and must carry ^^xsd:dateTime
 _DT_PREDS = {"mom:lastOpenChange", "mom:updatedAt", "mom:observedAt", "mom:lastFetched"}
 
@@ -56,7 +59,7 @@ def triples_for(subject_uri: str, fields: dict[str, Any]) -> list[str]:
     None values are silently skipped.
     Handles:
       - schema:geo         → blank node with schema:latitude / schema:longitude
-      - schema:knowsAbout  → one triple per list element (multi-value)
+      - schema:knowsAbout, schema:areaServed → one triple per list element (multi-value)
       - bool values        → ^^xsd:boolean literal
       - _DT_PREDS          → ^^xsd:dateTime literal
       - _IRI_PREDS         → <IRI> (not a quoted literal)
@@ -87,7 +90,7 @@ def triples_for(subject_uri: str, fields: dict[str, Any]) -> list[str]:
                 out.append(f"<{subject_uri}> <{pred_uri}> {int(item)} .")
             continue
 
-        if curie == "schema:knowsAbout":
+        if curie in _LITERAL_LIST_PREDS:
             items = val if isinstance(val, list) else [val]
             for item in items:
                 if item:

@@ -220,3 +220,20 @@ async def test_an_unmoved_pin_keeps_the_seed_s_notes(space_server, db):
     g = _apply(ox.updates, _BEFORE.replace("1.0", str(lat)).replace("2.0", str(lon)), "urn:mak:space/x")
     assert any("geolocationFidelity" in str(p) for _, p, _ in g)
     assert len([o for _, p, o in g if str(p) == "https://schema.org/latitude"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_a_network_s_tick_writes_its_area_and_keeps_its_new_fidelity(space_server, db):
+    """A network (2026-11-19) goes through the same reader: when its pin moves, the geo write clears the old
+    fidelity and the file's own is written back after it; its areas are written, one statement each."""
+    from fakes import NETWORK_TTL
+    t, _ = await fetch_snapshot("n", serve(space_server, NETWORK_TTL, "text/turtle"), db_path=db)
+    before = _BEFORE.replace("mom:Space", "mom:Network").replace('"city-level"', '"country"')
+    with FakeOxigraph() as ox:
+        await write_payload_fields("x", t["payload"], "urn:mak:space/x", "urn:mak:space/x", ox.url, fields=fields_for(t), moves=True)
+    g = _apply(ox.updates, before, "urn:mak:space/x")
+    values = lambda name: sorted(str(o) for _, p, o in g if str(p).endswith(name))  # noqa: E731
+    assert values("geolocationFidelity") == ["region"]
+    assert values("areaServed") == ["BE-VLG"]
+    assert values("countryCode") == ["BE"]
+    assert values("latitude") == ["51.0378"]
