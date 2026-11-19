@@ -22,6 +22,11 @@ mom:Space
   rdfs:label "Space" ;
   rdfs:comment "A physical or virtual location where making activities occur (e.g., makerspace, fabrication lab, art studio)." .
 
+mom:Network
+  a owl:Class ;
+  rdfs:label "Network" ;
+  rdfs:comment "An organisation that brings spaces together over an area rather than at one address (e.g. a regional network of library makerspaces). Typed alongside schema:Organization. It serves one or more areas (schema:areaServed, ISO 3166-1 or 3166-2 codes) and sits on the map at the centre of its area, its mom:geolocationFidelity saying how coarse that pin is. Spaces point to it with mom:memberOf. Decided 2026-11-19." .
+
 mom:Coordinator
   a owl:Class ;
   rdfs:label "Coordinator" ;
@@ -74,16 +79,30 @@ mom:visibility
 mom:geolocationFidelity
   a owl:DatatypeProperty ;
   rdfs:label "Geolocation Fidelity" ;
-  rdfs:comment "Precision level of the geo coordinates of a space or supplier: 'exact' (GPS), 'approximate' (address lookup), 'city' (city-level), or 'country' (country-level). From Story 0.1; domain widened to suppliers in Story 10.1." ;
-  rdfs:domain [ a owl:Class ; owl:unionOf ( mom:Space mom:Supplier ) ] ;  # widened by Story 10.1 — suppliers carry the same precision honesty as spaces
+  rdfs:comment "Precision level of the geo coordinates of a space, network or supplier: 'exact' (GPS or street address), 'approximate' (address lookup), 'city' (city-level), 'region' (centre of a region, e.g. a network serving an ISO 3166-2 subdivision), or 'country' (country-level). From Story 0.1; domain widened to suppliers in Story 10.1, to networks (and 'region' added) on 2026-11-19." ;
+  rdfs:domain [ a owl:Class ; owl:unionOf ( mom:Space mom:Network mom:Supplier ) ] ;  # widened by Story 10.1 — suppliers carry the same precision honesty as spaces; networks 2026-11-19
   rdfs:range xsd:string .
 
 mom:geolocationNote
   a owl:DatatypeProperty ;
   rdfs:label "Geolocation Note" ;
   rdfs:comment "Human-readable explanation when geolocationFidelity is not exact (e.g. 'Address incomplete — showing city-level location'). Displayed as a UI hint, not an error." ;
-  rdfs:domain [ a owl:Class ; owl:unionOf ( mom:Space mom:Supplier ) ] ;  # widened by Story 10.1 — suppliers carry the same precision honesty as spaces
+  rdfs:domain [ a owl:Class ; owl:unionOf ( mom:Space mom:Network mom:Supplier ) ] ;  # widened by Story 10.1 — suppliers carry the same precision honesty as spaces
   rdfs:range xsd:string .
+
+mom:memberOf
+  a owl:ObjectProperty ;
+  rdfs:label "Member of" ;
+  rdfs:comment "A network (or other organisation) this space or network belongs to, as the member declares it: a network IRI (http(s), or urn:mak:network/<slug> for networks the map knows by slug). Membership is a handshake read from both sides (solid-kit ADR 006); this is the member's side. Declared 2026-11-19; in use since the SpaceAPI ingest (JSON `mom.memberOf`)." ;
+  rdfs:domain [ a owl:Class ; owl:unionOf ( mom:Space mom:Network ) ] .
+
+mom:address
+  a owl:DatatypeProperty ;
+  rdfs:label "Address" ;
+  rdfs:comment "The space's postal address as one string, \"<street>, <postcode> <city>, <CC>\" (SpaceAPI `location.address`); the Turtle path composes it from a schema:PostalAddress node. The map's card reads it. A network has none: it serves an area (schema:areaServed). Declared 2026-11-19; in use since the SpaceAPI ingest." ;
+  rdfs:domain mom:Space ;
+  rdfs:range xsd:string ;
+  rdfs:seeAlso schema:address .
 
 # Activity vocabulary
 # ──────────────────────────────────────────────────────────────────────────────
@@ -463,8 +482,8 @@ mom:gapTimestamp
 mom:countryCode
   a owl:DatatypeProperty ;
   rdfs:label "Country Code" ;
-  rdfs:comment "Country or jurisdiction code for the space. ISO 3166-1 alpha-2 codes are the common case, but extension codes are explicitly allowed (e.g. 'sol-3' for international waters / extraterrestrial installations where no national jurisdiction applies)." ;
-  rdfs:domain mom:Space ;
+  rdfs:comment "Country or jurisdiction code for the space or network. ISO 3166-1 alpha-2 codes are the common case, but extension codes are explicitly allowed (e.g. 'sol-3' for international waters / extraterrestrial installations where no national jurisdiction applies)." ;
+  rdfs:domain [ a owl:Class ; owl:unionOf ( mom:Space mom:Network ) ] ;
   rdfs:range xsd:string .
 
 mom:timeZone
