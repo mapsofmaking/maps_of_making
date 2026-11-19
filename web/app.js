@@ -36,7 +36,7 @@
     search: '',
     selectedId: null,
     openDrawer: null,          // 'find' | 'preset' | 'addurl' | 'detail' | 'bot' | null
-    embed: { centerId: null },
+    embed: { centerId: null, bbox: null },
     _lastMapStyle: 'dim',      // track last applied style to avoid redundant setStyle() calls
     _fsSelected: null,         // id currently flagged selected via GL feature-state
     _initialViewport: false,   // true when initMap centered on ?lat/?lon (viewport-first)
@@ -119,6 +119,8 @@
         lon: f.geometry.coordinates[0],
       },
     }));
+    // A network is its own entity (M1, 2026-11-19): found by the IRI its members name it with.
+    state.networksByUri = new Map(state.spaces.filter(isNetwork).map((n) => [n.uri, n]));
     const th = json.thresholds;
     if (!th || !th.endpoint_health || !th.operational_state
         || Object.keys(th.endpoint_health).length === 0
@@ -220,8 +222,9 @@
       initCamera = { center: [qlon, qlat], zoom: 13 };
     } else if (state.spaces.length > 1) {
       const pct = (arr, p) => { const s = [...arr].sort((a, b) => a - b); return s[Math.floor((s.length - 1) * p)]; };
-      const lons = state.spaces.map(s => s.coordinates?.lon).filter(v => typeof v === 'number' && v >= -180 && v <= 180);
-      const lats = state.spaces.map(s => s.coordinates?.lat).filter(v => typeof v === 'number' && v >= -90 && v <= 90);
+      const places = state.spaces.filter((s) => !isNetwork(s));
+      const lons = places.map(s => s.coordinates?.lon).filter(v => typeof v === 'number' && v >= -180 && v <= 180);
+      const lats = places.map(s => s.coordinates?.lat).filter(v => typeof v === 'number' && v >= -90 && v <= 90);
       initCamera = { bounds: [[pct(lons, 0.05), pct(lats, 0.05)], [pct(lons, 0.95), pct(lats, 0.95)]], fitBoundsOptions: { padding: 80, maxZoom: 7 } };
     } else {
       initCamera = { center: [10, 48], zoom: 4 };
@@ -313,6 +316,9 @@
   function buildFeatureCollection(spaces) {
     const features = [];
     for (const s of spaces) {
+      // A network is not a place (M1, 2026-11-19): no pin. Its card, its row in Find and its
+      // members' filter are how it shows on the map.
+      if (isNetwork(s)) continue;
       const lat = s.coordinates?.lat, lon = s.coordinates?.lon;
       if (typeof lat !== 'number' || typeof lon !== 'number' || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
         console.warn('[buildFeatureCollection] skipping space with invalid coords:', s.id, lat, lon);
@@ -322,8 +328,8 @@
         type: 'Feature',
         id: s.id,
         geometry: { type: 'Point', coordinates: [lon, lat] },
-        // `network`: a network's pin (2026-11-19) gets a heavier ring. `kind` here is the freshness marker.
-        properties: { id: s.id, kind: computeMarker(s), name: s.name, city: s.city, country: s.country, network: isNetwork(s) },
+        // `kind` here is the freshness marker.
+        properties: { id: s.id, kind: computeMarker(s), name: s.name, city: s.city, country: s.country },
       });
     }
     return { type: 'FeatureCollection', features };
@@ -397,7 +403,6 @@ function glyphColorExpr(surface) {
           'circle-opacity': 1.0,
           'circle-stroke-width': ['case',
             ['boolean', ['feature-state', 'selected'], false], 2.5,
-            ['boolean', ['get', 'network'], false], 2.2,
             ['==', ['get', 'kind'], 'seeded'], 0.5,
             1.2],
           'circle-stroke-color': ['case', ['boolean', ['feature-state', 'selected'], false], '#FFFFFF', strokeMatchExpr(surface)],
@@ -525,13 +530,11 @@ function glyphColorExpr(surface) {
           el('div', { class: 'sp-name' }, [s.name || s.id]),
           logoBox,
         ]),
-        isNetwork(s) ? el('div', { class: 'sp-address' }, [servesLine(s)])
+        isNetwork(s) ? el('div', { class: 'sp-address' }, [networkAreaLine(s)])
           : s.address ? el('div', { class: 'sp-address' }, [s.address]) : null,
-        areaPinNote(s),
         el('div', { class: 'sp-badges-row' }, [
-          isNetwork(s) ? el('span', { class: 'sp-badge sp-badge-tag' }, ['Network']) : null,
           el('span', { class: `sp-badge ${badgeKindClass[kind] || 'sp-badge-tag'}` }, [kindLabel[kind] || kind]),
-          ...(s.network_memberships || []).map((n) => el('span', { class: 'sp-badge sp-badge-tag' }, [n.split('/').pop().toUpperCase()])),
+          ...(s.network_memberships || []).map((n) => networkBadge(n)),
         ]),
       ]),
       el('div', { class: 'ep-footer' }, [
@@ -645,12 +648,19 @@ function glyphColorExpr(surface) {
     state._fsSelected = state.selectedId;
   }
 
-  function selectSpace(id, opts = {}) {
+  function showDetail(id) {
     state.selectedId = id;
     highlightSelected();
     renderDetail();
     // If add-url is open, don't hijack; else open detail drawer
     if (state.openDrawer !== 'addurl') setDrawer('detail');
+  }
+
+  function selectSpace(id, opts = {}) {
+    const target = state.spaces.find((x) => x.id === id);
+    // A network opens as a network (M1): its members filtered and in view, its card.
+    if (target && isNetwork(target)) { openNetwork(target.uri); return; }
+    showDetail(id);
     if (opts.fly) {
       const s = state.spaces.find((x) => x.id === id);
       if (s) map.flyTo({ center: [s.coordinates.lon, s.coordinates.lat], zoom: Math.max(map.getZoom(), 8), speed: 1.2 });
@@ -661,8 +671,9 @@ function glyphColorExpr(surface) {
   function flyToOverview() {
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const pct = (arr, p) => { const s = [...arr].sort((a, b) => a - b); return s[Math.floor((s.length - 1) * p)]; };
-    const lons = state.spaces.map(s => s.coordinates?.lon).filter(v => typeof v === 'number' && v >= -180 && v <= 180);
-    const lats = state.spaces.map(s => s.coordinates?.lat).filter(v => typeof v === 'number' && v >= -90 && v <= 90);
+    const places = state.spaces.filter((s) => !isNetwork(s));
+    const lons = places.map(s => s.coordinates?.lon).filter(v => typeof v === 'number' && v >= -180 && v <= 180);
+    const lats = places.map(s => s.coordinates?.lat).filter(v => typeof v === 'number' && v >= -90 && v <= 90);
     if (lons.length < 2 || lats.length < 2) return;
     map.fitBounds([[pct(lons, 0.05), pct(lats, 0.05)], [pct(lons, 0.95), pct(lats, 0.95)]],
       { padding: 80, maxZoom: 7, animate: !reduce });
@@ -670,6 +681,7 @@ function glyphColorExpr(surface) {
 
   let _fitTimer = null;
   function fitToMatches(matches) {
+    matches = matches.filter((s) => !isNetwork(s)); // a network's point is its area's centre, not a place
     if (!matches.length || matches.length > 400) return;
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (matches.length === 1) {
@@ -748,8 +760,8 @@ function glyphColorExpr(surface) {
   }
 
   function buildFilterChips() {
-    const networks = unique(state.spaces.flatMap((s) => s.network_memberships))
-      .map((n) => [n, n.split('/').pop().toUpperCase()]);
+    const networks = unique(state.spaces.flatMap((s) => s.network_memberships || []))
+      .map((n) => [n, networkName(n)]);
     const countries = unique(state.spaces.map((s) => s.country_code)).filter(Boolean);
     // Matches computeMarker's collapsed label. Real fix (orthogonal health/freshness
     // vs open/shut axes) is deferred → Epic 5. See deferred-work.md.
@@ -784,10 +796,12 @@ function glyphColorExpr(surface) {
       if (hideZero && count === 0 && !set.has(val)) continue;
       const btn = el('button', { class: 'chip', 'aria-pressed': set.has(val) ? 'true' : 'false', type: 'button' }, [
         opts.swatch ? el('span', { class: `pin-swatch ${val}` }) : null,
-        label.replace(/-/g, ' '),
+        selector === '#chips-network' ? label : label.replace(/-/g, ' '),
         el('span', { class: 'count' }, [String(count)])
       ]);
       btn.addEventListener('click', () => {
+        // A network chip turned on opens its network (M1): members in view, its card. Off: the filter only.
+        if (selector === '#chips-network' && !set.has(val)) { openNetwork(val, { additive: true }); return; }
         if (set.has(val)) set.delete(val); else set.add(val);
         btn.setAttribute('aria-pressed', set.has(val) ? 'true' : 'false');
         buildFilterChips();
@@ -835,16 +849,70 @@ function glyphColorExpr(surface) {
     }
     return AREA_NAMES[code] || code;
   }
-  function isNetwork(s) { return s.kind === 'network'; }
-  function servesLine(s) {
+  function isNetwork(s) { return !!s && s.kind === 'network'; }
+  // "Network · Flanders": the line a network has where a space has its address, on its card and in Find.
+  function networkAreaLine(s) {
     const areas = (s.area_served || []).map((a) => areaLabel(a)).filter(Boolean);
-    return areas.length ? 'Serves ' + areas.join(', ') : 'Network';
+    return areas.length ? 'Network · ' + areas.join(', ') : 'Network';
   }
-  // How coarse the pin is, said once, for a network placed at the centre of its area.
-  function areaPinNote(s) {
-    return isNetwork(s) && ['region', 'country'].includes(s.geolocationFidelity)
-      ? el('div', { class: 'sp-fact-empty sp-area-note' }, ['Pin at the centre of its area'])
-      : null;
+
+  // ───────────────────────────── networks (M1, 2026-11-19)
+  // A network is its own entity, `urn:mak:network/<slug>`: the IRI its members name with mom:memberOf.
+  function networkByUri(iri) { return (state.networksByUri && state.networksByUri.get(iri)) || null; }
+  // Its name when the network is on the map, else the slug its members give (a seeded label: VOW).
+  function networkName(iri) {
+    const n = networkByUri(iri);
+    return n && n.name ? n.name : String(iri).split('/').pop().replace(/-/g, ' ').toUpperCase();
+  }
+  // The member spaces: the ids the map materialized (`members`), else those that name its IRI.
+  function membersOf(n) {
+    if (Array.isArray(n.members)) {
+      const byId = new Map(state.spaces.map((x) => [x.id, x]));
+      return n.members.map((id) => byId.get(id)).filter((x) => x && !isNetwork(x));
+    }
+    return state.spaces.filter((x) => !isNetwork(x) && (x.network_memberships || []).includes(n.uri));
+  }
+  // The box an embed of the network opens on: its members, with a margin; no member, its area's centre.
+  function networkBbox(n) {
+    const ok = (c) => c && typeof c.lat === 'number' && typeof c.lon === 'number';
+    const pts = membersOf(n).map((x) => x.coordinates).filter(ok);
+    const area = !pts.length; // no member yet: a box around its area's centre
+    if (area && ok(n.coordinates)) pts.push(n.coordinates);
+    if (!pts.length) return null;
+    const lons = pts.map((c) => c.lon), lats = pts.map((c) => c.lat);
+    const [w, e, so, no] = [Math.min(...lons), Math.max(...lons), Math.min(...lats), Math.max(...lats)];
+    const padLon = area ? 1.5 : Math.max((e - w) * 0.1, 0.05);
+    const padLat = area ? 1 : Math.max((no - so) * 0.1, 0.05);
+    return [w - padLon, so - padLat, e + padLon, no + padLat].map((v) => v.toFixed(2)).join(',');
+  }
+  // A network chip, badge or row: (a) its members as the filter, (b) them in view, (c) its card.
+  // `additive`: a chip in Find adds to the networks already chosen; a badge or a row shows that one network.
+  function openNetwork(iri, opts = {}) {
+    if (!opts.additive) {
+      state.filters.networks.clear();
+      state.search = '';
+      const si = $('#search-input');
+      if (si) si.value = '';
+    }
+    state.filters.networks.add(iri);
+    buildFilterChips();
+    refreshSpacesLayer();
+    clearTimeout(_fitTimer);
+    const n = networkByUri(iri);
+    const inView = filteredSpaces().filter((x) => !isNetwork(x));
+    if (inView.length) fitToMatches(inView);
+    else if (n && map) map.flyTo({ center: [n.coordinates.lon, n.coordinates.lat], zoom: 6, speed: 1.2 });
+    if (n) showDetail(n.id);
+    else setDrawer('find'); // a network only its members name: the filtered list is what there is to see
+  }
+  // A network a space belongs to, as a button that opens it (on the card; a plain tag in an embed).
+  function networkBadge(iri) {
+    const name = networkName(iri);
+    if (IS_EMBED) return el('span', { class: 'sp-badge sp-badge-tag' }, [name]);
+    return el('button', {
+      class: 'sp-badge sp-badge-tag sp-badge-link', type: 'button',
+      title: `Show the ${name} network`, onclick: () => openNetwork(iri),
+    }, [name]);
   }
 
   function unique(arr) { return Array.from(new Set(arr)); }
@@ -866,16 +934,19 @@ function glyphColorExpr(surface) {
     for (const s of visible.slice(0, 200)) {
       const kind = computeMarker(s);
       const locationParts = [s.city, countryLabel(s.country_code)].filter(Boolean);
-      const locationStr = isNetwork(s) ? 'Network · ' + servesLine(s) : locationParts.join(', ');
-      const networkStr = (s.network_memberships || []).length ? ' · ' + s.network_memberships.map((n) => n.split('/').pop().toUpperCase()).join(' · ') : '';
+      const net = isNetwork(s);
+      const locationStr = net ? networkAreaLine(s) : locationParts.join(', ');
+      const networkStr = (s.network_memberships || []).length ? ' · ' + s.network_memberships.map((n) => networkName(n)).join(' · ') : '';
       const item = el('button', { class: 'result', 'data-sid': s.id, 'aria-current': state.selectedId === s.id ? 'true' : 'false', type: 'button' }, [
-        el('span', { class: `pin-swatch ${kind}`, style: { marginTop: '2px' } }),
+        // A network has no pin, so no pin's dot: its own mark (M1).
+        net ? el('span', { class: 'network-mark', style: { marginTop: '2px' }, 'aria-hidden': 'true' })
+          : el('span', { class: `pin-swatch ${kind}`, style: { marginTop: '2px' } }),
         el('div', { style: { flex: 1, minWidth: 0 } }, [
           el('div', { class: 'name' }, [s.name]),
           el('div', { class: 'meta' }, [locationStr + networkStr]),
           el('div', { class: 'tags' }, (s.specialties || []).slice(0, 4).map((sp) => el('span', { class: 'tag' }, [sp]))),
         ]),
-        el('span', { class: `status-label ${kind}`, style: { alignSelf: 'flex-start' } }, [kind])
+        el('span', { class: `status-label ${net ? '' : kind}`, style: { alignSelf: 'flex-start' } }, [net ? 'network' : kind])
       ]);
       host.appendChild(item);
     }
@@ -957,8 +1028,13 @@ function glyphColorExpr(surface) {
       return;
     }
     const kind = computeMarker(s);
-    // Share CTA in drawer header (hidden on mobile via CSS)
+    // A network's card (M1, 2026-11-19): a variant of the space's, under its own title.
+    const net = isNetwork(s);
     const drawerHead = document.querySelector('#drawer-detail .drawer-head');
+    const heading = drawerHead && drawerHead.querySelector('h2');
+    if (heading) heading.textContent = net ? 'Network' : 'Space Profile';
+    $('#drawer-detail').setAttribute('aria-label', net ? 'Network' : 'Space profile');
+    // Share CTA in drawer header (hidden on mobile via CSS)
     let shareBtn = drawerHead && drawerHead.querySelector('.share-cta');
     const SHARE_SVG = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><circle cx="11" cy="3" r="1.6"/><circle cx="11" cy="11" r="1.6"/><circle cx="3" cy="7" r="1.6"/><line x1="9.7" y1="3.7" x2="4.3" y2="6.3"/><line x1="4.3" y1="7.7" x2="9.7" y2="10.3"/></svg>';
     if (drawerHead && !shareBtn) {
@@ -970,15 +1046,15 @@ function glyphColorExpr(surface) {
     if (shareBtn) {
       shareBtn.onclick = () => {
         // Story 5.0 AC5 — append coords so the shared link opens local-first (viewport-first).
+        // A network's link opens it (its members, its card): no point of its own to centre on.
         const url = window.location.origin + '/?space=' + s.id
-          + `&lat=${s.coordinates.lat.toFixed(5)}&lon=${s.coordinates.lon.toFixed(5)}`;
+          + (net ? '' : `&lat=${s.coordinates.lat.toFixed(5)}&lon=${s.coordinates.lon.toFixed(5)}`);
         navigator.clipboard.writeText(url).then(() => {
           shareBtn.textContent = '✓';
           setTimeout(() => { shareBtn.innerHTML = SHARE_SVG; }, 1500);
         }).catch(() => {});
       };
     }
-    const networkLabel = (urn) => urn.split('/').pop().toUpperCase();
 
     // ── Hero ──
     const logoBox = el('div', { class: 'sp-logo' });
@@ -1000,14 +1076,12 @@ function glyphColorExpr(surface) {
         logoBox,
       ]),
       // A network has no address: it serves an area (2026-11-19).
-      isNetwork(s)
-        ? el('div', { class: 'sp-address' }, [servesLine(s)])
+      net
+        ? el('div', { class: 'sp-address' }, [networkAreaLine(s)])
         : el('div', { class: 'sp-address' }, [s.address || el('em', { class: 'sp-fact-empty' }, ['address not provided'])]),
-      areaPinNote(s),
       el('div', { class: 'sp-badges-row' }, [
-        isNetwork(s) ? el('span', { class: 'sp-badge sp-badge-tag' }, ['Network']) : null,
         el('span', { class: `sp-badge ${badgeKindClass[kind] || 'sp-badge-tag'}` }, [kindLabel[kind] || kind]),
-        ...(s.network_memberships || []).map((n) => el('span', { class: 'sp-badge sp-badge-tag' }, [networkLabel(n)])),
+        ...(s.network_memberships || []).map((n) => networkBadge(n)),
         s.open_for_hosting ? el('span', { class: 'sp-badge sp-badge-tag' }, ['open for hosting']) : null,
       ]),
     ]));
@@ -1041,8 +1115,8 @@ function glyphColorExpr(surface) {
       ]));
     }
 
-    // ── Quick Facts (non-seeded) ──
-    if (kind !== 'seeded') {
+    // ── Quick Facts (non-seeded; a network's always) ──
+    if (kind !== 'seeded' || net) {
       const factsKids = [
         el('span', { class: 'sp-fact-key' }, ['Description']),
         el('span', { class: 'sp-fact-val' }, [s.description || el('em', { class: 'sp-fact-empty' }, ['—'])]),
@@ -1050,12 +1124,18 @@ function glyphColorExpr(surface) {
         el('span', { class: 'sp-fact-val' }, [s.website
           ? el('a', { href: s.website, target: '_blank', rel: 'noopener' }, [s.website.replace(/^https?:\/\//, '')])
           : el('em', { class: 'sp-fact-empty' }, ['—'])]),
-        el('span', { class: 'sp-fact-key' }, ['Hours']),
-        el('span', { class: 'sp-fact-val' }, [s.opening_hours || el('em', { class: 'sp-fact-empty' }, ['—'])]),
       ];
-      // Next event — always rendered (— when missing) so visitors see the gap
-      factsKids.push(el('span', { class: 'sp-fact-key' }, ['Next event']));
-      factsKids.push(el('span', { class: 'sp-fact-val' }, [s.next_event || el('em', { class: 'sp-fact-empty' }, ['—'])]));
+      if (!net) {
+        factsKids.push(el('span', { class: 'sp-fact-key' }, ['Hours']));
+        factsKids.push(el('span', { class: 'sp-fact-val' }, [s.opening_hours || el('em', { class: 'sp-fact-empty' }, ['—'])]));
+        // Next event — always rendered (— when missing) so visitors see the gap
+        factsKids.push(el('span', { class: 'sp-fact-key' }, ['Next event']));
+        factsKids.push(el('span', { class: 'sp-fact-val' }, [s.next_event || el('em', { class: 'sp-fact-empty' }, ['—'])]));
+      } else if (s.opening_hours) {
+        // A network has no door: its schema:openingHours are when it answers (M1). Shown only when given.
+        factsKids.push(el('span', { class: 'sp-fact-key' }, ['Contact hours']));
+        factsKids.push(el('span', { class: 'sp-fact-val' }, [s.opening_hours]));
+      }
 
       // Contact — always rendered
       factsKids.push(el('span', { class: 'sp-fact-key' }, ['Contact']));
@@ -1088,7 +1168,7 @@ function glyphColorExpr(surface) {
         factsKids.push(contactVal);
         // A Turtle space (Story 14.7) keeps its contact handles in its own file, not in the index:
         // the card reads them from the source as the map last read it.
-        if (kind !== 'seeded' && s.id) {
+        if ((kind !== 'seeded' || net) && s.id) {
           fetch(`/api/space/${encodeURIComponent(s.id)}/raw`)
             .then(r => r.json())
             .then(result => {
@@ -1115,17 +1195,45 @@ function glyphColorExpr(surface) {
       ]));
     }
 
+    // ── Members (a network): the spaces that name it with mom:memberOf, each opening its own card ──
+    if (net) {
+      const members = membersOf(s).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      const SHOWN = 50;
+      const list = el('div', { class: 'sp-members' }, members.slice(0, SHOWN).map((m) => {
+        const where = [m.city, countryLabel(m.country_code)].filter(Boolean).join(', ');
+        return el('button', { class: 'result sp-member', type: 'button', onclick: () => selectSpace(m.id, { fly: true }) }, [
+          el('span', { class: `pin-swatch ${computeMarker(m)}`, style: { marginTop: '2px' } }),
+          el('div', { style: { flex: 1, minWidth: 0 } }, [
+            el('div', { class: 'name' }, [m.name]),
+            where ? el('div', { class: 'meta' }, [where]) : null,
+          ]),
+        ]);
+      }));
+      if (members.length > SHOWN) {
+        list.appendChild(el('button', { class: 'btn', type: 'button', style: { marginTop: '8px' }, onclick: () => setDrawer('find') },
+          [`All ${members.length} in Find →`]));
+      }
+      body.appendChild(el('div', { class: 'sp-section' }, [
+        el('div', { class: 'sp-section-label' }, [`Members · ${members.length}`]),
+        members.length ? list
+          : el('div', { class: 'sp-fact-empty' }, ['No member space on the map yet. A space joins by naming this network in its file (mom:memberOf).']),
+      ]));
+    }
+
     // ── Embed CTA (desktop-only via CSS) ──
-    if (kind !== 'seeded') {
+    if (kind !== 'seeded' || net) {
       const embedBtn = el('button', { class: 'sp-embed-btn' }, []);
-      embedBtn.innerHTML = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="4.5,3 1.5,7 4.5,11"/><polyline points="9.5,3 12.5,7 9.5,11"/><line x1="8.2" y1="2.5" x2="5.8" y2="11.5"/></svg> Embed this space →';
-      embedBtn.addEventListener('click', () => embedSpace(s.id));
+      embedBtn.innerHTML = '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><polyline points="4.5,3 1.5,7 4.5,11"/><polyline points="9.5,3 12.5,7 9.5,11"/><line x1="8.2" y1="2.5" x2="5.8" y2="11.5"/></svg> '
+        + (net ? 'Embed this network →' : 'Embed this space →');
+      embedBtn.addEventListener('click', () => (net ? embedNetwork(s.id) : embedSpace(s.id)));
       body.appendChild(el('div', { class: 'sp-section sp-embed-wrap' }, [embedBtn]));
     }
 
     // ── What your data unlocks / state banners ──
+    // A network has none of the space's ladder (pin → card → SpaceAPI): no unclaimed banner, no Level up.
+    // Its endpoint's health (broken, going quiet) is said as a space's is.
     {
-      if (kind === 'seeded') {
+      if (kind === 'seeded' && !net) {
         const bannerDiv = el('div', { class: 'sp-section', style: { cursor: 'pointer' } }, [
           el('div', { class: 'sp-section-label' }, ['Unclaimed space']),
           el('div', { style: { fontSize: '13px', color: 'var(--muted)', marginTop: '4px' } }, ['This space appears in a public directory. Register your endpoint to claim it and keep your information live on the map.']),
@@ -1159,7 +1267,7 @@ function glyphColorExpr(surface) {
       }
 
       // Stepped unlock section — confirmed or broken-with-guidance
-      const showUnlock = (kind === 'confirmed') || (kind === 'broken' && s.next_unlock);
+      const showUnlock = !net && ((kind === 'confirmed') || (kind === 'broken' && s.next_unlock));
       if (showUnlock) {
         const unlockSection = el('div', { class: 'sp-section' }, [
           el('div', { class: 'sp-section-label' }, ['What your data unlocks']),
@@ -1426,7 +1534,7 @@ function glyphColorExpr(surface) {
         }
         // (?lat/?lon needs no jump here — initMap consumed it as the initial center.)
         const target = spaceId && state.spaces.find((x) => x.id === spaceId);
-        if (target) {
+        if (target && !(IS_EMBED && isNetwork(target))) {
           if (IS_EMBED) {
             // no detail drawer in embed — lightweight popup. Only fly if we're not
             // already centered on the deep-linked viewport (AC5) — AC6 legacy still flies.
@@ -1455,10 +1563,11 @@ function glyphColorExpr(surface) {
     const q = parts.join('&') || 'all';
     $('#pp-filters').textContent = q;
 
-    const bbox = map ? (() => {
+    // A network's embed opens on its members (embedNetwork), wherever the map is looking now.
+    const bbox = state.embed.bbox || (map ? (() => {
       const b = map.getBounds();
       return `${b.getWest().toFixed(2)},${b.getSouth().toFixed(2)},${b.getEast().toFixed(2)},${b.getNorth().toFixed(2)}`;
-    })() : '—';
+    })() : '—');
 
     const name = $('#preset-name').value.trim() || 'untitled-preset';
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -1486,7 +1595,23 @@ function glyphColorExpr(surface) {
     if (!s) return;
     $('#preset-name').value = s.name;
     state.embed.centerId = id;
+    state.embed.bbox = null;
     if (map) map.flyTo({ center: [s.coordinates.lon, s.coordinates.lat], zoom: Math.max(map.getZoom(), 10), speed: 1.2 });
+    setDrawer('preset');
+  }
+
+  // A network embeds its own map (M1, must-have): its members as the filter (networks=<its IRI>), the
+  // box around them as bbox, no ?space= (it has no pin to pop). The same preset drawer and snippet.
+  function embedNetwork(id) {
+    const n = state.spaces.find((x) => x.id === id);
+    if (!n) return;
+    state.filters.countries.clear();
+    state.filters.statuses.clear();
+    state.filters.specialties.clear();
+    openNetwork(n.uri);
+    $('#preset-name').value = n.name;
+    state.embed.centerId = null;
+    state.embed.bbox = networkBbox(n);
     setDrawer('preset');
   }
 
@@ -1642,7 +1767,8 @@ function glyphColorExpr(surface) {
       // submitted name (endpoint-dedup and claim-merge reuse the existing graph), so
       // trust the response over any local guess, and check the shape before using it
       // to navigate.
-      const rawSpaceId = (reg.space_uri || '').split('/').pop() || '';
+      // A network's id is network_<slug> (M1): urn:mak:network/<slug>.
+      const rawSpaceId = ((reg.space_uri || '').startsWith('urn:mak:network/') ? 'network_' : '') + ((reg.space_uri || '').split('/').pop() || '');
       const spaceId = /^[a-zA-Z0-9_-]{1,64}$/.test(rawSpaceId) ? rawSpaceId : null;
       const hasSpace = Boolean(spaceId);
 
@@ -1817,9 +1943,16 @@ function glyphColorExpr(surface) {
       selectSpace(btn.dataset.sid, { fly: true });
     });
     $('#results-list').addEventListener('pointercancel', () => { _pdTarget = null; });
+    // Keyboard (Enter/Space on a focused row): a click with no pointer behind it (detail 0), so a
+    // pointer's tap is never handled twice.
+    $('#results-list').addEventListener('click', (e) => {
+      if (e.detail !== 0) return;
+      const btn = e.target.closest('.result[data-sid]');
+      if (btn) selectSpace(btn.dataset.sid, { fly: true });
+    });
 $('#btn-preset').addEventListener('click', () => {
       // Toolbar entry = filter-preset builder; start clean (embedSpace path sets these).
-      if (state.openDrawer !== 'preset') { state.embed.centerId = null; $('#preset-name').value = ''; }
+      if (state.openDrawer !== 'preset') { state.embed.centerId = null; state.embed.bbox = null; $('#preset-name').value = ''; }
       toggleDrawer('preset');
     });
     $('#btn-addurl').addEventListener('click', () => toggleDrawer('addurl'));

@@ -20,7 +20,7 @@ from test_register_turtle import comparable
 
 MOM = "https://mapsofmaking.org/ns/mom#"
 SCHEMA = "https://schema.org/"
-NETWORK = URIRef("urn:mak:space/maakbib")
+NETWORK = URIRef("urn:mak:network/maakbib")  # its own entity (M1, 2026-11-19)
 
 
 @pytest.fixture
@@ -102,20 +102,23 @@ INSERT DATA { GRAPH <urn:mak:space/maakbib> {
 
 @pytest.mark.asyncio
 async def test_a_network_does_not_take_over_a_seeded_space_of_the_same_name(space_server, tmp_path, monkeypatch):
+    """Its own prefix and its own id: the seeded space keeps `maakbib`, the network is `network_maakbib`."""
     monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
     with StoreOxigraph(SEEDED_MAAKBIB) as ox:
         monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
         response = await register(space_server, ox, NETWORK_TTL, "text/turtle", "/n")
         assert response["kind"] == "network"
-        assert response["space_uri"] == "urn:mak:space/maakbib-network"
-        assert not any("DROP GRAPH <urn:mak:space/maakbib>" in u or "DROP SILENT GRAPH <urn:mak:space/maakbib>" in u for u in ox.updates)
+        assert response["space_uri"] == "urn:mak:network/maakbib"
+        assert not any("GRAPH <urn:mak:space/maakbib>" in u for u in ox.updates)
 
         # Both are on the map, each as its own kind.
         rows = ox.select(main._SPARQL_SELECT)
         features = {f["properties"]["id"]: f["properties"] for f in map(main._binding_to_feature, rows)}
+    assert set(features) == {"maakbib", "network_maakbib"}
     assert features["maakbib"]["kind"] == "space" and features["maakbib"]["name"] == "MaakBib"
-    net = features["maakbib-network"]
-    assert net["kind"] == "network" and net["area_served"] == [{"code": "BE-VLG", "name": "Flanders"}]
+    net = features["network_maakbib"]
+    assert net["kind"] == "network" and net["uri"] == "urn:mak:network/maakbib"
+    assert net["area_served"] == [{"code": "BE-VLG", "name": "Flanders"}]
     assert net["geolocationFidelity"] == "region" and net["country_code"] == "BE" and net["address"] == ""
 
 
@@ -138,17 +141,57 @@ INSERT DATA { GRAPH <urn:mak:space/net> {
 
 @pytest.mark.asyncio
 async def test_registering_a_network_again_keeps_to_its_own_record(space_server, tmp_path, monkeypatch):
-    """Home registers the same address twice: the second finds the network by its address, and its
-    snapshot goes under the network's id, never the seeded space's of the same name."""
+    """Home registers the same address twice: the second finds the network by its address (endpoint
+    dedupe on urn:mak:network/), and its snapshot goes under the network's id, never the seeded space's."""
     from snapshot_store import read_snapshot
     monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
     with StoreOxigraph(SEEDED_MAAKBIB) as ox:
         monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
         first = await register(space_server, ox, NETWORK_TTL, "text/turtle", "/n")
         second = await register(space_server, ox, NETWORK_TTL, "text/turtle", "/n")
-    assert first["space_uri"] == second["space_uri"] == "urn:mak:space/maakbib-network"
+        found = await main._find_graph_by_endpoint(ox.url, space_server.url_for("/n"))
+        graphs = {str(r.g) for r in ox.store.query("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }")}
+    assert first["space_uri"] == second["space_uri"] == found == "urn:mak:network/maakbib"
+    assert graphs == {"urn:mak:space/maakbib", "urn:mak:network/maakbib"}
     assert read_snapshot("maakbib") is None
-    assert read_snapshot("maakbib-network")["payload"]["fields"]["schema:areaServed"] == [{"code": "BE-VLG", "name": "Flanders"}]
+    assert read_snapshot("network_maakbib")["payload"]["fields"]["schema:areaServed"] == [{"code": "BE-VLG", "name": "Flanders"}]
+
+
+@pytest.mark.asyncio
+async def test_a_network_registered_before_m1_moves_to_its_own_prefix(space_server, tmp_path, monkeypatch):
+    """The live maakbib record: a mom:Network in urn:mak:space/maakbib. Registering its address again
+    drops that graph and writes urn:mak:network/maakbib in the same update."""
+    monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
+    url = serve(space_server, NETWORK_TTL, "text/turtle", "/n")
+    legacy = f"""
+INSERT DATA {{ GRAPH <urn:mak:space/maakbib> {{
+  <urn:mak:space/maakbib> a <{MOM}Network> ;
+    <{SCHEMA}name> "Maakbib" ;
+    <{MOM}endpointUrl> <{url}> ;
+    <{MOM}source> "self-registered" ;
+    <{SCHEMA}geo> [ <{SCHEMA}latitude> 51.0378 ; <{SCHEMA}longitude> 4.2406 ] .
+}} }}"""
+    with StoreOxigraph(legacy) as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        response = await main.register_url(main.UrlRequest(url=url), BackgroundTasks())
+        graphs = {str(r.g) for r in ox.store.query("SELECT DISTINCT ?g WHERE { GRAPH ?g { ?s ?p ?o } }")}
+        rows = ox.select(main._SPARQL_SELECT)
+        again = await main.register_url(main.UrlRequest(url=url), BackgroundTasks())
+    assert response["space_uri"] == again["space_uri"] == "urn:mak:network/maakbib"
+    assert graphs == {"urn:mak:network/maakbib"}
+    assert [main._binding_to_feature(r)["properties"]["id"] for r in rows] == ["network_maakbib"]
+
+
+@pytest.mark.asyncio
+async def test_a_network_gets_no_space_subset_or_level_up_hint(space_server, tmp_path, monkeypatch):
+    """No pin, and its hours are contact hours: 'Level up: add openingHours' is a space's ladder."""
+    monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
+    with FakeOxigraph() as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        response = await register(space_server, ox, NETWORK_JSON, "application/json", "/n")
+        g = inserted(ox.updates[-1])
+    assert response["next_unlock"] is None and response["subset"] is None
+    assert not any(p in (URIRef(MOM + "nextUnlock"), URIRef(MOM + "subset")) for _, p, _ in g)
 
 
 @pytest.mark.asyncio
@@ -170,10 +213,85 @@ async def test_a_space_does_not_drop_a_registered_network_of_the_same_name(space
         first = await register(space_server, ox, NETWORK_TTL, "text/turtle", "/n")
         second = await register(space_server, ox, space, "text/turtle", "/s")
         rows = ox.select(main._SPARQL_SELECT)
-    assert first["space_uri"] == "urn:mak:space/maakbib"
-    assert second["space_uri"] == "urn:mak:space/maakbib-space"
+    assert first["space_uri"] == "urn:mak:network/maakbib"
+    assert second["space_uri"] == "urn:mak:space/maakbib"
     kinds = {f["properties"]["id"]: f["properties"]["kind"] for f in map(main._binding_to_feature, rows)}
-    assert kinds == {"maakbib": "network", "maakbib-space": "space"}
+    assert kinds == {"network_maakbib": "network", "maakbib": "space"}
+
+
+# ── A network's id, its lookups, its members (M1, 2026-11-19) ───────────────
+
+@pytest.mark.parametrize("uri, sid", [
+    ("urn:mak:space/weld-done", "weld-done"),
+    ("urn:mak:network/maakbib", "network_maakbib"),
+    ("urn:mak:canary/mother-sands", "mother-sands"),
+])
+def test_ids_and_graphs_go_both_ways(uri, sid):
+    assert main._id_of(uri) == sid
+    graph, subject = main._graph_of(sid)
+    assert subject == uri and graph == (uri if "canary" not in uri else "urn:mak:canary")
+    assert main._SPACE_ID_RE.match(sid)
+
+
+@pytest.mark.asyncio
+async def test_the_heartbeat_ticks_a_network_under_its_own_graph_and_id(space_server, tmp_path, monkeypatch):
+    monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
+    with StoreOxigraph() as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        await register(space_server, ox, NETWORK_TTL, "text/turtle", "/n")
+        claimed = await main._query_all_claimed_spaces(ox.url)
+        ticked = []
+
+        async def fake_pipeline(**kw):
+            ticked.append(kw)
+            return "2026-11-19T12:00:00Z"
+
+        async def no_rematerialize():
+            return None
+
+        monkeypatch.setattr(main, "run_space_pipeline", fake_pipeline)
+        monkeypatch.setattr(main, "_rematerialize_geojson", no_rematerialize)
+        main._manual_refresh_cooldowns.pop("network_maakbib", None)
+        out = await main.heartbeat_space("network_maakbib")
+    assert [(c["uid"], c["graph_uri"], c["subject"]) for c in claimed] == \
+        [("network_maakbib", "urn:mak:network/maakbib", "urn:mak:network/maakbib")]
+    assert out["outcome"] == "ok"
+    assert (ticked[0]["uid"], ticked[0]["graph_uri"], ticked[0]["subject"]) == \
+        ("network_maakbib", "urn:mak:network/maakbib", "urn:mak:network/maakbib")
+
+
+@pytest.mark.asyncio
+async def test_space_by_endpoint_answers_a_network_s_id(monkeypatch):
+    async def fake(endpoint, url):
+        return "urn:mak:network/maakbib"
+
+    monkeypatch.setattr(main, "_find_graph_by_endpoint", fake)
+    assert await main.get_space_by_endpoint("https://maakbib.example/network.ttl") == {"id": "network_maakbib"}
+
+
+def _feature(sid, uri, kind, memberships=(), endpoint=""):
+    return {"type": "Feature", "geometry": {"type": "Point", "coordinates": [4.0, 51.0]},
+            "properties": {"id": sid, "uri": uri, "kind": kind, "endpoint_url": endpoint,
+                           "network_memberships": list(memberships)}}
+
+
+def test_a_network_s_members_are_the_spaces_that_name_it():
+    features = main._link_networks([
+        _feature("network_maakbib", "urn:mak:network/maakbib", "network", endpoint="https://maakbib.example/network.ttl"),
+        _feature("ingegno", "urn:mak:space/ingegno", "space", ["urn:mak:network/maakbib", "urn:mak:network/vow"]),
+        # Names the network by its own file, with the subject's fragment: the same network.
+        _feature("weld-done", "urn:mak:space/weld-done", "space", ["https://maakbib.example/network.ttl#space"]),
+        _feature("elsewhere", "urn:mak:space/elsewhere", "space", ["urn:mak:network/vow"]),
+        # A network in the network is not one of its member spaces.
+        _feature("network_sub", "urn:mak:network/sub", "network", ["urn:mak:network/maakbib"]),
+    ])
+    props = {f["properties"]["id"]: f["properties"] for f in features}
+    assert props["network_maakbib"]["members"] == ["ingegno", "weld-done"]
+    assert props["network_sub"]["members"] == []
+    # One network, one chip: the file's address is read as the network's IRI.
+    assert props["weld-done"]["network_memberships"] == ["urn:mak:network/maakbib"]
+    assert props["ingegno"]["network_memberships"] == ["urn:mak:network/maakbib", "urn:mak:network/vow"]
+    assert "members" not in props["ingegno"]
 
 
 # ── Geocode: an area, as well as an address ─────────────────────────────────

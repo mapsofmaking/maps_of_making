@@ -99,13 +99,8 @@ SELECT ?graph ?subject ?endpointUrl WHERE {
         subject = b["subject"]["value"]
         graph_uri = b["graph"]["value"]
         endpoint_url = b["endpointUrl"]["value"]
-        # Derive uid from subject URI:
-        #   urn:mak:canary/mother-sands  → mother-sand
-        #   urn:mak:space/<slug>         → <slug>
-        if "/" in subject:
-            uid = subject.rsplit("/", 1)[-1]
-        else:
-            uid = subject
+        # The map's id for the subject (_id_of): mother-sands, <slug>, network_<slug>.
+        uid = _id_of(subject)
         out.append({
             "uid": uid,
             "endpoint_url": endpoint_url,
@@ -117,6 +112,32 @@ SELECT ?graph ?subject ?endpointUrl WHERE {
 
 # The class each kind of registration is typed with (a network: 2026-11-19, docs/reference/space-file.md).
 _KIND_TYPE = {"space": f"{MOM}Space", "network": f"{MOM}Network"}
+
+# Where each kind lives (M1, 2026-11-19): a network is its own entity, graph and subject
+# `urn:mak:network/<slug>`, the IRI its members already name with mom:memberOf.
+_KIND_PREFIX = {"space": "urn:mak:space/", "network": "urn:mak:network/"}
+# A network's id on the map, in the snapshot store and in /api/space/{id}: `network_<slug>`.
+# A space's id is its slug, which never holds `_` (utils._slug), so the two never meet.
+_NETWORK_ID_PREFIX = "network_"
+
+
+def _id_of(uri: str) -> str:
+    """The map's id for a space or network IRI: `<slug>` for urn:mak:space/<slug> (and the
+    canary's last segment), `network_<slug>` for urn:mak:network/<slug>."""
+    if uri.startswith(_KIND_PREFIX["network"]):
+        return _NETWORK_ID_PREFIX + uri[len(_KIND_PREFIX["network"]):]
+    return uri.rsplit("/", 1)[-1] if "/" in uri else uri
+
+
+def _graph_of(space_id: str) -> tuple[str, str]:
+    """(graph, subject) for a map id, the inverse of _id_of. The canary has its own graph."""
+    if space_id == "mother-sands":
+        return "urn:mak:canary", f"urn:mak:canary/{space_id}"
+    if space_id.startswith(_NETWORK_ID_PREFIX):
+        uri = _KIND_PREFIX["network"] + space_id[len(_NETWORK_ID_PREFIX):]
+    else:
+        uri = _KIND_PREFIX["space"] + space_id
+    return uri, uri
 
 
 async def _find_seeded_graph_by_name(oxigraph_endpoint: str, name: str, kind: str = "space") -> Optional[str]:
@@ -158,31 +179,6 @@ SELECT ?graph WHERE {{
         return None
     rows = resp.json().get("results", {}).get("bindings", [])
     return rows[0]["graph"]["value"] if rows else None
-
-
-async def _graph_kind(oxigraph_endpoint: str, graph_uri: str) -> Optional[str]:
-    """'space' or 'network': what the graph at `graph_uri` holds, or None (empty, or the lookup failed)."""
-    sparql = f"""SELECT ?t WHERE {{
-  GRAPH <{graph_uri}> {{ ?s a ?t . FILTER(?t IN (<{_KIND_TYPE['space']}>, <{_KIND_TYPE['network']}>)) }}
-}} LIMIT 1"""
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(
-                f"{oxigraph_endpoint}/query",
-                content=sparql,
-                headers={
-                    "Content-Type": "application/sparql-query",
-                    "Accept": "application/sparql-results+json",
-                },
-            )
-            resp.raise_for_status()
-    except httpx.HTTPError as e:
-        logger.warning("[register] kind lookup failed for %s: %s", graph_uri, e)
-        return None
-    rows = resp.json().get("results", {}).get("bindings", [])
-    if not rows:
-        return None
-    return "network" if rows[0]["t"]["value"] == _KIND_TYPE["network"] else "space"
 
 
 async def _find_graph_by_endpoint(oxigraph_endpoint: str, endpoint_url: str) -> Optional[str]:
@@ -337,7 +333,9 @@ WHERE {
       }
       FILTER (?type IN (mom:Space, mom:Network))
     }
-    FILTER (STRSTARTS(STR(?spaceGraph), "urn:mak:space/"))
+    # Spaces, and networks in their own graphs (M1, 2026-11-19); a network registered before
+    # M1 under urn:mak:space/ still shows until it is registered again.
+    FILTER (STRSTARTS(STR(?spaceGraph), "urn:mak:space/") || STRSTARTS(STR(?spaceGraph), "urn:mak:network/"))
   }
   UNION
   {
@@ -638,7 +636,7 @@ def _parse_contact_json(raw: Optional[str]) -> Optional[dict]:
 
 def _binding_to_feature(b: dict) -> Optional[dict]:
     space_uri = b.get("spaceUri", {}).get("value", "")
-    space_id = space_uri.split("/")[-1] if "/" in space_uri else space_uri
+    space_id = _id_of(space_uri)
     name = b.get("name", {}).get("value", "")
     lat_raw = b.get("latitude", {}).get("value")
     lon_raw = b.get("longitude", {}).get("value")
@@ -710,6 +708,34 @@ def _binding_to_feature(b: dict) -> Optional[dict]:
     }
 
 
+def _link_networks(features: list[dict]) -> list[dict]:
+    """Each network gets `members`: the ids of the spaces that name it with mom:memberOf (M1, 2026-11-19).
+
+    A member names a network by its IRI (`urn:mak:network/<slug>`, as seeding writes it), or by the
+    address of the network's own file (its endpoint or pod profile, with or without a `#fragment`).
+    The second is rewritten to the first in the member's `network_memberships`, so one network is
+    one filter chip and one `networks=` embed parameter, whichever way its members name it.
+    """
+    def bare(iri: str) -> str:
+        return iri.split("#", 1)[0]
+
+    networks = [f["properties"] for f in features if f["properties"].get("kind") == "network"]
+    by_address = {bare(n["endpoint_url"]): n["uri"] for n in networks if n.get("endpoint_url")}
+    members: dict[str, list[str]] = {n["uri"]: [] for n in networks}
+    for f in features:
+        props = f["properties"]
+        named = (by_address.get(bare(m), m) for m in props.get("network_memberships") or [])
+        props["network_memberships"] = list(dict.fromkeys(named))
+        if props.get("kind") == "network":
+            continue  # a network in a network is not one of its member spaces
+        for uri in props["network_memberships"]:
+            if uri in members:
+                members[uri].append(props["id"])
+    for n in networks:
+        n["members"] = members[n["uri"]]
+    return features
+
+
 def _load_thresholds_from_config() -> dict:
     config_path = Path(__file__).parent / "config.yaml"
     with open(config_path, "r") as f:
@@ -753,7 +779,7 @@ async def _rematerialize_geojson_locked() -> None:
         bindings = resp.json().get("results", {}).get("bindings", [])
 
     features = [_binding_to_feature(b) for b in bindings]
-    features = [f for f in features if f is not None]
+    features = _link_networks([f for f in features if f is not None])
 
     # SQLite join: fill in observed_at and last_fetch_status for each feature
     for feature in features:
@@ -870,14 +896,9 @@ async def heartbeat_space(space_id: str):
             detail={"error": "rate_limited", "retry_after_seconds": retry_after},
         )
 
-    # Canary lives in urn:mak:canary, regular spaces in urn:mak:space/<slug>.
-    # One lookup across both graphs — same shape as the heartbeat driver.
-    if space_id == "mother-sands":
-        graph_uri = "urn:mak:canary"
-        subject = f"urn:mak:canary/{space_id}"
-    else:
-        graph_uri = f"urn:mak:space/{space_id}"
-        subject = graph_uri
+    # Canary lives in urn:mak:canary, spaces in urn:mak:space/<slug>, networks in
+    # urn:mak:network/<slug> (id network_<slug>) — same shape as the heartbeat driver.
+    graph_uri, subject = _graph_of(space_id)
 
     sparql = f"""PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 SELECT ?endpointUrl WHERE {{
@@ -947,14 +968,8 @@ async def bot_deploy_key(
 
     effective_room_id = room_id or (req.room_id if req else None)
 
-    # Canary lives in urn:mak:canary, regular spaces in urn:mak:space/<slug> —
-    # same lookup shape as heartbeat_space above.
-    if space_id == "mother-sands":
-        graph_uri = "urn:mak:canary"
-        subject = f"urn:mak:canary/{space_id}"
-    else:
-        graph_uri = f"urn:mak:space/{space_id}"
-        subject = graph_uri
+    # Same lookup shape as heartbeat_space above (canary, space or network).
+    graph_uri, subject = _graph_of(space_id)
 
     sparql = f"""PREFIX mom: <{MOM}>
 SELECT ?endpointUrl WHERE {{
@@ -1079,29 +1094,38 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
             graph_uri = claimed_uri
             space_uri = claimed_uri
         else:
-            # A network and a space of the same name would share a slug: the graph there is of
-            # the other kind, so this one takes its own (`<slug>-network`, `<slug>-space`) rather
-            # than dropping it.
-            other = await _graph_kind(OXIGRAPH_ENDPOINT, f"urn:mak:space/{slug}")
-            if other is not None and other != kind:
-                logger.info("[register] %r: urn:mak:space/%s holds a %s; registering as %s-%s", name, slug, other, slug, kind)
-                slug = f"{slug}-{kind}"
-            graph_uri = f"urn:mak:space/{slug}"
-            space_uri = f"urn:mak:space/{slug}"
+            # Each kind under its own prefix (M1): a network and a space of the same name no
+            # longer share a graph, and their ids differ (`<slug>`, `network_<slug>`).
+            graph_uri = space_uri = f"{_KIND_PREFIX[kind]}{slug}"
 
-    # The snapshot and the first tick go under the id the map uses for this graph (its last segment),
-    # as the heartbeat does: a re-registered network (`<slug>-network`) or a claimed seed must not
-    # write under another record's name.
-    if space_uri.startswith("urn:mak:space/"):
-        slug = space_uri.rsplit("/", 1)[-1]
+    # The record found sits under the other kind's prefix: a network registered before M1
+    # (urn:mak:space/<slug>), or a file that changed kind. It moves to its own prefix, under its
+    # name's slug, and the old graph is dropped in the same update: registering again migrates it.
+    moved_from = None
+    other_prefix = _KIND_PREFIX["space" if kind == "network" else "network"]
+    if graph_uri.startswith(other_prefix):
+        moved_from = graph_uri
+        graph_uri = space_uri = f"{_KIND_PREFIX[kind]}{slug}"
+        logger.info("[register] %r is a %s: moving %s to %s", name, kind, moved_from, graph_uri)
+
+    # The snapshot and the first tick go under the id the map uses for this graph (_id_of), as
+    # the heartbeat does: a claimed seed or a network must not write under another record's name.
+    if space_uri.startswith(tuple(_KIND_PREFIX.values())):
+        slug = _id_of(space_uri)
 
     cls: dict = {}
     reg_observed_at = mint_observed_at()
-    try:
-        schema_obj = SpaceAPISchema.model_validate(data)
-        cls = classify_subset(schema_obj)
-    except Exception as e:
-        logger.warning("classify_subset failed for %s (non-fatal): %s", slug, e)
+    # The subset ladder (pin → card → SpaceAPI) is a space's: a network has no pin and its hours
+    # are contact hours, so it gets no subset and no "Level up" hint (M1, 2026-11-19).
+    if kind != "network":
+        try:
+            schema_obj = SpaceAPISchema.model_validate(data)
+            cls = classify_subset(schema_obj)
+        except Exception as e:
+            logger.warning("classify_subset failed for %s (non-fatal): %s", slug, e)
+    else:
+        for key in ("subset", "subset_score", "missing_card_fields", "unlock_message", "next_subset", "next_unlock"):
+            result[key] = None
 
     sparql_update = _build_sparql_update(
         graph_uri, space_uri, name, lat, lon, req.url, data,
@@ -1110,6 +1134,8 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
         profile_url=safe_iri(req.url.split("#", 1)[0]) if is_turtle else None,
         kind=kind,
     )
+    if moved_from:
+        sparql_update = f"DROP SILENT GRAPH <{moved_from}> ;\n{sparql_update}"
 
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
@@ -1278,7 +1304,8 @@ async def get_space_by_endpoint(url: str):
     if safe_iri(url.strip()) is None:
         raise HTTPException(status_code=400, detail={"error": "bad_url"})
     graph = await _find_graph_by_endpoint(OXIGRAPH_ENDPOINT, url)
-    space_id = graph.rsplit("/", 1)[-1] if graph else None
+    # A network's id is network_<slug> (M1); a network not yet moved off urn:mak:space/ keeps its slug.
+    space_id = _id_of(graph) if graph else None
     if not space_id or not _SPACE_ID_RE.match(space_id):
         raise HTTPException(status_code=404, detail={"error": "not_registered"})
     return {"id": space_id}
