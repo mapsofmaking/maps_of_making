@@ -168,16 +168,34 @@ FLANDERS = Location("Vlaanderen, België / Belgique / Belgien", (51.0377778, 4.2
                     {"address": {"state": "Vlaanderen", "ISO3166-2-lvl4": "BE-VLG", "country": "België / Belgique / Belgien", "country_code": "be"}})
 BRUSSELS = Location("Région de Bruxelles-Capitale - Brussels Hoofdstedelijk Gewest, België", (50.8387951, 4.3753041, 0),
                     {"address": {"region": "Région de Bruxelles-Capitale", "ISO3166-2-lvl4": "BE-BRU", "country_code": "be"}})
+# A province inside Flanders: it carries Flanders' code at lvl4 and its own at lvl6 (seen live, 2026-11-19).
+WEST_FLANDERS = Location("West-Vlaanderen, Vlaanderen, België / Belgique / Belgien", (51.0404747, 2.9994213, 0),
+                         {"address": {"province": "West-Vlaanderen", "ISO3166-2-lvl6": "BE-VWV", "state": "Vlaanderen",
+                                      "ISO3166-2-lvl4": "BE-VLG", "country_code": "be"}})
 BELGIUM = Location("België / Belgique / Belgien", (50.6402809, 4.6667145, 0), {"address": {"country": "België", "country_code": "be"}})
 
 
 @pytest.mark.asyncio
 async def test_geocode_a_region_by_its_code(monkeypatch):
-    calls = _stub(monkeypatch, FLANDERS)
+    calls = _stub(monkeypatch, [FLANDERS])
     out = await main.geocode(main.GeocodeRequest(area="be-vlg"))
-    assert calls == [("BE-VLG", {"addressdetails": True, "featuretype": "state", "country_codes": "be"})]
+    assert calls == [("BE-VLG", {"addressdetails": True, "country_codes": "be", "exactly_one": False, "limit": 5})]
     assert out == {"lat": 51.0377778, "lon": 4.2405556, "country_code": "BE", "postcode": None,
                    "display_name": "Vlaanderen, België / Belgique / Belgien", "fidelity": "region", "area": "BE-VLG"}
+
+
+@pytest.mark.asyncio
+async def test_geocode_a_region_skips_the_provinces_inside_it(monkeypatch):
+    _stub(monkeypatch, [WEST_FLANDERS, FLANDERS])
+    out = await main.geocode(main.GeocodeRequest(area="BE-VLG"))
+    assert (out["lat"], out["lon"], out["fidelity"]) == (51.0377778, 4.2405556, "region")
+
+
+@pytest.mark.asyncio
+async def test_geocode_only_provinces_is_no_result(monkeypatch):
+    _stub(monkeypatch, [WEST_FLANDERS])
+    out = await main.geocode(main.GeocodeRequest(area="BE-VLG"))
+    assert out["lat"] is None and out["area"] == "BE-VLG"
 
 
 @pytest.mark.asyncio
