@@ -114,9 +114,11 @@ source as the map last read it.
 > (`tests/test_space_turtle.py`, `infra/link_handler/test_register_network.py`)
 > hold the two files together, as for a space.
 
-A network has no address: it **serves an area** and sits on the map at the
-centre of it, saying how coarse that pin is. Everything else (name,
+A network has no address: it **serves an area**, and its file gives the
+centre of it, saying how coarse that point is. Everything else (name,
 description, website, logo, contact handles, `memberOf`) is as for a space.
+On the map a network is **its own entity, not a place** (M1, below): no pin,
+a card of its own, and its members.
 
 | Field | Required | SpaceAPI JSON (self-host) | Turtle `space.ttl` (pod) | Map graph after ingest |
 |---|---|---|---|---|
@@ -125,7 +127,8 @@ description, website, logo, contact handles, `memberOf`) is as for a space.
 | pin fidelity | yes | `mom.geolocationFidelity` | `mom:geolocationFidelity` | `mom:geolocationFidelity` |
 | lat, lon | yes | `location.lat`, `location.lon` | `schema:geo [ schema:latitude ; schema:longitude ]` | same |
 | country | no | `location.country_code` | none: derived from the areas | `mom:countryCode` (given, or the one country all areas are in) |
-| address | — | none (no `location.address`) | none (no `schema:address`) | none: the card says "Serves …" instead |
+| address | — | none (no `location.address`) | none (no `schema:address`) | none: the card says "Network · …" instead |
+| hours | no | `schema:openingHours` (as a space) | `schema:openingHours` | the same; the card calls them **contact hours** |
 
 - **An area** is a code and a name, anywhere in the world. The code is ISO
   3166-1 alpha-2 (`BE`) or ISO 3166-2 (`BE-VLG` Flanders, `FR-IDF`
@@ -149,12 +152,99 @@ description, website, logo, contact handles, `memberOf`) is as for a space.
   `lon` and `fidelity` into the file (`{"area": "BE-VLG"}` gives the centre
   of a code already known).
 - **Same name as a space.** A network never claims a seeded space of the same
-  name (the claim-merge on registration matches the same kind only), and if
-  `urn:mak:space/<slug>` already holds a space, the network is registered as
-  `urn:mak:space/<slug>-network` (a space meeting a network: `<slug>-space`).
+  name (the claim-merge on registration matches the same kind only). The two
+  never share a graph or an id either (identity, below).
+- **No subset ladder.** The space's ladder (pin → card → SpaceAPI) and its
+  "Level up: add openingHours" hint are not a network's: `validate-url` and
+  `register-url` answer `subset` and `next_unlock` null for it (and `kind:
+  "network"`), and registration writes neither.
 - **The map's file** (`spaces.geojson`) gives every feature `kind`
   (`"space"` | `"network"`) and `area_served`, a list of `{"code", "name"}`
-  (`name` is `""` for a bare code). The card says "Serves Flanders".
+  (`name` is `""` for a bare code). A network's feature also has `members`
+  (below).
+
+### A network is its own entity (M1)
+
+> Decided with Nicolas, 2026-11-19, after his live test with Maakbib: a
+> network is not a place. It has its own identity, no pin, and its members.
+
+**Identity.** A network is registered as graph and subject
+`urn:mak:network/<slug>` (`<slug>` from its name, as a space's), the IRI its
+members already name with `mom:memberOf` (seeding writes
+`urn:mak:network/<label>`). A space stays `urn:mak:space/<slug>`.
+
+| | A space | A network |
+|---|---|---|
+| graph and subject | `urn:mak:space/<slug>` | `urn:mak:network/<slug>` |
+| id (map, snapshot store, API) | `<slug>` | `network_<slug>` |
+
+The id is what `spaces.geojson`, `?space=` links and the snapshot store use.
+A slug never holds `_`, so a space and a network of the same name never share
+one (`maakbib`, `network_maakbib`). The lookups by id serve both kinds: there
+is no `/api/network/…`. `GET /api/space/{id}/pin`, `/raw`, `POST
+/api/heartbeat-space/{id}` and `/api/bot/deploy-key/{id}` take
+`network_<slug>`; `GET /api/space-by-endpoint` answers it for a network's
+address; `POST /api/register-url` answers `space_uri: urn:mak:network/<slug>`
+and the id itself, `id: network_<slug>` (`id` comes for a space too: read it
+rather than parsing `space_uri`).
+The heartbeat ticks a network as it ticks a space; the endpoint dedupe finds
+it by its address under either prefix.
+
+**Moving a network registered before M1.** A record found by its address (or a
+claimed seed) under the other kind's prefix moves: a network in
+`urn:mak:space/<slug>` is written to `urn:mak:network/<slug>` and the old
+graph dropped in the same update (and the other way round, for a file that
+changed kind). Registering a network's address again migrates it.
+
+**Members.** A network's members are the spaces whose `mom:memberOf` is its
+IRI (`urn:mak:network/<slug>`), or the address of its own file (its endpoint
+or pod profile, with or without a `#fragment`). The map's file gives the
+network `members`, the member spaces' ids, and writes a membership given by
+address as the network's IRI, so one network is one filter chip and one
+`networks=` parameter whichever way its members name it. A network in a
+network is not one of its member spaces.
+
+**On the map.**
+- **No pin.** A network is in `spaces.geojson` (its card, Find, its members
+  need it) but not on the map layer; the camera's first fit leaves it out.
+- **Find.** A network is a row with its own mark (not a pin's dot), "Network ·
+  Flanders" (its areas' names), and `network` where a space has its status.
+  Its chip, and a space's badge, carry the network's name when the network is
+  on the map (else the slug in capitals, as before).
+- **Opening a network** (its row, its chip turned on, a badge on a member's
+  card, a `?space=network_<slug>` link): the members become the filter, the
+  map fits them (none: the area's centre), and the **Network card** opens. A
+  chip turned off only removes the filter. A badge whose network is not on the
+  map applies the filter and opens Find.
+- **The Network card** ("Network", not "Space Profile"): name, logo, "Network
+  · <areas>", description, website, **contact hours** (its
+  `schema:openingHours`, only when given), contact, **Members · N** (each opens
+  that space's card; 50 shown, the rest in Find), and **Embed this network**:
+  the preset drawer with its members as the filter (`networks=<its IRI>`) and
+  the box around them as `bbox` (no `space=`), so a network embeds its own map
+  on its site. No "What your data unlocks".
+
+**Moving the live record** (an admin note: run by hand once this code is
+deployed). Maakbib was registered on 2026-11-19 as `urn:mak:space/maakbib`.
+Registering its address again moves it; the public API is enough, nothing
+touches Oxigraph by hand (on the VPS, `localhost:7878` is another project's
+store):
+
+```sh
+MAP=https://mapsofmaking.org
+# 1. The networks still under urn:mak:space/, and their addresses
+curl -s "$MAP/data/spaces.geojson" | jq -r '.features[].properties
+  | select(.kind == "network" and (.uri | startswith("urn:mak:space/"))) | "\(.id) \(.endpoint_url)"'
+# 2. Register each address again: the answer says urn:mak:network/<slug>
+curl -s -X POST "$MAP/api/register-url" -H 'Content-Type: application/json' \
+  -d '{"url": "<endpoint_url from 1>"}'
+# 3. Check: the id is network_<slug>; step 1 (after the map's rebuild, a minute) lists nothing
+curl -s -G "$MAP/api/space-by-endpoint" --data-urlencode 'url=<endpoint_url from 1>'
+```
+
+Idempotent: a second run of step 2 finds the network under
+`urn:mak:network/` and rewrites it in place. The old snapshot row (`maakbib`)
+stays in the snapshot store; nothing reads it.
 
 ```turtle
 @prefix schema: <https://schema.org/> .
@@ -252,7 +342,7 @@ area; "Brussels-Capital Region" finds `BE-BRU` "Brussels-Capital" (a
 1. **Subject.** The node typed `mom:Space`, `schema:Place` or `mom:Network`
    (`schema:Organization` only when nothing else is typed) is the space.
    The file's `<…/space.ttl#space>` becomes the space's own IRI
-   (`urn:mak:space/<slug>`); the pod document is kept as `mom:profileUrl`
+   (`urn:mak:space/<slug>`; a network's `urn:mak:network/<slug>`); the pod document is kept as `mom:profileUrl`
    (the registered address is also `mom:endpointUrl`, which the heartbeat
    needs). With several space nodes in one file, the `#space` one is read;
    with several and none of them `#space`, the file is refused.

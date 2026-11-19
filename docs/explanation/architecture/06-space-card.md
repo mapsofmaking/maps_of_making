@@ -80,6 +80,26 @@ triggers the *pipeline*: on success it re-pulls `spaces.geojson` and re-renders 
 on `429` it surfaces a rate-limit message with `retry_after_seconds` (`app.js:1180`). It respects
 the same fetch cadence the cron uses — the user can't hammer the source.
 
+### A network gets its own card (M1, 2026-11-19)
+The map holds two kinds of entity: **spaces** (places, with a pin) and **networks** (`kind:
+"network"`, `urn:mak:network/<slug>`, id `network_<slug>`: no pin, see
+[the space file reference](../../reference/space-file.md#a-network-is-its-own-entity-m1)).
+`renderDetail` draws a network's card from the same function, titled **Network** instead of
+*Space Profile*:
+
+- **Hero**: name, logo, *"Network · Flanders"* in place of the address, status badge, the networks
+  it belongs to.
+- **Quick Facts**: description, website, **Contact hours** (its `opening_hours`, only when given),
+  contact. No *Hours* / *Next event* rows: a network has no door.
+- **Members · N**: the spaces that name it with `mom:memberOf` (`members` in `spaces.geojson`), each
+  opening its own card.
+- **Embed this network**: the preset drawer with `networks=<its IRI>` and the box around its
+  members, so a network embeds its own map.
+- No *"What your data unlocks"*: the subset ladder is a space's. Health banners and Source Data stay.
+
+On a space's card, each network badge is a button: it filters the map to that network's members,
+fits them, and opens the Network card (the same as its chip in Find, or its row in the results).
+
 ## Backlog surfaced by this trace (verified against current code)
 
 - ✅ **`open_for_hosting` is live** — renders as a hero badge (`app.js:925`). _(Earlier notes filed

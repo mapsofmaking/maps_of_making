@@ -120,7 +120,7 @@ These three axes are the subject of Epic 3.5. They are written **only** by
 | `mom:endpointUrl` | loader / seed / registration | **the heartbeat eligibility gate** | `?endpointUrl` | `endpoint_url` |
 | `mom:source` | every callsite | provenance tag | `?source` | `source` |
 | `mom:operationalState` | canary loader | lifecycle (`seeded`/`confirmed`/…) | — | — |
-| `mom:memberOf` | seed (federation) | network membership | `?network` (GROUP_CONCAT) | `network_memberships` |
+| `mom:memberOf` | seed (federation) | network membership | `?network` (GROUP_CONCAT) | `network_memberships` (a network named by its file's address is written as its IRI); the network's own feature gets `members` (M1) |
 | `mom:endpointHealth`, `mom:lastFetched` | canary loader | canary skeleton fields | — | — |
 
 **`mom:endpointUrl` is load-bearing.** The heartbeat driver
