@@ -16,12 +16,15 @@ One place for what register (`main._fetch_and_validate`) and the heartbeat
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import os
+import socket
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 import httpx
 
@@ -125,6 +128,32 @@ def read_source(content_type: Optional[str], body: bytes, url: str) -> Source:
     if turtle.kind == "turtle" or (turtle.turtle and turtle.turtle.error_code != "invalid_turtle"):
         return turtle  # readable Turtle, or Turtle with a clear reason (no space, several, too many statements)
     return Source("refused", sent, sent, error=f"The response is neither JSON nor Turtle (the server sent {_label(sent)}).")
+
+
+async def non_public_host(url: str) -> Optional[str]:
+    """Why `url` must not be fetched, or None. The map fetches what anyone asks for: a host that is not on
+    the public internet (loopback, a private or link-local address, a container on the same network such
+    as `oxigraph`) is refused before any request, so no answer from inside the server leaks out (#84).
+    Every address a name resolves to must be public. Redirects are not followed (the callers' clients),
+    so a public URL cannot bounce inward. Known gap: the name is resolved again for the request
+    (DNS rebinding). A name that does not resolve is let through: the request fails the same way."""
+    host = urlparse(url).hostname
+    if not host:
+        return "The URL has no host."
+    try:
+        addresses = [ipaddress.ip_address(host)]
+    except ValueError:
+        try:
+            infos = await asyncio.get_running_loop().getaddrinfo(host, None, type=socket.SOCK_STREAM)
+        except (socket.gaierror, UnicodeError):
+            return None
+        addresses = [ipaddress.ip_address(str(info[4][0]).split("%", 1)[0]) for info in infos]
+    for address in addresses:
+        if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
+            address = address.ipv4_mapped
+        if not address.is_global:
+            return f"The map reads files on the public internet; {host} is not."
+    return None
 
 
 async def fetch_source(client: httpx.AsyncClient, url: str) -> Fetched:

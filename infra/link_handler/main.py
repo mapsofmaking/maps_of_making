@@ -39,7 +39,8 @@ from spaceapi_extract.turtle import safe_iri
 from pipeline import run_space_pipeline
 from pipeline_helpers import get_config
 from snapshot_store import mint_observed_at, write_snapshot, read_last_ok_observed_at, read_snapshot
-from source import as_spaceapi, fetch_source, snapshot_parts
+from source import as_spaceapi, fetch_source, non_public_host, snapshot_parts
+from read_record import read_record
 from utils import MOM, SCHEMA, _ALLOWED_SCHEMES, _sparql_str, _sparql_iri, _slug
 import bot_keys
 
@@ -494,6 +495,11 @@ def classify_subset(schema: SpaceAPISchema) -> dict:
         }
 
 
+# Checked before every fetch of a URL someone gave (validate, read, register); tests serve from
+# 127.0.0.1 and replace it (conftest.py).
+_host_error = non_public_host
+
+
 _EMPTY_RESULT = {
     "reachable": False,
     "status_code": None,
@@ -510,6 +516,9 @@ async def _fetch_and_validate(url: str) -> dict:
     from urllib.parse import urlparse
     if urlparse(url).scheme not in _ALLOWED_SCHEMES:
         return {**_EMPTY_RESULT, "error": f"URL scheme not allowed; use http or https"}
+    refused = await _host_error(url)
+    if refused:
+        return {**_EMPTY_RESULT, "error": refused}
 
     try:
         async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
@@ -1049,6 +1058,34 @@ async def validate_url(req: UrlRequest):
     result.pop("_source", None)
     # Subset info already in result from _fetch_and_validate
     return result
+
+
+# Read-url fetches up to 2 MiB for anyone and answers what it read: a cap for the whole service,
+# not per caller (behind two proxies the link handler sees one address for everybody).
+READ_URL_MAX = 30
+READ_URL_WINDOW_SECONDS = 60
+_read_url_times: list[datetime] = []
+
+
+@app.post("/api/read-url")
+async def read_url(req: UrlRequest):
+    """A space or network file, parsed and validated, written nowhere (#84): `{validation, record}`.
+
+    `validation` is validate-url's answer; `record` is the file as plain JSON (read_record.py),
+    null when the file could not be read. Home starts tile A from it (the browser cannot fetch
+    another origin)."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(seconds=READ_URL_WINDOW_SECONDS)
+    _read_url_times[:] = [t for t in _read_url_times if t > cutoff]
+    if len(_read_url_times) >= READ_URL_MAX:
+        retry_after = READ_URL_WINDOW_SECONDS - int((now - _read_url_times[0]).total_seconds())
+        raise HTTPException(status_code=429, detail={"error": "rate_limited", "retry_after_seconds": max(retry_after, 1)})
+    _read_url_times.append(now)
+
+    result = await _fetch_and_validate(req.url)
+    result.pop("_data", None)
+    source = result.pop("_source", None)
+    return {"validation": result, "record": read_record(source)}
 
 
 @app.post("/api/register-url")
