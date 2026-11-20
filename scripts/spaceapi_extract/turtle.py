@@ -30,7 +30,8 @@ SCHEMA_HTTP = "http://schema.org/"
 MOM = "https://mapsofmaking.org/ns/mom#"
 
 MAX_TRIPLES = 5000
-_CAPS = {"name": 200, "description": 5000, "hours": 500, "street": 300, "city": 200, "postcode": 30, "iri": 2000, "contact": 300}
+_CAPS = {"name": 200, "description": 5000, "hours": 500, "street": 300, "city": 200, "postcode": 30, "iri": 2000, "contact": 300, "topic": 200}
+MAX_TOPICS = 50
 
 # What may not appear in an IRI that is written between < and > in SPARQL.
 _BAD_IRI = re.compile(r"[\x00-\x20<>\"{}|\\^`]")
@@ -218,6 +219,26 @@ def _member_of(view: _View, subject: Any) -> list[str]:
     return sorted(out)  # a graph has no order; the written statements should not depend on it
 
 
+def _sdgs(view: _View, subject: Any) -> list[int]:
+    """The UN goals the space names, 1 to 17, once each, sorted (a graph has no order); anything else left out."""
+    out: set[int] = set()
+    for o in view.objects(subject, MOM + "sdgs"):
+        n = _number(o)
+        if n is not None and n == int(n) and 1 <= int(n) <= 17:
+            out.add(int(n))
+    return sorted(out)
+
+
+def _knows_about(view: _View, subject: Any) -> list[str]:
+    """The topics, as text: literals only, capped, once each, sorted; at most MAX_TOPICS."""
+    out: set[str] = set()
+    for o in view.objects(subject, SCHEMA + "knowsAbout"):
+        text = _text(o, _CAPS["topic"])
+        if text:
+            out.add(text)
+    return sorted(out)[:MAX_TOPICS]
+
+
 # The kinds of handle a contact point may carry (schema:contactType, any case) and the card's key for each.
 # The same list as home's tree (onb:ContactType) and the design system's ContactPicto.
 _CONTACT_TYPES = {"matrix": "matrix", "signal": "signal", "telegram": "telegram", "discord": "discord", "mattermost": "mattermost", "link": "link"}
@@ -272,7 +293,7 @@ def _contact(view: _View, subject: Any) -> list[dict[str, str]]:
 # The subject's predicates read above (or on purpose not: rdf:type picks the subject).
 _READ = {str(RDF.type)} | {SCHEMA + p for p in ("name", "geo", "address", "description", "openingHours", "url", "logo",
                                                   "areaServed", "email", "telephone", "contactPoint")} \
-        | {MOM + p for p in ("memberOf", "geolocationFidelity")}
+        | {SCHEMA + "knowsAbout"} | {MOM + p for p in ("memberOf", "geolocationFidelity", "sdgs")}
 
 
 def parse_space_turtle(text: str, base_url: str) -> ParsedSpace:
@@ -309,6 +330,13 @@ def parse_space_turtle(text: str, base_url: str) -> ParsedSpace:
     members = _member_of(view, subject)
     if members:
         fields["mom:memberOf"] = members
+    # The SDGs and the topics (#73), as the JSON path gives them (extract_core): what an import into a pod keeps.
+    sdgs = _sdgs(view, subject)
+    if sdgs:
+        fields["mom:sdgs"] = sdgs
+    topics = _knows_about(view, subject)
+    if topics:
+        fields["schema:knowsAbout"] = topics
     # A network (2026-11-19): the areas it serves, how coarse its pin is (after schema:geo: the heartbeat's
     # geo write clears the old fidelity first), and, with no address, the country of its areas.
     areas = clean_areas(_area_values(view, subject))
