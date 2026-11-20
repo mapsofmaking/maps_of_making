@@ -447,7 +447,8 @@ S_LIMBURG_NO_CODE = _found("Limburg, Flanders, Belgium", 51.0, 5.4, "province", 
 
 @pytest.mark.asyncio
 async def test_area_search_keeps_countries_and_subdivisions_with_their_own_code(monkeypatch):
-    calls = _stub(monkeypatch, [S_SCOTLAND, S_SCOTLAND_COUNTY, S_PARIS, S_LIMBURG_NO_CODE, S_WEST_FLANDERS, S_BELGIUM])
+    # No town in this list: a town now brings the areas it sits in (#87, below).
+    calls = _stub(monkeypatch, [S_SCOTLAND, S_SCOTLAND_COUNTY, S_LIMBURG_NO_CODE, S_WEST_FLANDERS, S_BELGIUM])
     out = await main.geocode(main.GeocodeRequest(area_search="  Scotland "))
     assert calls == [("Scotland", {"addressdetails": True, "exactly_one": False, "limit": 10, "language": "en"})]
     assert out == {"candidates": [
@@ -506,8 +507,180 @@ async def test_area_search_names_come_in_the_language_asked(monkeypatch):
 async def test_area_search_nothing_found_is_no_candidates(monkeypatch):
     _stub(monkeypatch, None)
     assert await main.geocode(main.GeocodeRequest(area_search="Atlantis")) == {"candidates": []}
-    _stub(monkeypatch, [S_PARIS, S_SCOTLAND_COUNTY])
-    assert await main.geocode(main.GeocodeRequest(area_search="Paris")) == {"candidates": []}
+    _stub(monkeypatch, [S_SCOTLAND_COUNTY])
+    assert await main.geocode(main.GeocodeRequest(area_search="Scotland County")) == {"candidates": []}
+
+
+# ── #87 (2026-11-20): the ISO list first, typos forgiven; a town brings the areas it sits in ──────
+
+@pytest.fixture(autouse=True)
+def _no_centres(monkeypatch):
+    """Area centres are cached in the process: each test starts with none."""
+    monkeypatch.setattr(main, "_centres", {})
+
+
+def _stub_by_query(monkeypatch, answers):
+    """Nominatim answering by query: a code's lookup (`{area}`'s) and a search differ."""
+    calls = []
+
+    def fake(query, **kwargs):
+        calls.append((query, kwargs))
+        return answers.get(query["country"] if isinstance(query, dict) else query)
+
+    monkeypatch.setattr(main, "_geocode", fake)
+    return calls
+
+
+S_BRUSSELS_REGION = _found("Brussels-Capital, Belgium", 50.8387951, 4.3753041, "county", "Brussels-Capital",
+                           {"county": "Brussels-Capital", "region": "Brussels-Capital", "ISO3166-2-lvl4": "BE-BRU",
+                            "country": "Belgium", "country_code": "be"})
+S_BRUSSELS_CITY = _found("City of Brussels, Brussels-Capital, Belgium", 50.8465573, 4.351697, "city", "City of Brussels",
+                         {"city": "City of Brussels", "region": "Brussels-Capital", "ISO3166-2-lvl4": "BE-BRU",
+                          "country": "Belgium", "country_code": "be"})
+S_GENT = _found("Gent, Oost-Vlaanderen, Vlaanderen, België", 51.0538286, 3.7250121, "city", "Gent",
+                {"city": "Gent", "county": "Gent", "province": "Oost-Vlaanderen", "ISO3166-2-lvl6": "BE-VOV",
+                 "region": "Vlaanderen", "ISO3166-2-lvl4": "BE-VLG", "country": "België", "country_code": "be"})
+S_OOST_VLAANDEREN = _found("Oost-Vlaanderen, Vlaanderen, België", 51.0, 3.8, "province", "Oost-Vlaanderen",
+                           {"province": "Oost-Vlaanderen", "ISO3166-2-lvl6": "BE-VOV", "region": "Vlaanderen",
+                            "ISO3166-2-lvl4": "BE-VLG", "country_code": "be"})
+S_VLAANDEREN = _found("Vlaanderen, België", 51.0377778, 4.2405556, "region", "Vlaanderen",
+                      {"region": "Vlaanderen", "ISO3166-2-lvl4": "BE-VLG", "country_code": "be"})
+S_IDF = _found("Ile-de-France, France", 48.6443057, 2.7537863, "state", "Ile-de-France",
+               {"state": "Ile-de-France", "ISO3166-2-lvl4": "FR-IDF", "country": "France", "country_code": "fr"})
+_LOOKUP = {"country_codes": "be", "exactly_one": False, "limit": 5, "addressdetails": True}
+
+
+@pytest.mark.asyncio
+async def test_area_search_forgives_a_typo_in_an_iso_name(monkeypatch):
+    """Seen 2026-11-20: Nominatim found nothing for it; the ISO list has "Bruxelles-Capitale, Région de"."""
+    calls = _stub_by_query(monkeypatch, {"BE-BRU": [S_BRUSSELS_REGION]})
+    out = await main.geocode(main.GeocodeRequest(area_search="region bruxellles capitale", lang="fr"))
+    assert calls == [("region bruxellles capitale", {"addressdetails": True, "exactly_one": False, "limit": 10, "language": "fr"}),
+                     ("BE-BRU", _LOOKUP)]
+    assert out == {"candidates": [
+        {"code": "BE-BRU", "name": "Région de Bruxelles-Capitale", "display_name": "Région de Bruxelles-Capitale, Belgique",
+         "lat": 50.8387951, "lon": 4.3753041, "fidelity": "region"},
+    ]}
+
+
+@pytest.mark.asyncio
+async def test_area_search_reads_every_local_name(monkeypatch):
+    """Brussels' Dutch name is in pycountry as a translation of the French one: an exact match, in Dutch."""
+    _stub_by_query(monkeypatch, {"BE-BRU": [S_BRUSSELS_REGION]})
+    out = await main.geocode(main.GeocodeRequest(area_search="Brussels Hoofdstedelijk Gewest", lang="nl"))
+    assert [(c["code"], c["name"]) for c in out["candidates"]][:1] == [("BE-BRU", "Brussels Hoofdstedelijk Gewest")]
+
+
+@pytest.mark.asyncio
+async def test_area_search_a_town_brings_the_area_it_sits_in(monkeypatch):
+    calls = _stub_by_query(monkeypatch, {"Brussels": [S_BRUSSELS_CITY], "BE-BRU": [S_BRUSSELS_REGION]})
+    out = await main.geocode(main.GeocodeRequest(area_search="Brussels"))
+    assert [q for q, _ in calls] == ["Brussels", "BE-BRU"]
+    assert out == {"candidates": [
+        {"code": "BE-BRU", "name": "Brussels-Capital", "display_name": "Brussels-Capital, Belgium",
+         "lat": 50.8387951, "lon": 4.3753041, "fidelity": "region"},
+    ]}
+
+
+@pytest.mark.asyncio
+async def test_area_search_a_town_brings_its_province_then_its_region(monkeypatch):
+    calls = _stub_by_query(monkeypatch, {"Gent": [S_GENT], "BE-VOV": [S_OOST_VLAANDEREN], "BE-VLG": [S_VLAANDEREN]})
+    out = await main.geocode(main.GeocodeRequest(area_search="Gent", lang="nl"))
+    assert [q for q, _ in calls] == ["Gent", "BE-VOV", "BE-VLG"]
+    assert [(c["code"], c["name"], c["lat"]) for c in out["candidates"]] == [
+        ("BE-VOV", "Oost-Vlaanderen", 51.0), ("BE-VLG", "Vlaanderen", 51.0377778)]
+
+
+@pytest.mark.asyncio
+async def test_area_search_a_town_that_is_an_area_comes_first_then_its_region(monkeypatch):
+    """Paris is a city and an ISO area of its own (FR-75C, the exact local match), inside Île-de-France."""
+    paris_area = _found("Paris, Ile-de-France, France", 48.8588897, 2.3200410, "city", "Paris",
+                        {"city": "Paris", "ISO3166-2-lvl6": "FR-75C", "state": "Ile-de-France", "ISO3166-2-lvl4": "FR-IDF",
+                         "country_code": "fr"})
+    _stub_by_query(monkeypatch, {"Paris": [S_PARIS, S_SCOTLAND_COUNTY], "FR-75C": [paris_area], "FR-IDF": [S_IDF]})
+    out = await main.geocode(main.GeocodeRequest(area_search="Paris"))
+    assert [(c["code"], c["name"]) for c in out["candidates"]] == [("FR-75C", "Paris"), ("FR-IDF", "Ile-de-France")]
+
+
+@pytest.mark.asyncio
+async def test_area_search_a_town_s_code_that_is_not_iso_is_skipped(monkeypatch):
+    town = _found("Somewhere, Brussels-Capital, Belgium", 50.8, 4.3, "town", "Somewhere",
+                  {"town": "Somewhere", "ISO3166-2-lvl8": "BE-ZZZ", "region": "Brussels-Capital", "ISO3166-2-lvl4": "BE-BRU",
+                   "country_code": "be"})
+    calls = _stub_by_query(monkeypatch, {"Somewhere": [town], "BE-BRU": [S_BRUSSELS_REGION]})
+    out = await main.geocode(main.GeocodeRequest(area_search="Somewhere"))
+    assert [q for q, _ in calls] == ["Somewhere", "BE-BRU"]
+    assert [c["code"] for c in out["candidates"]] == ["BE-BRU"]
+
+
+@pytest.mark.asyncio
+async def test_area_search_an_iso_match_nominatim_also_found_costs_no_lookup(monkeypatch):
+    """"Scotland" is an exact ISO name and Nominatim's own answer: its name, centre, display_name, one call."""
+    calls = _stub_by_query(monkeypatch, {"Scotland": [S_SCOTLAND]})
+    out = await main.geocode(main.GeocodeRequest(area_search="Scotland"))
+    assert len(calls) == 1
+    assert out["candidates"] == [{"code": "GB-SCT", "name": "Scotland", "display_name": "Scotland, United Kingdom",
+                                  "lat": 56.7861112, "lon": -4.1140518, "fidelity": "region"}]
+
+
+@pytest.mark.asyncio
+async def test_area_search_asks_a_centre_once(monkeypatch):
+    calls = _stub_by_query(monkeypatch, {"Brussels": [S_BRUSSELS_CITY], "BE-BRU": [S_BRUSSELS_REGION]})
+    first = await main.geocode(main.GeocodeRequest(area_search="Brussels"))
+    again = await main.geocode(main.GeocodeRequest(area_search="Brussels"))
+    assert first == again
+    assert [q for q, _ in calls] == ["Brussels", "BE-BRU", "Brussels"]
+
+
+@pytest.mark.asyncio
+async def test_area_search_a_centre_nominatim_lacks_leaves_the_area_out(monkeypatch):
+    calls = _stub_by_query(monkeypatch, {"Brussels": [S_BRUSSELS_CITY]})
+    assert await main.geocode(main.GeocodeRequest(area_search="Brussels")) == {"candidates": []}
+    assert [q for q, _ in calls] == ["Brussels", "BE-BRU"]
+
+
+@pytest.mark.asyncio
+async def test_area_search_asks_at_most_three_centres(monkeypatch):
+    towns = [_found(f"T{code}", 1.0, 2.0, "town", f"T{code}", {"town": f"T{code}", "ISO3166-2-lvl6": code, "country_code": "be"})
+             for code in ("BE-VAN", "BE-VBR", "BE-VLI", "BE-VOV", "BE-VWV")]
+    calls = _stub_by_query(monkeypatch, {"Towns": towns, **{c: [] for c in ("BE-VAN", "BE-VBR", "BE-VLI", "BE-VOV", "BE-VWV")}})
+    await main.geocode(main.GeocodeRequest(area_search="Towns"))
+    assert [q for q, _ in calls] == ["Towns", "BE-VAN", "BE-VBR", "BE-VLI"]
+
+
+@pytest.mark.parametrize("text, codes", [
+    ("region bruxellles capitale", ["BE-BRU"]),
+    ("Région de Bruxelles-Capitale", ["BE-BRU"]),
+    ("Brussels Hoofdstedelijk Gewest", ["BE-BRU"]),
+    ("oost vlanderen", ["BE-VOV"]),
+    ("Île de France", ["FR-IDF"]),
+    ("BAYERN", ["DE-BY"]),
+    ("Belgium", ["BE"]),
+])
+def test_the_iso_list_finds_an_area_by_any_of_its_names(text, codes):
+    exact, near = main._iso_matches(text)
+    assert codes[0] in exact + near
+
+
+@pytest.mark.parametrize("text", ["kitchen table", "hello world", "State", "Brussel", "Gent", "Vlaanderen"])
+def test_the_iso_list_does_not_guess_from_a_random_word(text):
+    """Nothing near enough: Nominatim's search is the answer (Vlaanderen and Gent among them)."""
+    assert main._iso_matches(text)[1] == []
+
+
+def test_the_iso_list_does_not_take_flanders_for_landes():
+    exact, near = main._iso_matches("Flanders")
+    assert "FR-40" not in exact + near
+    exact, near = main._iso_matches("Scotland")
+    assert exact[:1] == ["GB-SCT"] and "NZ-STL" not in near
+
+
+def test_an_inverted_iso_name_is_shown_as_said():
+    assert main._said("Bruxelles-Capitale, Région de") == "Région de Bruxelles-Capitale"
+    assert main._said("wallonne, Région") == "Région wallonne"
+    assert main._said("Southern Nations, Nationalities and Peoples") == "Southern Nations, Nationalities and Peoples"
+    assert main._iso_name("BE-BRU", "en") == "Région de Bruxelles-Capitale"  # no English name in pycountry
+    assert main._iso_name("BE", "fr") == "Belgique"
 
 
 @pytest.mark.asyncio

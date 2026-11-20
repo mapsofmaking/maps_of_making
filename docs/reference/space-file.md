@@ -309,6 +309,20 @@ two letters) answers the areas the name may be:
 ]}
 ```
 
+> Since mapsofmaking/maps_of_making#87 (2026-11-20): the ISO 3166 list is
+> read first, typos forgiven, and a town brings the areas it sits in
+> ("region bruxellles capitale" and "Brussels" found nothing before).
+
+- **The ISO list first, offline.** `pycountry`'s countries and subdivisions
+  (all of them: every ISO subdivision is an official area), under every
+  name pycountry has (the local name and each translation, an inverted name
+  like "Bruxelles-Capitale, Région de" also as said), compared casefolded,
+  accents and punctuation gone. An exact name is a candidate; so is a near
+  one (`difflib`, ratio 0.9 or more, searches of 5 characters or more, at
+  most 3): "region bruxellles capitale" finds `BE-BRU`, "Flanders" does not
+  bring Landes. Its `name` is pycountry's in `lang` when it has one, else
+  the local name ("Région de Bruxelles-Capitale" in English); its
+  `display_name` is that name and the country's.
 - Nominatim is asked the name as free text, with `addressdetails`, ten
   answers, `accept-language` set to `lang`, and no `featuretype`.
 - An answer is kept when Nominatim files it (`addresstype`) as a `country`,
@@ -317,7 +331,7 @@ two letters) answers the areas the name may be:
   the `ISO3166-2-lvl*` key that comes right after its own component in
   Nominatim's `address` and is the deepest one there, fidelity `region`. A
   province with no code of its own (only its region's) is left out; so are
-  cities, towns, counties and streets, even one with a code (Paris, `FR-75C`).
+  counties and streets, and towns as such (Paris the city).
   One exception, seen live: a `county` whose `address` also names it, under
   the same name, as a `state`, `region` or `province` is that area
   (Brussels-Capital: `county, region, ISO3166-2-lvl4: BE-BRU`).
@@ -325,17 +339,33 @@ two letters) answers the areas the name may be:
   `display_name`). Each code once, in Nominatim's order, at most 5; none
   found: `{"candidates": []}`.
 - An empty `area_search` or one over 100 characters, or a `lang` that is not
-  two letters: 422. Nominatim down: 503. One search is one Nominatim call:
-  the 1 req/s limit is unchanged.
+  two letters: 422. Nominatim down: 503.
+- **A town brings its areas.** An answer Nominatim files as a `city`,
+  `town`, `village`, `hamlet`, `municipality`, `suburb`, `borough`,
+  `city_district`, `quarter` or `neighbourhood` offers each
+  `ISO3166-2-lvl*` code of its address that is a real ISO subdivision,
+  deepest first, named by the address component just before it: Brussels
+  gives `BE-BRU` "Brussels-Capital", Gent `BE-VOV` Oost-Vlaanderen then
+  `BE-VLG` Vlaanderen, Paris `FR-75C` then `FR-IDF`. A county does not
+  (Scotland County stays out).
+- **Order**, each code once, at most 5: exact ISO names, Nominatim's own
+  areas, the areas towns sit in, near ISO names. A code Nominatim's own
+  answers also give takes their name, `display_name` and centre.
+- **Every candidate has a centre** (home pins the pick, no second ask). One
+  Nominatim's search didn't place is asked by its code, as `{area}` does:
+  one more call each, at most 3 per search, cached in the process (areas
+  don't move); no centre, the candidate is left out. So a search costs one
+  to four Nominatim calls on the shared 1 req/s limit, which itself is
+  unchanged.
 
 Seen live on 2026-11-19 (`lang` en): Flanders, Île-de-France, Bavaria,
 Catalonia and Scotland each come back as a `state` with their own `lvl4` code
 (`BE-VLG`, `FR-IDF`, `DE-BY`, `ES-CT`, `GB-SCT`); "Scotland" also brings two
 US counties named Scotland, left out. West Flanders comes back as a `state`
 with its own `lvl6` code (`BE-VWV`) before Flanders' `lvl4`. Wallonia is a
-`state` (`BE-WAL`). "Brussels" comes back only as cities, so it finds no
-area; "Brussels-Capital Region" finds `BE-BRU` "Brussels-Capital" (a
-`county`, the exception above).
+`state` (`BE-WAL`). "Brussels" comes back only as cities, so it found no
+area until #87 (now `BE-BRU` through the city); "Brussels-Capital Region"
+finds `BE-BRU` "Brussels-Capital" (a `county`, the exception above).
 
 ## What the map does with Turtle (Story 14.7)
 
