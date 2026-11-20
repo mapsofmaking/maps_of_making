@@ -5,6 +5,7 @@ pydantic
 pyyaml
 apscheduler>=3.10
 geopy
+pycountry==26.2.16
 cryptography>=42.0.0
 pytest-asyncio
 pytest-httpserver

@@ -1,8 +1,12 @@
+import difflib
+import functools
+import gettext
 import json
 import logging
 import os
 import re
 import sys
+import unicodedata
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -10,6 +14,7 @@ from pathlib import Path
 from typing import Any, Optional, List, Union
 
 import httpx
+import pycountry
 import yaml
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -1393,8 +1398,13 @@ def _area_matches(area: str, address: dict) -> bool:
         return True
     # The deepest ISO3166-2 level is the place itself: a province inside Flanders also carries
     # `ISO3166-2-lvl4: BE-VLG`, but its own code (lvl6) is BE-VWV.
-    levels = sorted((k for k in address if k.startswith("ISO3166-2-lvl")), key=lambda k: int(k.rsplit("lvl", 1)[1] or 0))
+    levels = _iso_levels(address)
     return bool(levels) and str(address[levels[-1]]).upper() == area
+
+
+def _iso_levels(address: dict) -> list[str]:
+    """The ISO3166-2-lvl<n> keys of a Nominatim address, shallowest first."""
+    return sorted((k for k in address if k.startswith("ISO3166-2-lvl")), key=lambda k: int(k.rsplit("lvl", 1)[1] or 0))
 
 
 def _pick_area(area: str, location: Any) -> Any:
@@ -1432,17 +1442,22 @@ def _own_code(raw: dict) -> Optional[str]:
     if kind not in _AREA_TYPES[1:] or kind not in keys or keys.index(kind) + 1 >= len(keys):
         return None
     own = keys[keys.index(kind) + 1]
-    levels = sorted((k for k in keys if k.startswith("ISO3166-2-lvl")), key=lambda k: int(k.rsplit("lvl", 1)[1] or 0))
+    levels = _iso_levels(address)
     if not levels or own != levels[-1]:
         return None
     code = clean_area(str(address[own]))
     return code if code and len(code) > 2 and code[:2] == cc else None
 
 
+def _answers(location: Any) -> list[Any]:
+    """Nominatim's answers as a list (it gives one, a list, or None)."""
+    return location if isinstance(location, list) else [location] if location is not None else []
+
+
 def _area_candidates(location: Any) -> list[dict[str, Any]]:
     """The countries and subdivisions among Nominatim's answers, each once, in Nominatim's order."""
     out: list[dict[str, Any]] = []
-    for loc in (location if isinstance(location, list) else [location] if location is not None else []):
+    for loc in _answers(location):
         raw = loc.raw or {}
         code = _own_code(raw)
         if not code or any(c["code"] == code for c in out):
@@ -1450,7 +1465,179 @@ def _area_candidates(location: Any) -> list[dict[str, Any]]:
         name = clean_area_name(raw.get("name")) or clean_area_name((loc.address or "").split(",")[0])
         out.append({"code": code, "name": name, "display_name": loc.address, "lat": loc.latitude,
                     "lon": loc.longitude, "fidelity": "country" if len(code) == 2 else "region"})
-    return out[:MAX_CANDIDATES]
+    return out
+
+
+# ── The ISO 3166 list, offline (mapsofmaking/maps_of_making#87, 2026-11-20) ──────────────────────
+# Nominatim has no fuzzy match ("region bruxellles capitale" found nothing) and answers "Brussels"
+# with the city, so an area search first reads pycountry's ISO 3166 list: every country and every
+# subdivision (all are official areas), under every name pycountry has for it (its local name and
+# each translation), compared casefolded and without accents, typos forgiven by difflib.
+_AREA_FUZZY_CUTOFF = 0.9    # 'region bruxellles capitale' ~ 'region de bruxelles capitale': 0.93;
+                            # the noise sits below (Scotland ~ Southland 0.82, Flanders ~ Landes 0.86)
+_AREA_FUZZY_MIN = 5         # shorter than that, a near name is another place ("Gent", "Bern")
+_AREA_FUZZY_MAX = 3
+# A candidate that is not one of Nominatim's own answers has no centre yet: it is asked by its code
+# (the `{area}` path, one Nominatim call each at 1 req/s), at most this many per search.
+MAX_CENTRE_LOOKUPS = 3
+# What Nominatim files a town as: the areas it sits in are offered instead (Brussels → BE-BRU).
+_CITY_TYPES = frozenset({"city", "town", "village", "hamlet", "municipality", "suburb", "borough",
+                         "city_district", "quarter", "neighbourhood"})
+# An area's centre by code, (lat, lon), or None when Nominatim doesn't know the code: areas don't move.
+_centres: dict[str, Optional[tuple[float, float]]] = {}
+_JOINERS = {"and", "y", "et", "und", "e", "i"}
+
+
+def _fold(text: str) -> str:
+    """A name as compared: casefolded, accents and punctuation gone, one space between words."""
+    text = "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c)).casefold()
+    return " ".join(re.sub(r"[\W_]+", " ", text).split())
+
+
+def _uninvert(name: str) -> Optional[str]:
+    """ISO files some names inverted ("Bruxelles-Capitale, Région de"): the name as said, or None."""
+    head, sep, tail = name.partition(", ")
+    return f"{tail} {head}" if sep and ", " not in tail else None
+
+
+def _said(name: str) -> str:
+    """A name to show: un-inverted when the part after the comma is a short title ("Région wallonne",
+    "City of Bristol"), kept when it is a list ("Southern Nations, Nationalities and Peoples")."""
+    tail = name.partition(", ")[2].split()
+    flipped = _uninvert(name)
+    return flipped if flipped and len(tail) <= 3 and not _JOINERS & set(tail) else name
+
+
+def _iso_locales(domain: str) -> list[str]:
+    root = Path(pycountry.LOCALES_DIR)
+    return sorted(p.name for p in root.iterdir() if (p / "LC_MESSAGES" / f"{domain}.mo").exists())
+
+
+def _catalogue(domain: str, lang: str) -> gettext.GNUTranslations:
+    with open(Path(pycountry.LOCALES_DIR) / lang / "LC_MESSAGES" / f"{domain}.mo", "rb") as f:
+        return gettext.GNUTranslations(f)
+
+
+@functools.lru_cache(maxsize=None)
+def _translator(domain: str, lang: str) -> gettext.NullTranslations:
+    return gettext.translation(domain, pycountry.LOCALES_DIR, languages=[lang], fallback=True)
+
+
+@functools.lru_cache(maxsize=1)
+def _iso_index() -> tuple[dict[str, tuple[str, ...]], tuple[str, ...]]:
+    """Every folded name → the codes it names (countries first), and the names as a list for difflib.
+    Built once, on the first search (about a second, some 55,000 names, about 13 MB held)."""
+    index: dict[str, list[str]] = {}
+
+    def add(name: str, code: str) -> None:
+        for part in name.split(";"):
+            for said in (part.strip(), _uninvert(part.strip())):
+                key = _fold(said or "")
+                if key and code not in index.setdefault(key, []):
+                    index[key].append(code)
+
+    for domain, items in (("iso3166-1", pycountry.countries), ("iso3166-2", pycountry.subdivisions)):
+        # Read once and let go: every locale's catalogue held for good is some 23 MB (gettext.translation
+        # keeps each it opens), so the files are read directly; only the languages asked for stay (_translator).
+        translators = [gettext.NullTranslations()] + [_catalogue(domain, lang) for lang in _iso_locales(domain)]
+        for item in items:
+            code = item.alpha_2 if domain == "iso3166-1" else item.code
+            names = [item.name] + [getattr(item, a, None) for a in ("common_name", "official_name")]
+            for name in filter(None, names):
+                for t in translators:
+                    add(t.gettext(name), code)
+    frozen = {k: tuple(v) for k, v in index.items()}
+    return frozen, tuple(frozen)
+
+
+def _iso_matches(text: str) -> tuple[list[str], list[str]]:
+    """The ISO codes `text` names exactly, then those it nearly names (a typo), each once."""
+    index, keys = _iso_index()
+    key = _fold(text)
+    exact = [c for c in index.get(key, ()) if clean_area(c)]
+    near: list[str] = []
+    if len(key) >= _AREA_FUZZY_MIN:
+        for k in difflib.get_close_matches(key, keys, n=10, cutoff=_AREA_FUZZY_CUTOFF):
+            near += [c for c in index[k] if clean_area(c) and c not in exact and c not in near]
+    return exact, near[:_AREA_FUZZY_MAX]
+
+
+def _iso_name(code: str, lang: str) -> str:
+    """An ISO area's name in `lang` when pycountry has it, else its local name."""
+    if len(code) == 2:
+        item, domain = pycountry.countries.get(alpha_2=code), "iso3166-1"
+        base = item and (getattr(item, "common_name", None) or item.name)
+    else:
+        item, domain = pycountry.subdivisions.get(code=code), "iso3166-2"
+        base = item and item.name
+    return clean_area_name(_said(_translator(domain, lang).gettext(base))) if base else ""
+
+
+def _city_areas(location: Any) -> list[tuple[str, str]]:
+    """The areas Nominatim's towns sit in, deepest first (Gent: Oost-Vlaanderen, then Vlaanderen), as
+    (code, name): each ISO3166-2 key of a town's address that is a real subdivision, named by the
+    address component just before it."""
+    out: list[tuple[str, str]] = []
+    for loc in _answers(location):
+        raw = loc.raw or {}
+        if raw.get("addresstype") not in _CITY_TYPES:
+            continue
+        address = raw.get("address") or {}
+        keys = list(address)
+        for level in reversed(_iso_levels(address)):
+            code = clean_area(str(address[level]))
+            if not code or len(code) == 2 or pycountry.subdivisions.get(code=code) is None or any(c == code for c, _ in out):
+                continue
+            before = keys[keys.index(level) - 1] if keys.index(level) else ""
+            name = "" if not before or before.startswith("ISO3166") else clean_area_name(str(address[before]))
+            out.append((code, name))
+    return out
+
+
+async def _area_centre(code: str) -> Optional[tuple[float, float]]:
+    """An area's centre, asked by its code like `{area}` (cached; a Nominatim error is not)."""
+    if code not in _centres:
+        query, kwargs = _area_query(code)
+        loc = _pick_area(code, await _nominatim(query, **kwargs))
+        _centres[code] = (loc.latitude, loc.longitude) if loc is not None else None
+    return _centres[code]
+
+
+async def _area_search(text: str, lang: str) -> list[dict[str, Any]]:
+    """The areas `text` may be, in this order, each code once, at most MAX_CANDIDATES: those the ISO
+    list names exactly, Nominatim's own areas, the areas Nominatim's towns sit in, those the ISO list
+    nearly names. One Nominatim search, then a centre asked for each candidate it didn't give
+    (cached, at most MAX_CENTRE_LOOKUPS); one with no centre is left out (home pins the pick)."""
+    # Off the event loop: the first search builds the index (about a second), each one runs difflib.
+    exact, near = await asyncio.get_running_loop().run_in_executor(None, _iso_matches, text)
+    found = await _nominatim(text, exactly_one=False, limit=10, language=lang)
+    own = {c["code"]: c for c in _area_candidates(found)}
+    towns = _city_areas(found)
+    named = dict(towns)
+    out: list[dict[str, Any]] = []
+    lookups = 0
+    for code in dict.fromkeys([*exact, *own, *(c for c, _ in towns), *near]):
+        if len(out) >= MAX_CANDIDATES:
+            break
+        if code in own:
+            out.append(own[code])
+            continue
+        if code not in _centres:
+            if lookups >= MAX_CENTRE_LOOKUPS:
+                continue
+            lookups += 1
+            try:
+                await _area_centre(code)
+            except HTTPException:
+                continue
+        centre = _centres.get(code)
+        name = named.get(code) or _iso_name(code, lang)
+        if centre is None or not name:
+            continue
+        country = _iso_name(code[:2], lang) if len(code) > 2 else ""
+        out.append({"code": code, "name": name, "display_name": f"{name}, {country}" if country else name,
+                    "lat": centre[0], "lon": centre[1], "fidelity": "country" if len(code) == 2 else "region"})
+    return out
 
 
 async def _nominatim(query: Any, **kwargs):
@@ -1477,6 +1664,9 @@ async def geocode(req: GeocodeRequest):
     - a network looking for its area by name: `{area_search, lang?}` (2026-11-19), answered
       `{candidates: [{code, name, display_name, lat, lon, fidelity}]}`, at most 5, maybe none:
       the countries and subdivisions with an ISO code of their own, names in `lang` (default en).
+      Since #87 (2026-11-20) the ISO list is read first (typos forgiven) and a town brings the
+      areas it sits in; a candidate Nominatim's search didn't place costs one more call (its centre,
+      cached), so a search may take a few seconds of the shared 1 req/s.
       422 for an empty or over-long search or a lang that is not two letters.
 
     Returns {lat, lon, country_code, postcode, display_name, fidelity, area} on success,
@@ -1495,8 +1685,7 @@ async def geocode(req: GeocodeRequest):
         lang = (req.lang if req.lang is not None else "en").strip().lower()
         if not _LANG_RE.match(lang):
             raise HTTPException(status_code=422, detail={"error": "bad_lang", "message": "lang is a two-letter language code, e.g. en"})
-        found = await _nominatim(text, exactly_one=False, limit=10, language=lang)
-        return {"candidates": _area_candidates(found)}
+        return {"candidates": await _area_search(text, lang)}
 
     if req.area:
         area = clean_area(req.area)
