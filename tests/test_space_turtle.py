@@ -353,3 +353,25 @@ def test_a_json_area_list_is_cleaned_like_turtle():
     f = extract_core({"space": "Net", "location": {"lat": 1, "lon": 2}, "mom": {"kind": "network", "areaServed": raw}})
     assert f["schema:areaServed"] == [{"code": "BE-VLG", "name": ""}, {"code": "BE-WAL", "name": "Wallonia"}]
     assert f["mom:countryCode"] == "BE"
+
+
+# ── #73: a pod file keeps the SDGs and the topics an import carried ─────────
+
+def test_sdgs_and_topics_read_like_the_json_ones():
+    payload = {"space": "zz Topics", "location": {"lat": 50.8, "lon": 4.3},
+               "knowsAbout": ["welding", "3D printing"], "mom": {"sdgs": [9, 4, 12]}}
+    from_json = {**extract_core(payload), **extract_mom(payload)}
+    parsed = _space("""<#space> a mom:Space ; schema:name "zz Topics" ;
+      schema:geo [ schema:latitude 50.8 ; schema:longitude 4.3 ] ;
+      schema:knowsAbout "welding", "3D printing" ; mom:sdgs 9, 4, 12 .""")
+    assert parsed.fields["mom:sdgs"] == [4, 9, 12]
+    assert parsed.fields["schema:knowsAbout"] == ["3D printing", "welding"]
+    assert isomorphic(_graph(parsed.fields), _graph(from_json))
+    assert parsed.unread == []
+
+
+def test_a_goal_outside_1_to_17_or_a_topic_that_is_not_text_is_left_out():
+    parsed = _space("""<#space> a mom:Space ; schema:name "zz" ;
+      schema:knowsAbout <https://example.org/welding>, "  ", "ok" ; mom:sdgs 0, 18, 3.5, "x", 17, 17 .""")
+    assert parsed.fields["mom:sdgs"] == [17]
+    assert parsed.fields["schema:knowsAbout"] == ["ok"]
