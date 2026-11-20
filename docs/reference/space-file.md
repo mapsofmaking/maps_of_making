@@ -20,7 +20,7 @@
 | street | no | in `location.address` | `schema:address/schema:streetAddress` | in `mom:address` (below) |
 | postcode (derived) | no | in `location.address` | `schema:address/schema:postalCode` | in `mom:address` (below) |
 | city | yes | in `location.address` | `schema:address/schema:addressLocality` | `schema:addressLocality`, and in `mom:address` |
-| country (derived) | yes | `location.country_code` | `schema:address/schema:addressCountry` | `mom:countryCode` (two letters), and in `mom:address` |
+| country (derived) | yes (`XZ` at sea, outside any country) | `location.country_code` | `schema:address/schema:addressCountry` | `mom:countryCode` (two letters), and in `mom:address` |
 | lat, lon (geocoded) | yes | `location.lat`, `location.lon` | `schema:geo [ schema:latitude ; schema:longitude ]` | same |
 | description | no | `description` | `schema:description` | `schema:description` |
 | contact handles (tile C) | no | `contact` (SpaceAPI's keys: `email`, `phone`, `matrix`, one each) | one or many, by kind (table below) | not kept (below) |
@@ -381,7 +381,7 @@ fetch another origin.
   "validation": { "...": "validate-url's answer" },
   "record": {
     "name": "Mother Sand", "kind": "space",
-    "lat": 51.65, "lon": 1.7, "address": "Maunsell Fort, North Sea", "country_code": "sol-3", "timezone": "UTC+0",
+    "lat": 51.65, "lon": 1.7, "address": "Maunsell Fort, North Sea", "country_code": "XZ", "timezone": "UTC+0",
     "url": "…", "logo": "…", "description": "…", "opening_hours": "…",
     "contact": { "email": "…", "irc": "#mothersand", "twitter": "@mothersand" },
     "memberOf": ["urn:mak:network/canary", "urn:mak:network/vulca"],

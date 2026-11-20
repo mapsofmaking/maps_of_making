@@ -120,7 +120,7 @@ SELECT ?v WHERE {{ GRAPH <{CANARY_GRAPH}> {{ <{CANARY_SUBJECT}> mom:address ?v }
 SELECT ?v WHERE {{ GRAPH <{CANARY_GRAPH}> {{ <{CANARY_SUBJECT}> mom:countryCode ?v }} }}""",
             "v",
         )
-        assert val == "sol-3", f"mom:countryCode expected 'sol-3', got {val!r}"
+        assert val == "XZ", f"mom:countryCode expected 'XZ', got {val!r}"
 
     def test_mom_timezone_written(self):
         val = _select_value(
@@ -186,7 +186,7 @@ class TestMaterializerExposesMom:
         props = canary_features[0]["properties"]
         assert "country_code" in props, "country_code key missing from feature properties"
         assert "timezone" in props, "timezone key missing from feature properties"
-        assert props["country_code"] == "sol-3", f"Expected 'sol-3', got {props['country_code']!r}"
+        assert props["country_code"] == "XZ", f"Expected 'XZ', got {props['country_code']!r}"
         assert props["timezone"] == "UTC+0", f"Expected 'UTC+0', got {props['timezone']!r}"
 
 
