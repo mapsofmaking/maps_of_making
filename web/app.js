@@ -826,7 +826,9 @@ function glyphColorExpr(surface) {
     GB: '🇬🇧 United Kingdom', IT: '🇮🇹 Italy', ES: '🇪🇸 Spain',
     CZ: '🇨🇿 Czechia', PL: '🇵🇱 Poland', SI: '🇸🇮 Slovenia', RS: '🇷🇸 Serbia',
     DK: '🇩🇰 Denmark', SE: '🇸🇪 Sweden', NO: '🇳🇴 Norway', FI: '🇫🇮 Finland',
-    'sol-3': '🌍 Sol-3',
+    // A place at sea, outside any country (2026-11-20): UN/LOCODE's code, in ISO 3166's user-assigned range.
+    XZ: '🌊 International waters',
+    'sol-3': '🌍 Sol-3', // the canary's code before XZ: kept for a snapshot that still says it
   };
   function countryLabel(c) { return COUNTRY_LABELS[c] || c; }
 
