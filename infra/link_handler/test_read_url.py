@@ -19,7 +19,10 @@ import source
 from fakes import JSON_TEXT, NETWORK_JSON, NETWORK_TTL, TTL, serve
 from read_record import json_unmapped
 
-MOTHER_SAND = (Path(__file__).resolve().parents[2] / "data" / "canary" / "baseline.json").read_text()
+ROOT = Path(__file__).resolve().parents[2]
+MOTHER_SAND = (ROOT / "data" / "canary" / "baseline.json").read_text()
+# A member of Maakbib, as published (gitlab raw, 2026-09-23): slice 3's claim link imports this file.
+INGEGNO = (ROOT / "tests" / "fixtures" / "space" / "ingegno.json").read_text()
 
 
 @pytest.fixture
@@ -57,6 +60,26 @@ async def test_mother_sand_reads_with_its_networks_and_what_is_left_behind(space
     assert r["opening_hours"].startswith("closed during low tide")
     assert {"ext_canary", "ext_fab", "state", "issue_report_channels"} <= set(r["unmapped"])
     assert "api" not in r["unmapped"] and "api_compatibility" not in r["unmapped"]
+
+
+@pytest.mark.asyncio
+async def test_ingegno_names_the_networks_it_belongs_to(space_server):
+    r = (await read(space_server, INGEGNO, "text/plain"))["record"]
+    assert r["name"] == "Ingegno Maker Space"
+    assert r["memberOf"] == ["urn:mak:network/vulca", "urn:mak:network/fabtafel", "urn:mak:network/maakbib", "urn:mak:network/ziezo"]
+    assert r["sdgs"] == [4, 5, 9, 17] and r["knowsAbout"]
+    assert r["lat"] is not None and r["contact"]
+    assert "next_event" in r["unmapped"] and "knowsAbout" not in r["unmapped"]
+
+
+@pytest.mark.asyncio
+async def test_json_ld_coordinates_reach_the_record(space_server):
+    body = json.dumps({"@context": "https://schema.org/", "@type": "Place", "schema:name": "zz LD",
+                       "schema:geo": {"schema:latitude": 50.8, "schema:longitude": 4.3}})
+    out = await read(space_server, body)
+    assert out["validation"]["coords_found"]
+    assert (out["record"]["lat"], out["record"]["lon"]) == (50.8, 4.3)
+    assert out["record"]["unmapped"] == []
 
 
 @pytest.mark.asyncio

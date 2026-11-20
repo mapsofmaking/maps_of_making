@@ -33,7 +33,9 @@ _LISTS = (("memberOf", "mom:memberOf"), ("sdgs", "mom:sdgs"), ("knowsAbout", "sc
 _JSON_READ = {"space", "name", "schema:name", "url", "schema:url", "logo", "schema:logo", "contact",
               "description", "schema:description", "opening_hours", "schema:openingHours",
               "schema:knowsAbout", "knowsAbout", "specialties", "memberOf", "location", "mom",
-              "api", "api_compatibility"}
+              "api", "api_compatibility",
+              # JSON-LD: the geo keys _extract_coords reads, and JSON-LD's own bookkeeping.
+              "schema:geo", "schema:latitude", "schema:longitude", "geo", "@context", "@type", "@id"}
 _LOCATION_READ = {"lat", "lon", "address", "country_code", "timezone"}
 _MOM_READ = {"kind", "memberOf", "sdgs", "areaServed", "geolocationFidelity"}
 
@@ -95,8 +97,10 @@ def turtle_contact(handles: list[dict[str, str]]) -> tuple[dict[str, str], list[
     return contact, extra
 
 
-def read_record(source: Any) -> Optional[dict[str, Any]]:
-    """The record a usable `source.Source` holds (JSON or Turtle); None for anything else."""
+def read_record(source: Any, lat: Optional[float] = None, lon: Optional[float] = None) -> Optional[dict[str, Any]]:
+    """The record a usable `source.Source` holds (JSON or Turtle); None for anything else.
+    `lat`/`lon`: the validation's coordinates, which register writes; they fill a record whose
+    reader found none (JSON-LD `schema:geo`, read by validation only)."""
     from spaceapi_extract import extract_core, extract_mom, kind_of
 
     if source is None or not source.ok:
@@ -109,4 +113,6 @@ def read_record(source: Any) -> Optional[dict[str, Any]]:
     if not isinstance(data, dict):
         return None
     fields = {**extract_core(data), **extract_mom(data)}
+    if "schema:geo" not in fields and lat is not None and lon is not None:
+        fields["schema:geo"] = {"lat": lat, "lon": lon}
     return record_of(fields, kind_of(data), json_contact(data), json_unmapped(data, fields))

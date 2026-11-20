@@ -1085,7 +1085,7 @@ async def read_url(req: UrlRequest):
     result = await _fetch_and_validate(req.url)
     result.pop("_data", None)
     source = result.pop("_source", None)
-    return {"validation": result, "record": read_record(source)}
+    return {"validation": result, "record": read_record(source, result.get("lat"), result.get("lon"))}
 
 
 @app.post("/api/register-url")

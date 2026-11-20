@@ -1,0 +1,51 @@
+{
+  "api_compatibility": [
+    "15"
+  ],
+  "space": "Ingegno Maker Space",
+  "location": {
+    "address": "Antoon Catriestraat 6, Drongen, Gent, 9031",
+    "country_code": "BE",
+    "lat": 51.0503233,
+    "lon": 3.657383
+  },
+  "logo": "https://decreatievestem.be/wp-content/uploads/2024/07/Logo-De-Creatieve-STEM-1-1-1.png",
+  "url": "https://decreatievestem.be",
+  "description": "Ingegno Maker space is a creative tech ecosystem where everyone is welcome. Come, make something or ask a question. We believe that \"Making is thinking. Knowledge is for free and infrastructure should be shared.\"",
+  "contact": {
+    "email": "info@decreatievestem.be",
+    "matrix": "#ingegnomakerspace:matrix.org",
+    "facebook": "https://www.facebook.com/IngegnoMakerSpace/",
+    "instagram": "https://www.instagram.com/decreatievestem/"
+  },
+  "state": {
+    "open": null
+  },
+  "mom": {
+    "sdgs": [
+      4,
+      5,
+      9,
+      17
+    ],
+    "memberOf": [
+      "vulca",
+      "fabtafel",
+      "maakbib",
+      "ziezo"
+    ]
+  },
+  "knowsAbout": [
+    "3D printing",
+    "Laser cutting",
+    "Electronics",
+    "Woodworking",
+    "Textile",
+    "waterjet",
+    "digital embroidery",
+    "digital knitting",
+    "kniterate"
+    ],
+    "opening_hours": "Every Thursday from 18:00 to 21:00 and Saturday 15:30 to 18:00. Check on openlab tab of the website. Also on demand open or as co-working space",
+    "next_event": "See website"
+}

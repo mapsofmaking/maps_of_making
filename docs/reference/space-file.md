@@ -398,8 +398,10 @@ fetch another origin.
 - `unmapped` names what the readers leave out, so nothing is lost silently: JSON top-level
   keys, and keys inside `location`, `mom`, `ext_fab` (`ext_fab.sdgs` is read when `mom.sdgs`
   is absent) and `ext` (`ext.tags` read as `knowsAbout`); Turtle predicates of the subject, as
-  full IRIs. `api` and `api_compatibility` are not listed (a writer sets them again). The Turtle
+  full IRIs. `api`, `api_compatibility` and JSON-LD's `@context`/`@type`/`@id` are not listed (a
+  writer sets them again); JSON-LD `schema:geo` reaches the record through the validation's coordinates. The Turtle
   reader does not read `mom:sdgs` or `schema:knowsAbout` today: in a pod file they show here.
+- Fixtures: Mother Sand (`data/canary/baseline.json`), Maakbib, Ingegno (`tests/fixtures/space/ingegno.json`, a member of Maakbib).
 - Same fetch rules as register: http(s) only, no redirects, 2 MiB, HTML/PDF/images refused.
 - **Public hosts only** (validate, read and register): a URL whose host is, or resolves to, a
   loopback, private, link-local or otherwise non-public address (a container such as `oxigraph`)
