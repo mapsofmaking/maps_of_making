@@ -47,6 +47,8 @@ class ParsedSpace:
     error: Optional[str] = None
     error_code: Optional[str] = None
     kind: str = "space"  # "network" when the node is typed mom:Network (2026-11-19)
+    # The subject's predicates this reader leaves out (full IRIs, sorted): what an import says it did not carry over (#84).
+    unread: list[str] = field(default_factory=list)
 
     @property
     def name(self) -> Optional[str]:
@@ -267,6 +269,12 @@ def _contact(view: _View, subject: Any) -> list[dict[str, str]]:
     return unique[:MAX_HANDLES]
 
 
+# The subject's predicates read above (or on purpose not: rdf:type picks the subject).
+_READ = {str(RDF.type)} | {SCHEMA + p for p in ("name", "geo", "address", "description", "openingHours", "url", "logo",
+                                                  "areaServed", "email", "telephone", "contactPoint")} \
+        | {MOM + p for p in ("memberOf", "geolocationFidelity")}
+
+
 def parse_space_turtle(text: str, base_url: str) -> ParsedSpace:
     """Read `text` (Turtle) fetched from `base_url`. `fields` may lack a name or coordinates: the caller reports that, as for JSON."""
     graph = Graph()
@@ -312,4 +320,5 @@ def parse_space_turtle(text: str, base_url: str) -> ParsedSpace:
     if fidelity:
         fields["mom:geolocationFidelity"] = fidelity
     kind = "network" if (subject, RDF.type, URIRef(MOM + "Network")) in view.triples else "space"
-    return ParsedSpace(fields=fields, contact=_contact(view, subject), kind=kind)
+    unread = sorted({str(p) for s, p, _ in view.triples if s == subject and str(p) not in _READ})
+    return ParsedSpace(fields=fields, contact=_contact(view, subject), kind=kind, unread=unread)

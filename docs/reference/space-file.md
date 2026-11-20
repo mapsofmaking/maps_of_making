@@ -367,6 +367,50 @@ with its own `lvl6` code (`BE-VWV`) before Flanders' `lvl4`. Wallonia is a
 area until #87 (now `BE-BRU` through the city); "Brussels-Capital Region"
 finds `BE-BRU` "Brussels-Capital" (a `county`, the exception above).
 
+## Reading a file without registering it (`read-url`, #84)
+
+`POST /api/read-url {"url": "…"}` fetches a space or network file (JSON or Turtle, so a pod
+file too), validates it like `validate-url` and answers what it holds as plain JSON. It
+**writes nothing**. Home uses it to start tile A from an existing file: the browser cannot
+fetch another origin.
+
+```json
+{
+  "validation": { "...": "validate-url's answer" },
+  "record": {
+    "name": "Mother Sand", "kind": "space",
+    "lat": 51.65, "lon": 1.7, "address": "Maunsell Fort, North Sea", "country_code": "sol-3", "timezone": "UTC+0",
+    "url": "…", "logo": "…", "description": "…", "opening_hours": "…",
+    "contact": { "email": "…", "irc": "#mothersand", "twitter": "@mothersand" },
+    "memberOf": ["urn:mak:network/canary", "urn:mak:network/vulca"],
+    "sdgs": [9, 11, 12, 14, 17], "knowsAbout": [],
+    "areaServed": [], "geolocationFidelity": null,
+    "unmapped": ["ext_canary", "ext_fab", "issue_report_channels", "state"]
+  }
+}
+```
+
+- The record is what the register readers take (`extract_core` + `extract_mom`, or the Turtle
+  reader), so what home fills in is what the map would keep. `record` is `null` when the file
+  could not be read; `validation.error` says why.
+- `contact` is SpaceAPI's dict: the file's own for JSON; for Turtle, the first handle of each
+  type (a second one of a type is named in `unmapped` as `contact.<type>`).
+- `unmapped` names what the readers leave out, so nothing is lost silently: JSON top-level
+  keys, and keys inside `location`, `mom`, `ext_fab` (`ext_fab.sdgs` is read when `mom.sdgs`
+  is absent) and `ext` (`ext.tags` read as `knowsAbout`); Turtle predicates of the subject, as
+  full IRIs. `api`, `api_compatibility` and JSON-LD's `@context`/`@type`/`@id` are not listed (a
+  writer sets them again); JSON-LD `schema:geo` reaches the record through the validation's coordinates. The Turtle
+  reader does not read `mom:sdgs` or `schema:knowsAbout` today: in a pod file they show here.
+- Fixtures: Mother Sand (`data/canary/baseline.json`), Maakbib, Ingegno (`tests/fixtures/space/ingegno.json`, a member of Maakbib).
+- Same fetch rules as register: http(s) only, no redirects, 2 MiB, HTML/PDF/images refused.
+- **Public hosts only** (validate, read and register): a URL whose host is, or resolves to, a
+  loopback, private, link-local or otherwise non-public address (a container such as `oxigraph`)
+  is refused before any request: `"The map reads files on the public internet; <host> is not."`
+  Known gap: the name is resolved again for the request (DNS rebinding). The heartbeat does not
+  check this (it only fetches registered endpoints).
+- At most 30 reads a minute for the whole service (the link handler sees one address behind the
+  proxies): then 429 `{"error": "rate_limited", "retry_after_seconds": n}`.
+
 ## What the map does with Turtle (Story 14.7)
 
 1. **Subject.** The node typed `mom:Space`, `schema:Place` or `mom:Network`
