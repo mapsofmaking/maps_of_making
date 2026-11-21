@@ -210,7 +210,9 @@ async def test_validating_a_space_still_tells_its_ladder(space_server):
 
 @pytest.mark.asyncio
 async def test_a_space_still_claims_its_seeded_record(space_server, tmp_path, monkeypatch):
-    seeded = SEEDED_MAAKBIB.replace("MaakBib", "Atelier du Canal").replace("urn:mak:space/maakbib", "urn:mak:space/adc-anderlecht")
+    # Where the file is (a seed is claimed by name only within 25 km, 2026-11-21): the Gent seed moved to Anderlecht.
+    seeded = (SEEDED_MAAKBIB.replace("MaakBib", "Atelier du Canal").replace("urn:mak:space/maakbib", "urn:mak:space/adc-anderlecht")
+              .replace("51.05", "50.85").replace("3.72", "4.33"))
     monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
     with StoreOxigraph(seeded) as ox:
         monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)

@@ -406,6 +406,12 @@ address, whatever its id:
 
 Distance, not the town's text: Ingegno's file says Gent, its id Drongen.
 
+A seed (unclaimed, `mom:source` `scraped-*`) is claimed by name the same
+way: only within 25 km of the file's pin, the nearest one if several. A seed
+of that name farther away is another space and stays as it is; registering
+again never drops it as an orphan either. Who claims a nearby seed is not
+checked: the network's recognition settles that.
+
 **Moving.** The coordinator puts the new address in the **old** file, then
 registers the new one, naming the old:
 

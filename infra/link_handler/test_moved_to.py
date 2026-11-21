@@ -292,3 +292,44 @@ async def test_the_same_name_nearby_under_another_id_is_refused_not_duplicated(f
         assert endpoints(ox) == before
     assert detail["error"] == "name_taken"
     assert detail["id"] == "atelier-du-canal-anderlecht" and detail["replaces"] == "https://gitlab.example/adc.json"
+
+
+# ── A seed is claimed by name only where it is (2026-11-21) ─────────────────
+
+def seed(slug, lat, lon, endpoint=None):
+    owner = f"; <https://mapsofmaking.org/ns/mom#endpointUrl> <{endpoint}> " if endpoint else ""
+    return f"""INSERT DATA {{ GRAPH <urn:mak:space/{slug}> {{
+  <urn:mak:space/{slug}> a <https://mapsofmaking.org/ns/mom#Space> ;
+    <https://schema.org/name> "Atelier du Canal" ;
+    <https://mapsofmaking.org/ns/mom#source> "scraped-vow" {owner};
+    <https://schema.org/geo> [ <https://schema.org/latitude> {lat} ; <https://schema.org/longitude> {lon} ] .
+}} }}"""
+
+
+@pytest.mark.asyncio
+async def test_a_seed_of_the_same_name_far_away_is_not_claimed(files, monkeypatch):
+    with StoreOxigraph(seed("adc-istanbul", 41.0082, 28.9784)) as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        out = await register(put(files, "/s.ttl", TTL, "text/turtle"))
+        assert "urn:mak:space/adc-istanbul" in graphs(ox)
+    assert out["space_uri"] == SPACE
+
+
+@pytest.mark.asyncio
+async def test_the_nearest_seed_of_that_name_is_the_one_claimed(files, monkeypatch):
+    seeds = seed("adc-istanbul", 41.0082, 28.9784) + " ;\n" + seed("adc-anderlecht", 50.85, 4.33)
+    with StoreOxigraph(seeds) as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        out = await register(put(files, "/s.ttl", TTL, "text/turtle"))
+        assert "urn:mak:space/adc-istanbul" in graphs(ox)
+    assert out["space_uri"] == "urn:mak:space/adc-anderlecht"
+
+
+@pytest.mark.asyncio
+async def test_registering_again_never_drops_a_far_seed_of_the_same_name(files, monkeypatch):
+    with StoreOxigraph(seed("adc-istanbul", 41.0082, 28.9784)) as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        url = put(files, "/s.ttl", TTL, "text/turtle")
+        await register(url)
+        await register(url)
+        assert "urn:mak:space/adc-istanbul" in graphs(ox)
