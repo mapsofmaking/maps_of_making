@@ -146,11 +146,18 @@ def _graph_of(space_id: str) -> tuple[str, str]:
     return uri, uri
 
 
-async def _find_seeded_graph_by_name(oxigraph_endpoint: str, name: str, kind: str = "space") -> Optional[str]:
+async def _find_seeded_graph_by_name(
+    oxigraph_endpoint: str, name: str, kind: str = "space",
+    lat: Optional[float] = None, lon: Optional[float] = None,
+) -> Optional[str]:
     """Find a bundle-seeded graph (mom:source starts with 'scraped-') matching the
-    given space name (case-insensitive) and of the same kind. Returns the graph URI or None.
+    given space name (case-insensitive) and of the same kind, in the same place.
+    Returns the graph URI or None.
 
     Same kind only: a network never claims a seeded space that happens to share its name.
+    Same place only (2026-11-21): a seed farther than _SAME_PLACE_KM from the file's
+    position is another space of that name (OpenFab Brussels / OpenFab Istanbul) and is
+    left alone; the nearest one within it is taken. No position on either side: as before.
 
     Used by register_url to claim a Path B record in place when a coordinator
     self-registers a SpaceAPI URL whose name matches a previously-seeded bundle
@@ -160,15 +167,16 @@ async def _find_seeded_graph_by_name(oxigraph_endpoint: str, name: str, kind: st
     safe = name.replace("\\", "\\\\").replace('"', '\\"')
     sparql = f"""PREFIX mom: <https://mapsofmaking.org/ns/mom#>
 PREFIX schema: <https://schema.org/>
-SELECT ?graph WHERE {{
+SELECT ?graph ?lat ?lon WHERE {{
   GRAPH ?graph {{
     ?s a <{_KIND_TYPE[kind]}> ;
        schema:name ?n ;
        mom:source ?src .
+    OPTIONAL {{ ?s schema:geo [ schema:latitude ?lat ; schema:longitude ?lon ] }}
     FILTER(LCASE(STR(?n)) = LCASE("{safe}"))
     FILTER(STRSTARTS(STR(?src), "scraped-"))
   }}
-}} LIMIT 1"""
+}}"""
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
@@ -183,8 +191,19 @@ SELECT ?graph WHERE {{
     except httpx.HTTPError as e:
         logger.warning("[register] claim-merge lookup failed for %r: %s", name, e)
         return None
-    rows = resp.json().get("results", {}).get("bindings", [])
-    return rows[0]["graph"]["value"] if rows else None
+    best: Optional[tuple[float, str]] = None
+    for row in resp.json().get("results", {}).get("bindings", []):
+        try:
+            slat, slon = float(row["lat"]["value"]), float(row["lon"]["value"])
+        except (KeyError, ValueError):
+            slat = slon = None
+        if lat is None or lon is None or slat is None:
+            km = 0.0
+        else:
+            km = _km(lat, lon, slat, slon)
+        if km < _SAME_PLACE_KM and (best is None or km < best[0]):
+            best = (km, row["graph"]["value"])
+    return best[1] if best else None
 
 
 async def _find_graph_by_endpoint(oxigraph_endpoint: str, endpoint_url: str) -> Optional[str]:
@@ -1292,7 +1311,7 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
         space_uri = existing_endpoint_uri
         # Drop any orphaned seeded graph with the same name but a different URI
         # (e.g. compound-slug seed openfab-ixelles alongside confirmed openfab).
-        orphan_uri = await _find_seeded_graph_by_name(OXIGRAPH_ENDPOINT, name, kind)
+        orphan_uri = await _find_seeded_graph_by_name(OXIGRAPH_ENDPOINT, name, kind, lat, lon)
         if orphan_uri and orphan_uri != existing_endpoint_uri:
             logger.info("[register] dropping orphaned seeded graph %s (same name, different slug)", orphan_uri)
             try:
@@ -1309,7 +1328,7 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
         # exists with the same name, claim it in place — same URI, drop+reinsert as
         # self-registered. Handles the VOW/RFF Path B → coordinator flow without
         # needing to parse a city out of the SpaceAPI address string.
-        claimed_uri = await _find_seeded_graph_by_name(OXIGRAPH_ENDPOINT, name, kind)
+        claimed_uri = await _find_seeded_graph_by_name(OXIGRAPH_ENDPOINT, name, kind, lat, lon)
         if claimed_uri:
             logger.info("[register] claim-merge: %r matches seeded graph %s", name, claimed_uri)
             graph_uri = claimed_uri
