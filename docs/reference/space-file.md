@@ -192,6 +192,14 @@ rather than parsing `space_uri`).
 The heartbeat ticks a network as it ticks a space; the endpoint dedupe finds
 it by its address under either prefix.
 
+`GET /api/network-members?url=<the network's file>` (mom-home #74) lists the
+spaces the map counts as the network's members (`members` on its feature):
+`{id, members: [{id, name, endpoint_url, media_type, contact: [{type, value}]}]}`.
+`contact` is what the map already shows on the card (a JSON file's `contact`,
+a Turtle file's handles from its snapshot). 404 `not_a_network` when the
+address isn't a registered network; a network the map hasn't redrawn yet has
+no members.
+
 **Moving a network registered before M1.** A record found by its address (or a
 claimed seed) under the other kind's prefix moves: a network in
 `urn:mak:space/<slug>` is written to `urn:mak:network/<slug>` and the old

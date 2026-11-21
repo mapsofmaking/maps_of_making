@@ -1479,6 +1479,61 @@ async def get_space_raw(space_id: str):
     }
 
 
+# ── A network's members, for its own welcome tile (mom-home #74) ───────────
+#
+# The spaces that name the network with mom:memberOf, as the map links them (`members` on the
+# network's feature, _link_networks), with what home needs to reach them: the card's id and name,
+# the file's address, its kind of file, and the contact the map already shows publicly. Read from
+# spaces.geojson (the same list the map draws) plus each Turtle member's snapshot for its contact,
+# as /raw does. Nothing here is private: every field is on the public map already.
+
+def _contact_list(contact: Any) -> list[dict]:
+    """A contact as [{type, value}]: a JSON file's dict (`{"email": ...}`) or a Turtle file's list."""
+    if isinstance(contact, dict):
+        items = [{"type": k, "value": v} for k, v in contact.items()]
+    elif isinstance(contact, list):
+        items = [c for c in contact if isinstance(c, dict)]
+    else:
+        return []
+    return [
+        {"type": c["type"], "value": c["value"]}
+        for c in items
+        if isinstance(c.get("type"), str) and isinstance(c.get("value"), str) and c["value"].strip()
+    ]
+
+
+@app.get("/api/network-members")
+async def get_network_members(url: str):
+    """The members of the network registered from `url` (its own file's address), or 404."""
+    if safe_iri(url.strip()) is None:
+        raise HTTPException(status_code=400, detail={"error": "bad_url"})
+    graph = await _find_graph_by_endpoint(OXIGRAPH_ENDPOINT, url)
+    if not graph or not graph.startswith("urn:mak:network/"):
+        raise HTTPException(status_code=404, detail={"error": "not_a_network"})
+    network_id = _id_of(graph)
+    features = _features_by_id()
+    # Registered but not drawn yet (the rebuild runs after the answer): no members yet, not an error.
+    names = (features.get(network_id) or {}).get("properties", {}).get("members") or []
+    members = []
+    for member_id in names:
+        props = (features.get(member_id) or {}).get("properties")
+        if not props:
+            continue
+        snap = read_snapshot(member_id) or {}
+        media_type = snap.get("media_type") or "application/json"
+        contact = props.get("contact")
+        if media_type == "text/turtle" and isinstance(snap.get("payload"), dict):
+            contact = snap["payload"].get("contact")
+        members.append({
+            "id": member_id,
+            "name": props.get("name", ""),
+            "endpoint_url": props.get("endpoint_url", ""),
+            "media_type": media_type,
+            "contact": _contact_list(contact),
+        })
+    return {"id": network_id, "members": members}
+
+
 # ── Geocode proxy (Story 9.3 / AC6) ─────────────────────────────────────────
 
 class GeocodeRequest(BaseModel):
