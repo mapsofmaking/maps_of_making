@@ -6,8 +6,9 @@
 # ~deploy/.ssh/authorized_keys, so that key can do this and nothing else:
 #   restrict,command="/usr/local/sbin/mom-map-deploy" ssh-ed25519 AAAA… mom-map CI
 # CI sends the full commit id as the ssh command; the script checks it is
-# on mom-vps, checks it out, pulls that commit's images (tag sha-<7>) and
-# restarts. Each run says how it went in the journal:
+# on mom-vps, checks it out, pulls that commit's images (tag sha-<7>),
+# restarts, then removes older tags of those images (keeps the newest two).
+# Each run says how it went in the journal:
 #   journalctl -t mom-map-deploy
 # By hand (as deploy):  mom-map-deploy <40-hex commit>
 set -eu
@@ -44,5 +45,21 @@ fi
 
 docker compose pull -q || fail "pull $TAG"
 docker compose up -d --no-build --wait --wait-timeout 120 || fail "up $TAG (not healthy within 120 s)"
+
+# Each deploy pulls new sha-<7> images and nothing removed the old ones: they
+# filled the disk to 81% in three weeks (2026-11-21). Keep the two newest tags
+# of each of our images (this deploy and the one before, for a rollback with
+# no pull). docker rmi refuses an image a container still uses, so a rollback
+# to an older tag never loses its running image. A failed cleanup only warns:
+# the deploy itself is done.
+prune_old_tags() {
+  for repo in $(docker compose config --images | grep '^ghcr.io/mapsofmaking/' | sed 's/:[^:/]*$//' | sort -u); do
+    docker images "$repo" --format '{{.Repository}}:{{.Tag}}' | tail -n +3 |
+      while read -r ref; do
+        docker rmi -q "$ref" >/dev/null 2>&1 && log "removed old image $ref" || true
+      done
+  done
+}
+prune_old_tags || log "warning: old image cleanup failed"
 
 log "ok: $TAG ($COMMIT)"

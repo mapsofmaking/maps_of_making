@@ -13,7 +13,9 @@ mounted scripts), `infra/.env` (secrets) and `data/`.
    the commit id. That is all the key can do.
 3. The script checks the commit is on `mom-vps`, checks it out, writes
    `MAP_TAG=sha-<7>` in `infra/.env`, then `docker compose pull` and
-   `up -d --no-build --wait`. Its log: `journalctl -t mom-map-deploy`.
+   `up -d --no-build --wait`, then removes older tags of the three images,
+   keeping the newest two (the disk filled up otherwise). Its log:
+   `journalctl -t mom-map-deploy`.
 
 **Rollback**: re-run the `images` workflow's deploy of an older commit, or on
 the server as `deploy`: `mom-map-deploy <older commit id>`.
@@ -43,7 +45,7 @@ The secrets of step 2 are fresh, for a test install. At the switch from the
 old server, `LINK_SECRET` and `BOT_KEY_SECRET` are replaced by the old
 server's values: claim links and stored deploy keys depend on them.
 
-When the deploy script changes in the repo, repeat step 4.
+When the deploy script changes in the repo, repeat step 3.
 
 ## The key (on the workstation)
 
