@@ -369,6 +369,60 @@ with its own `lvl6` code (`BE-VWV`) before Flanders' `lvl4`. Wallonia is a
 area until #87 (now `BE-BRU` through the city); "Brussels-Capital Region"
 finds `BE-BRU` "Brussels-Capital" (a `county`, the exception above).
 
+## Moving to a new address, and who may register a name (#85)
+
+> Decided 2026-11-20 (map#85). A record belongs to the address it was
+> registered from. A name is no longer enough to replace it.
+
+**A name that is taken.** A registration whose slug lands on a record already
+registered from **another** address is refused (`409`). Before #85 it dropped
+that record and wrote its own (the same name was enough). Not affected:
+registering the same address again; claiming a seed (`mom:source`
+`scraped-*`, no address), as before; a space and a network of the same name
+(own prefixes, M1). The canary's id `mother-sands` is taken too: a file named
+"Mother Sands" is refused instead of making a second pin.
+
+**Moving.** The coordinator puts the new address in the **old** file, then
+registers the new one, naming the old:
+
+```json
+"mom": { "movedTo": "https://<pod>/public/space.ttl" }
+```
+
+```sh
+curl -s -X POST "$MAP/api/register-url" -H 'Content-Type: application/json' \
+  -d '{"url": "https://<pod>/public/space.ttl", "replaces": "https://old.example/space.json"}'
+```
+
+The map fetches the old file again, with the same guarded fetch as a
+registration (public hosts only, no redirects). If `mom.movedTo` is exactly
+`url`, the record is rewritten from the new file **in its own graph**: same
+graph, same id, so the snapshot history (`urn:mak:space/<id>/…`), `?space=`
+links and members' `mom:memberOf` still hold. `mom:endpointUrl` becomes the
+new address and the heartbeat follows it from its next tick. The answer
+carries `moved_from: <old address>` (`null` otherwise). A retry after the move
+is an ordinary re-registration: the new address is already known. Only JSON
+old files are read for `movedTo`.
+
+**Refusals** (`409`, `detail` below). `add` is the block the old file must
+hold, so home can show it as one line to copy:
+
+```json
+{ "error": "<code>", "id": "<the record's id>", "add": { "mom": { "movedTo": "<url>" } } }
+```
+
+| `error` | When | Also |
+|---|---|---|
+| `name_taken` | the slug is a record registered from another address (no `replaces`) | `replaces`: that record's address, to send back once the old file holds `add` |
+| `replaces_not_found` | no record has the `replaces` address (or it is the canary, which never moves) | no `id` |
+| `replaces_unreachable` | the old file cannot be fetched now | |
+| `moved_to_missing` | the old file has no `mom.movedTo` | |
+| `moved_to_mismatch` | `mom.movedTo` is not exactly `url` | `found`: what it holds |
+| `kind_changed` | a space moving into a network file, or back (the id would change) | |
+
+If the store cannot be asked whether a name is taken, registration answers
+`503 {"error": "triplestore_unavailable"}` and writes nothing.
+
 ## Reading a file without registering it (`read-url`, #84)
 
 `POST /api/read-url {"url": "…"}` fetches a space or network file (JSON or Turtle, so a pod
