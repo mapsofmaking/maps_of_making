@@ -390,6 +390,22 @@ registering the same address again; claiming a seed (`mom:source`
 (own prefixes, M1). The canary's id `mother-sands` is taken too: a file named
 "Mother Sands" is refused instead of making a second pin.
 
+**Same name, same place or not (2026-11-21).** A new registration (an
+address the map doesn't hold, no seed of that name to claim) is checked
+against every record of the same name and kind registered from another
+address, whatever its id:
+
+- closer than 25 km (`_SAME_PLACE_KM`), or either side without a position:
+  the same space registered twice, refused `name_taken` with that record's
+  `id` and address. This catches a record under a seed's id
+  (`ingegno-maker-space-drongen`) that the name alone (`ingegno-maker-space`)
+  would miss, and would duplicate;
+- farther: another space (OpenFab in Brussels, OpenFab in Istanbul). It gets
+  the first free id of `<slug>`, `<slug>-<town>`, `<slug>-<country code>`;
+  all three taken is `name_taken`.
+
+Distance, not the town's text: Ingegno's file says Gent, its id Drongen.
+
 **Moving.** The coordinator puts the new address in the **old** file, then
 registers the new one, naming the old:
 
