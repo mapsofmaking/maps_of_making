@@ -222,6 +222,50 @@ SELECT ?graph WHERE {{
     return rows[0]["graph"]["value"] if rows else None
 
 
+async def _endpoint_in_graph(oxigraph_endpoint: str, graph_uri: str) -> Optional[str]:
+    """The mom:endpointUrl a graph already holds, or None (a seed, or nothing there yet).
+
+    Fails closed (#85): it guards against overwriting a registered record, so an Oxigraph error is a
+    503, never "nobody there"."""
+    sparql = f"""PREFIX mom: <https://mapsofmaking.org/ns/mom#>
+SELECT ?u WHERE {{ GRAPH <{graph_uri}> {{ ?s mom:endpointUrl ?u }} }} LIMIT 1"""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{oxigraph_endpoint}/query",
+                content=sparql,
+                headers={
+                    "Content-Type": "application/sparql-query",
+                    "Accept": "application/sparql-results+json",
+                },
+            )
+            resp.raise_for_status()
+    except httpx.HTTPError as e:
+        logger.error("[register] owner lookup failed for %s: %s", graph_uri, e)
+        raise HTTPException(status_code=503, detail={"error": "triplestore_unavailable"})
+    rows = resp.json().get("results", {}).get("bindings", [])
+    return rows[0]["u"]["value"] if rows else None
+
+
+# The canary's id (urn:mak:canary/mother-sands): no registered file may take it as its own.
+_CANARY_ID = "mother-sands"
+
+
+def _move_refusal(error: str, url: str, **extra) -> HTTPException:
+    """A refused registration home can turn into one line (#85): `add` is what the old file must hold."""
+    return HTTPException(status_code=409, detail={"error": error, "add": {"mom": {"movedTo": url}}, **extra})
+
+
+async def _refuse_if_taken(oxigraph_endpoint: str, graph_uri: str, url: str) -> None:
+    """#85: a new record never overwrites one registered from another address (same slug = same
+    graph). Seeds (no endpoint) are not owned and are claimed as before. The owner moves its record
+    with `replaces` and the old file's mom.movedTo."""
+    owner = await _endpoint_in_graph(oxigraph_endpoint, graph_uri)
+    if _id_of(graph_uri) == _CANARY_ID or (owner is not None and owner != url):
+        logger.info("[register] %s is taken (endpoint %s): refusing %s", graph_uri, owner, url)
+        raise _move_refusal("name_taken", url, id=_id_of(graph_uri), replaces=owner)
+
+
 async def run_heartbeat_tick(oxigraph_endpoint: str) -> int:
     """Unified single tick: fetch every claimed space concurrently, then rematerialize once.
 
@@ -383,6 +427,8 @@ ORDER BY ?spaceUri"""
 class UrlRequest(BaseModel):
     url: str
     space_id: Optional[str] = None
+    # #85: the address this file takes over. The old file proves it with "mom": {"movedTo": url}.
+    replaces: Optional[str] = None
 
 
 from schema import SpaceAPIGeo, SpaceAPILocation, SpaceAPISchema  # noqa: E402  (placed here to match original class location)
@@ -1088,6 +1134,33 @@ async def read_url(req: UrlRequest):
     return {"validation": result, "record": read_record(source, result.get("lat"), result.get("lon"))}
 
 
+async def _move_target(replaces: str, url: str, kind: str) -> str:
+    """The graph a proven move takes over (#85), or a refusal home can show as one line.
+
+    The old file is fetched again through the same guarded fetch as any registration (public hosts
+    only, no redirects); it must hold "mom": {"movedTo": <url>}, the exact address registered."""
+    old_graph = await _find_graph_by_endpoint(OXIGRAPH_ENDPOINT, replaces)
+    if old_graph is None:
+        raise _move_refusal("replaces_not_found", url)
+    if old_graph == "urn:mak:canary":
+        raise _move_refusal("replaces_not_found", url)  # the canary is the map's own test, it never moves
+    old = await _fetch_and_validate(replaces)
+    old_data = old.pop("_data", None)
+    old.pop("_source", None)
+    if not old.get("reachable") or not isinstance(old_data, dict):
+        raise _move_refusal("replaces_unreachable", url, id=_id_of(old_graph))
+    mom_block = old_data.get("mom")
+    moved_to = mom_block.get("movedTo") if isinstance(mom_block, dict) else None
+    if not moved_to:
+        raise _move_refusal("moved_to_missing", url, id=_id_of(old_graph))
+    if not isinstance(moved_to, str) or moved_to.strip() != url.strip():
+        raise _move_refusal("moved_to_mismatch", url, id=_id_of(old_graph), found=str(moved_to))
+    if not old_graph.startswith(_KIND_PREFIX[kind]):
+        # A space becoming a network (or back) would change its id: register it as itself instead.
+        raise _move_refusal("kind_changed", url, id=_id_of(old_graph))
+    return old_graph
+
+
 @app.post("/api/register-url")
 async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
     result = await _fetch_and_validate(req.url)
@@ -1113,7 +1186,15 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
     # space was seeded under a compound slug (name+city) and later self-registered
     # under the name-only slug, or the coordinator registers twice.
     existing_endpoint_uri = await _find_graph_by_endpoint(OXIGRAPH_ENDPOINT, req.url)
-    if existing_endpoint_uri:
+    moved_endpoint = None  # #85: the address this registration took over, when it moved a record
+    if not existing_endpoint_uri and req.replaces:
+        # #85: the record registered from `replaces` moves to this address, keeping its graph and id
+        # (its snapshots live under that id). Proof: the old file names this address in mom.movedTo.
+        # Already registered from this address (a retry after the move): the branch above, as any re-registration.
+        graph_uri = space_uri = await _move_target(req.replaces, req.url, kind)
+        moved_endpoint = req.replaces
+        logger.info("[register] move: %s takes over %s (%s)", req.url, req.replaces, graph_uri)
+    elif existing_endpoint_uri:
         logger.info("[register] endpoint-dedup: %r already exists as %s — reusing URI", req.url, existing_endpoint_uri)
         graph_uri = existing_endpoint_uri
         space_uri = existing_endpoint_uri
@@ -1145,6 +1226,8 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
             # Each kind under its own prefix (M1): a network and a space of the same name no
             # longer share a graph, and their ids differ (`<slug>`, `network_<slug>`).
             graph_uri = space_uri = f"{_KIND_PREFIX[kind]}{slug}"
+            # #85: a name (a slug) is no longer enough to replace a record registered from elsewhere.
+            await _refuse_if_taken(OXIGRAPH_ENDPOINT, graph_uri, req.url)
 
     # The record found sits under the other kind's prefix: a network registered before M1
     # (urn:mak:space/<slug>), or a file that changed kind. It moves to its own prefix, under its
@@ -1154,6 +1237,7 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
     if graph_uri.startswith(other_prefix):
         moved_from = graph_uri
         graph_uri = space_uri = f"{_KIND_PREFIX[kind]}{slug}"
+        await _refuse_if_taken(OXIGRAPH_ENDPOINT, graph_uri, req.url)
         logger.info("[register] %r is a %s: moving %s to %s", name, kind, moved_from, graph_uri)
 
     # The snapshot and the first tick go under the id the map uses for this graph (_id_of), as
@@ -1237,6 +1321,8 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
         "id": slug,
         "space_name": name,
         "kind": kind,
+        # #85: the address this registration took over (null when it moved nothing).
+        "moved_from": moved_endpoint,
         "subset": result.get("subset"),
         "subset_score": result.get("subset_score"),
         "unlock_message": result.get("unlock_message"),
