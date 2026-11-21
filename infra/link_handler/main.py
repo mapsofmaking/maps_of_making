@@ -250,6 +250,98 @@ SELECT ?u WHERE {{ GRAPH <{graph_uri}> {{ ?s mom:endpointUrl ?u }} }} LIMIT 1"""
 # The canary's id (urn:mak:canary/mother-sands): no registered file may take it as its own.
 _CANARY_ID = "mother-sands"
 
+# Two records of the same name and kind closer than this are one space, registered twice (#85 follow-up,
+# 2026-11-21): the second is refused. Farther apart, they are two places (OpenFab in Brussels and in
+# Istanbul) and the second gets its own id. Distance, not the city's text: Ingegno's file says Gent, its
+# id says Drongen, 7 km apart.
+_SAME_PLACE_KM = 25.0
+
+
+def _km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    from math import asin, cos, radians, sin, sqrt
+    dlat, dlon = radians(lat2 - lat1), radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    return 6371.0 * 2 * asin(sqrt(a))
+
+
+async def _registered_by_name(oxigraph_endpoint: str, name: str, kind: str) -> list[dict]:
+    """The registered records (with an endpoint, any id) of this name and kind, case-insensitive,
+    with their address and position. Fails closed, as _endpoint_in_graph: it guards against duplicates."""
+    safe = name.replace("\\", "\\\\").replace('"', '\\"')
+    sparql = f"""PREFIX mom: <https://mapsofmaking.org/ns/mom#>
+PREFIX schema: <https://schema.org/>
+SELECT ?graph ?u ?lat ?lon WHERE {{
+  GRAPH ?graph {{
+    ?s a <{_KIND_TYPE[kind]}> ; schema:name ?n ; mom:endpointUrl ?u .
+    OPTIONAL {{ ?s schema:geo [ schema:latitude ?lat ; schema:longitude ?lon ] }}
+    FILTER(LCASE(STR(?n)) = LCASE("{safe}"))
+  }}
+}}"""
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{oxigraph_endpoint}/query",
+                content=sparql,
+                headers={"Content-Type": "application/sparql-query", "Accept": "application/sparql-results+json"},
+            )
+            resp.raise_for_status()
+    except httpx.HTTPError as e:
+        logger.error("[register] same-name lookup failed for %r: %s", name, e)
+        raise HTTPException(status_code=503, detail={"error": "triplestore_unavailable"})
+    out = []
+    for row in resp.json().get("results", {}).get("bindings", []):
+        try:
+            lat, lon = float(row["lat"]["value"]), float(row["lon"]["value"])
+        except (KeyError, ValueError):
+            lat = lon = None
+        out.append({"graph": row["graph"]["value"], "endpoint": row["u"]["value"], "lat": lat, "lon": lon})
+    return out
+
+
+def _place_of(source, data: dict) -> tuple[str, str]:
+    """The new file's town and country code, as the graph will hold them ("" when it says none)."""
+    if source is not None and source.kind == "turtle":
+        fields = source.turtle.fields
+    else:
+        fields = {**extract_core(data), **extract_mom(data)}
+    city = fields.get("schema:addressLocality")
+    cc = fields.get("mom:countryCode")
+    return (city if isinstance(city, str) else ""), (cc if isinstance(cc, str) else "")
+
+
+async def _new_graph(oxigraph_endpoint: str, kind: str, slug: str, name: str, url: str,
+                     lat: Optional[float], lon: Optional[float], city: str, country_code: str) -> str:
+    """The graph a new record goes to (#85 follow-up). Refused (409 name_taken) when the canary's id is
+    asked, or when a record of the same name and kind is registered from another address in the same
+    place (_SAME_PLACE_KM; no position on either side counts as the same place). Otherwise the first of
+    <slug>, <slug>-<town>, <slug>-<country> that nobody else's address holds."""
+    prefix = _KIND_PREFIX[kind]
+    if slug == _CANARY_ID:
+        await _refuse_if_taken(oxigraph_endpoint, prefix + slug, url)
+    for other in await _registered_by_name(oxigraph_endpoint, name, kind):
+        if other["endpoint"] == url:
+            continue
+        near = (
+            lat is None or lon is None or other["lat"] is None
+            or _km(lat, lon, other["lat"], other["lon"]) < _SAME_PLACE_KM
+        )
+        if near:
+            logger.info("[register] %r is already registered nearby as %s: refusing %s", name, other["graph"], url)
+            raise _move_refusal("name_taken", url, id=_id_of(other["graph"]), replaces=other["endpoint"])
+    candidates = [slug]
+    for suffix in (_slug(city), _slug(country_code)):
+        if suffix and f"{slug}-{suffix}" not in candidates:
+            candidates.append(f"{slug}-{suffix}")
+    first_owner = None
+    for candidate in candidates:
+        owner = await _endpoint_in_graph(oxigraph_endpoint, prefix + candidate)
+        if owner is None or owner == url:
+            if candidate != slug:
+                logger.info("[register] %s is taken elsewhere: %s registers as %s", slug, url, candidate)
+            return prefix + candidate
+        first_owner = first_owner or owner
+    raise _move_refusal("name_taken", url, id=_id_of(prefix + slug), replaces=first_owner)
+
 
 def _move_refusal(error: str, url: str, **extra) -> HTTPException:
     """A refused registration home can turn into one line (#85): `add` is what the old file must hold."""
@@ -1225,9 +1317,12 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
         else:
             # Each kind under its own prefix (M1): a network and a space of the same name no
             # longer share a graph, and their ids differ (`<slug>`, `network_<slug>`).
-            graph_uri = space_uri = f"{_KIND_PREFIX[kind]}{slug}"
-            # #85: a name (a slug) is no longer enough to replace a record registered from elsewhere.
-            await _refuse_if_taken(OXIGRAPH_ENDPOINT, graph_uri, req.url)
+            # #85: a name (a slug) is no longer enough to replace a record registered from elsewhere; the
+            # same name in the same place is refused, in another place it gets its own id (2026-11-21).
+            city, country_code = _place_of(source, data)
+            graph_uri = space_uri = await _new_graph(
+                OXIGRAPH_ENDPOINT, kind, slug, name, req.url, lat, lon, city, country_code
+            )
 
     # The record found sits under the other kind's prefix: a network registered before M1
     # (urn:mak:space/<slug>), or a file that changed kind. It moves to its own prefix, under its
@@ -1477,6 +1572,61 @@ async def get_space_raw(space_id: str):
         "mediaType": media_type,
         "snapshotDate": snap.get("observed_at", ""),
     }
+
+
+# ── A network's members, for its own welcome tile (mom-home #74) ───────────
+#
+# The spaces that name the network with mom:memberOf, as the map links them (`members` on the
+# network's feature, _link_networks), with what home needs to reach them: the card's id and name,
+# the file's address, its kind of file, and the contact the map already shows publicly. Read from
+# spaces.geojson (the same list the map draws) plus each Turtle member's snapshot for its contact,
+# as /raw does. Nothing here is private: every field is on the public map already.
+
+def _contact_list(contact: Any) -> list[dict]:
+    """A contact as [{type, value}]: a JSON file's dict (`{"email": ...}`) or a Turtle file's list."""
+    if isinstance(contact, dict):
+        items = [{"type": k, "value": v} for k, v in contact.items()]
+    elif isinstance(contact, list):
+        items = [c for c in contact if isinstance(c, dict)]
+    else:
+        return []
+    return [
+        {"type": c["type"], "value": c["value"]}
+        for c in items
+        if isinstance(c.get("type"), str) and isinstance(c.get("value"), str) and c["value"].strip()
+    ]
+
+
+@app.get("/api/network-members")
+async def get_network_members(url: str):
+    """The members of the network registered from `url` (its own file's address), or 404."""
+    if safe_iri(url.strip()) is None:
+        raise HTTPException(status_code=400, detail={"error": "bad_url"})
+    graph = await _find_graph_by_endpoint(OXIGRAPH_ENDPOINT, url)
+    if not graph or not graph.startswith("urn:mak:network/"):
+        raise HTTPException(status_code=404, detail={"error": "not_a_network"})
+    network_id = _id_of(graph)
+    features = _features_by_id()
+    # Registered but not drawn yet (the rebuild runs after the answer): no members yet, not an error.
+    names = (features.get(network_id) or {}).get("properties", {}).get("members") or []
+    members = []
+    for member_id in names:
+        props = (features.get(member_id) or {}).get("properties")
+        if not props:
+            continue
+        snap = read_snapshot(member_id) or {}
+        media_type = snap.get("media_type") or "application/json"
+        contact = props.get("contact")
+        if media_type == "text/turtle" and isinstance(snap.get("payload"), dict):
+            contact = snap["payload"].get("contact")
+        members.append({
+            "id": member_id,
+            "name": props.get("name", ""),
+            "endpoint_url": props.get("endpoint_url", ""),
+            "media_type": media_type,
+            "contact": _contact_list(contact),
+        })
+    return {"id": network_id, "members": members}
 
 
 # ── Geocode proxy (Story 9.3 / AC6) ─────────────────────────────────────────

@@ -192,6 +192,14 @@ rather than parsing `space_uri`).
 The heartbeat ticks a network as it ticks a space; the endpoint dedupe finds
 it by its address under either prefix.
 
+`GET /api/network-members?url=<the network's file>` (mom-home #74) lists the
+spaces the map counts as the network's members (`members` on its feature):
+`{id, members: [{id, name, endpoint_url, media_type, contact: [{type, value}]}]}`.
+`contact` is what the map already shows on the card (a JSON file's `contact`,
+a Turtle file's handles from its snapshot). 404 `not_a_network` when the
+address isn't a registered network; a network the map hasn't redrawn yet has
+no members.
+
 **Moving a network registered before M1.** A record found by its address (or a
 claimed seed) under the other kind's prefix moves: a network in
 `urn:mak:space/<slug>` is written to `urn:mak:network/<slug>` and the old
@@ -381,6 +389,22 @@ registering the same address again; claiming a seed (`mom:source`
 `scraped-*`, no address), as before; a space and a network of the same name
 (own prefixes, M1). The canary's id `mother-sands` is taken too: a file named
 "Mother Sands" is refused instead of making a second pin.
+
+**Same name, same place or not (2026-11-21).** A new registration (an
+address the map doesn't hold, no seed of that name to claim) is checked
+against every record of the same name and kind registered from another
+address, whatever its id:
+
+- closer than 25 km (`_SAME_PLACE_KM`), or either side without a position:
+  the same space registered twice, refused `name_taken` with that record's
+  `id` and address. This catches a record under a seed's id
+  (`ingegno-maker-space-drongen`) that the name alone (`ingegno-maker-space`)
+  would miss, and would duplicate;
+- farther: another space (OpenFab in Brussels, OpenFab in Istanbul). It gets
+  the first free id of `<slug>`, `<slug>-<town>`, `<slug>-<country code>`;
+  all three taken is `name_taken`.
+
+Distance, not the town's text: Ingegno's file says Gent, its id Drongen.
 
 **Moving.** The coordinator puts the new address in the **old** file, then
 registers the new one, naming the old:

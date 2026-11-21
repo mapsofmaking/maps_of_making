@@ -241,3 +241,54 @@ async def test_a_seed_is_still_claimed_by_name(files, monkeypatch):
         url = put(files, "/s.ttl", TTL, "text/turtle")
         out = await register(url)
     assert out["space_uri"] == "urn:mak:space/adc-anderlecht"
+
+
+# ── Same name: one place is one space, two places are two (2026-11-21) ──────
+
+def elsewhere(address=None, cc="TR", lat=41.0082, lon=28.9784):
+    """Atelier du Canal's file, for another workshop of the same name in Istanbul."""
+    data = json.loads(JSON_TEXT)
+    data["location"] = {"country_code": cc, "lat": lat, "lon": lon, **({"address": address} if address else {})}
+    return json.dumps(data)
+
+
+@pytest.mark.asyncio
+async def test_the_same_name_far_away_is_another_space_with_its_own_id(files, monkeypatch):
+    with StoreOxigraph() as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        first = put(files, "/brussels.json", old_json(), "application/json")
+        other = put(files, "/istanbul.json", elsewhere("Moda Cd. 5, 34710 Istanbul, TR"), "application/json")
+        await register(first)
+        out = await register(other)
+        assert endpoints(ox) == {SPACE: first, SPACE + "-istanbul": other}
+        # Registering it again finds it by its address, under its own id.
+        assert (await register(other))["id"] == "atelier-du-canal-istanbul"
+    assert out["id"] == "atelier-du-canal-istanbul"
+
+
+@pytest.mark.asyncio
+async def test_far_away_with_no_town_the_country_tells_them_apart(files, monkeypatch):
+    with StoreOxigraph() as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        await register(put(files, "/brussels.json", old_json(), "application/json"))
+        out = await register(put(files, "/istanbul.json", elsewhere(), "application/json"))
+    assert out["id"] == "atelier-du-canal-tr"
+
+
+@pytest.mark.asyncio
+async def test_the_same_name_nearby_under_another_id_is_refused_not_duplicated(files, monkeypatch):
+    """Ingegno's case: registered under a seed's id (name + town), its pod under the name alone would be a second pin."""
+    registered = f"""INSERT DATA {{ GRAPH <{SPACE}-anderlecht> {{
+  <{SPACE}-anderlecht> a <https://mapsofmaking.org/ns/mom#Space> ;
+    <https://schema.org/name> "Atelier du Canal" ;
+    <https://mapsofmaking.org/ns/mom#source> "self-registered" ;
+    <https://mapsofmaking.org/ns/mom#endpointUrl> <https://gitlab.example/adc.json> ;
+    <https://schema.org/geo> [ <https://schema.org/latitude> 50.84 ; <https://schema.org/longitude> 4.33 ] .
+}} }}"""
+    with StoreOxigraph(registered) as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        before = endpoints(ox)
+        detail = await refused(put(files, "/pod.ttl", TTL, "text/turtle"))
+        assert endpoints(ox) == before
+    assert detail["error"] == "name_taken"
+    assert detail["id"] == "atelier-du-canal-anderlecht" and detail["replaces"] == "https://gitlab.example/adc.json"
