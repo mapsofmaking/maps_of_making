@@ -56,7 +56,9 @@ prune_old_tags() {
   for repo in $(docker compose config --images | grep '^ghcr.io/mapsofmaking/' | sed 's/:[^:/]*$//' | sort -u); do
     docker images "$repo" --format '{{.Repository}}:{{.Tag}}' | tail -n +3 |
       while read -r ref; do
-        docker rmi -q "$ref" >/dev/null 2>&1 && log "removed old image $ref" || true
+        # docker rmi has no -q (it failed on every ref and the error was hidden, 2026-11-21).
+        if out=$(docker rmi "$ref" 2>&1); then log "removed old image $ref"
+        else log "kept $ref: $(printf %s "$out" | head -n 1)"; fi
       done
   done
 }
