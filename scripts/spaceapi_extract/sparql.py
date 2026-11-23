@@ -91,10 +91,13 @@ def triples_for(subject_uri: str, fields: dict[str, Any]) -> list[str]:
         if curie == "schema:areaServed":
             # Cleaned again: a snapshot stored before areas had names holds bare codes ("BE-VLG").
             for item in clean_areas(val if isinstance(val, list) else [val]):
-                node =(f"a <{_NS['schema']}AdministrativeArea> ; "
-                        f"<{_NS['schema']}identifier> {escape_literal(item['code'])}")
+                # A named area with no ISO code (2026-11-23) has no identifier.
+                parts = [f"a <{_NS['schema']}AdministrativeArea>"]
+                if item["code"]:
+                    parts.append(f"<{_NS['schema']}identifier> {escape_literal(item['code'])}")
                 if item.get("name"):
-                    node += f" ; <{_NS['schema']}name> {escape_literal(item['name'])}"
+                    parts.append(f"<{_NS['schema']}name> {escape_literal(item['name'])}")
+                node = " ; ".join(parts)
                 out.append(f"<{subject_uri}> <{pred_uri}> [ {node} ] .")
             continue
 

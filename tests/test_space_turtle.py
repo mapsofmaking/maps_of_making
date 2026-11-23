@@ -343,16 +343,18 @@ def test_areas_are_one_per_code_named_when_any_is_and_names_are_cleaned():
         [ schema:identifier "DE-BY" ; schema:name "%s" ] .""" % ("B" * 300)
     areas = _space(body).fields["schema:areaServed"]
     # Flanders: three statements of one code; a name beats none, then the smaller one ("Flanders" < "Zz").
+    # A name with no code is kept after the coded ones (2026-11-23); a bad code is still left out.
     assert areas == [{"code": "BE-VLG", "name": "Flanders"}, {"code": "DE-BY", "name": "B" * 200},
-                     {"code": "FR-IDF", "name": "Île-de- France"}]
+                     {"code": "FR-IDF", "name": "Île-de- France"}, {"code": "", "name": "No code"}]
     assert _space(body).fields.get("mom:countryCode") is None  # several countries
 
 
 def test_a_json_area_list_is_cleaned_like_turtle():
     raw = [{"code": "be-wal", "name": "Wallonia"}, {"code": "BE-WAL"}, {"name": "No code"}, {"code": "BE_BRU"}, 42, "BE-VLG"]
     f = extract_core({"space": "Net", "location": {"lat": 1, "lon": 2}, "mom": {"kind": "network", "areaServed": raw}})
-    assert f["schema:areaServed"] == [{"code": "BE-VLG", "name": ""}, {"code": "BE-WAL", "name": "Wallonia"}]
-    assert f["mom:countryCode"] == "BE"
+    assert f["schema:areaServed"] == [{"code": "BE-VLG", "name": ""}, {"code": "BE-WAL", "name": "Wallonia"},
+                                      {"code": "", "name": "No code"}]
+    assert f["mom:countryCode"] == "BE"  # a named area names no country
 
 
 # ── #73: a pod file keeps the SDGs and the topics an import carried ─────────
@@ -375,3 +377,25 @@ def test_a_goal_outside_1_to_17_or_a_topic_that_is_not_text_is_left_out():
       schema:knowsAbout <https://example.org/welding>, "  ", "ok" ; mom:sdgs 0, 18, 3.5, "x", 17, 17 .""")
     assert parsed.fields["mom:sdgs"] == [17]
     assert parsed.fields["schema:knowsAbout"] == ["ok"]
+
+
+
+def test_a_named_area_without_an_iso_code_is_kept_after_the_coded_ones():
+    """2026-11-23: "Benelux", "South East Asia" have no ISO code; the name is kept, sorted after the codes."""
+    from spaceapi_extract.area import clean_areas, country_of
+    areas = clean_areas([{"name": "South East Asia"}, {"code": "BE", "name": "Belgium"}, {"name": "Benelux"},
+                         {"name": "benelux"}, {"code": "nope", "name": "Bad"}, "Benelux", {"code": "", "name": ""}])
+    assert areas == [{"code": "BE", "name": "Belgium"}, {"code": "", "name": "Benelux"}, {"code": "", "name": "South East Asia"}]
+    assert country_of(areas) == "BE"
+    assert country_of([{"code": "", "name": "Benelux"}]) is None
+
+
+def test_a_named_area_node_is_read_and_written_without_an_identifier():
+    p = _space('<#space> a mom:Network ; schema:name "Net" ; schema:areaServed [ a schema:AdministrativeArea ; schema:name "Benelux" ] .')
+    assert p.fields["schema:areaServed"] == [{"code": "", "name": "Benelux"}]
+    assert "mom:countryCode" not in p.fields
+    s = "https://schema.org/"
+    assert triples_for(SUBJECT, {"schema:areaServed": [{"code": "", "name": "Benelux"}]}) == [
+        f'<{SUBJECT}> <{s}areaServed> [ a <{s}AdministrativeArea> ; <{s}name> "Benelux" ] .']
+    f = extract_core({"space": "Net", "mom": {"kind": "network", "areaServed": [{"name": "South East Asia"}]}})
+    assert f["schema:areaServed"] == [{"code": "", "name": "South East Asia"}]

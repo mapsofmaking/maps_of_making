@@ -126,8 +126,8 @@ a card of its own, and its members.
 |---|---|---|---|---|
 | kind | yes | `mom.kind: "network"` | the node is typed `mom:Network, schema:Organization` (subject stays `<#space>`) | `a mom:Network, schema:Organization` (a space: `a mom:Space`) |
 | area served | yes | `mom.areaServed`, a list of `{"code", "name"}` | `schema:areaServed [ a schema:AdministrativeArea ; schema:identifier "BE-VLG" ; schema:name "Flanders" ]` (one node per area) | `schema:areaServed`, the same node per area (code, and name when there is one) |
-| pin fidelity | yes | `mom.geolocationFidelity` | `mom:geolocationFidelity` | `mom:geolocationFidelity` |
-| lat, lon | yes | `location.lat`, `location.lon` | `schema:geo [ schema:latitude ; schema:longitude ]` | same |
+| pin fidelity | with lat, lon | `mom.geolocationFidelity` | `mom:geolocationFidelity` | `mom:geolocationFidelity` |
+| lat, lon | no (2026-11-23) | `location.lat`, `location.lon` | `schema:geo [ schema:latitude ; schema:longitude ]` | same |
 | country | no | `location.country_code` | none: derived from the areas | `mom:countryCode` (given, or the one country all areas are in) |
 | address | — | none (no `location.address`) | none (no `schema:address`) | none: the card says "Network · …" instead |
 | hours | no | `schema:openingHours` (as a space) | `schema:openingHours` | the same; the card calls them **contact hours** |
@@ -135,11 +135,21 @@ a card of its own, and its members.
 - **An area** is a code and a name, anywhere in the world. The code is ISO
   3166-1 alpha-2 (`BE`) or ISO 3166-2 (`BE-VLG` Flanders, `FR-IDF`
   Île-de-France, `GB-SCT` Scotland): read in any case, written upper case
-  (`^[A-Z]{2}(-[A-Z0-9]{1,3})?$`); an area without a valid code is left out.
+  (`^[A-Z]{2}(-[A-Z0-9]{1,3})?$`); an area with an invalid code is left out.
   The name is a plain literal, the name the network's file gives (home takes
   it from the area search below), one line, at most 200 characters. One area
   per code (two of one code: a name beats none, then the smaller name),
   sorted by code, at most 10.
+- **An area named without a code** (2026-11-23, Nicolas: take what comes,
+  sort it once there is data): "Benelux", "South East Asia". JSON
+  `{"name": "Benelux"}`, Turtle `[ a schema:AdministrativeArea ; schema:name
+  "Benelux" ]` (no `schema:identifier`). Kept after the coded areas, one
+  per name (case aside). It names no country and gives no centre, so a
+  network whose areas are all named this way has no `schema:geo` and no
+  fidelity: it registers all the same (`placeable` in the validation), is
+  listed in `spaces.geojson` with `"geometry": null`, and shows by its
+  card and its members' filter, as every network does (no pin, M1). A space
+  still needs its position. A bare string is still read as a code only.
 - **The first shape is still read** (decided with Nicolas, 2026-11-19): a bare
   code, `schema:areaServed "BE-VLG"` in Turtle or `"BE-VLG"` in the JSON list
   (or `"areaServed": "BE-VLG"`), is an area without a name. The map then

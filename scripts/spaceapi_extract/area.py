@@ -9,6 +9,10 @@ an ISO 3166-1 (`BE`) or ISO 3166-2 (`BE-VLG`) code and its name ("Flanders"): on
 (docs/reference/space-file.md). The Turtle reader and the JSON extractor both clean values
 here, so the two formats keep writing the same statements.
 
+An area with a name and no ISO code ("Benelux", "South East Asia") is kept too (2026-11-23,
+Nicolas: take what comes, sort it once there is data): `{"code": "", "name": "Benelux"}`, a node
+with `schema:name` and no `schema:identifier`. It names no country and gives no centre.
+
 Pure functions, no I/O.
 """
 from __future__ import annotations
@@ -44,10 +48,14 @@ def clean_area_name(value: Any) -> str:
 
 
 def _area(value: Any) -> Optional[dict[str, str]]:
-    """One area, {code, name}, from a bare code or a {code, name} object; None when the code is not ISO."""
+    """One area, {code, name}, from a bare code or a {code, name} object; None when the code is not ISO.
+    An object with a name and no code is a named area (code ""); a bare string is still a code only."""
     if isinstance(value, dict):
         code = clean_area(value.get("code"))
-        return {"code": code, "name": clean_area_name(value.get("name"))} if code else None
+        name = clean_area_name(value.get("name"))
+        if code:
+            return {"code": code, "name": name}
+        return {"code": "", "name": name} if name and not value.get("code") else None
     code = clean_area(value)
     return {"code": code, "name": ""} if code else None
 
@@ -55,13 +63,21 @@ def _area(value: Any) -> Optional[dict[str, str]]:
 def clean_areas(values: Iterable[Any]) -> list[dict[str, str]]:
     """The valid areas among `values` (bare codes or {code, name}), as [{code, name}]: one per code,
     sorted by code (a graph has no order), at most MAX_AREAS. Two of one code: a name beats none,
-    then the smaller name, so the same file always reads the same."""
+    then the smaller name, so the same file always reads the same. Named areas without a code come
+    after, one per name (case aside), sorted by name."""
     best: dict[str, str] = {}
+    named: dict[str, str] = {}
     for area in filter(None, map(_area, values)):
         code, name = area["code"], area["name"]
-        if code not in best or (name and (not best[code] or name < best[code])):
+        if not code:
+            key = name.casefold()
+            if key not in named or name < named[key]:
+                named[key] = name
+        elif code not in best or (name and (not best[code] or name < best[code])):
             best[code] = name
-    return [{"code": c, "name": best[c]} for c in sorted(best)][:MAX_AREAS]
+    coded = [{"code": c, "name": best[c]} for c in sorted(best)]
+    free = [{"code": "", "name": named[k]} for k in sorted(named)]
+    return (coded + free)[:MAX_AREAS]
 
 
 def clean_fidelity(value: Any) -> Optional[str]:
@@ -78,5 +94,5 @@ def clean_kind(value: Any) -> str:
 
 def country_of(areas: Iterable[dict[str, str]]) -> Optional[str]:
     """The one country all `areas` are in, or None (none, or several)."""
-    countries = {a["code"][:2] for a in areas}
+    countries = {a["code"][:2] for a in areas if a["code"]}
     return countries.pop() if len(countries) == 1 else None
