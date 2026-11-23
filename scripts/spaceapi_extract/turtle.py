@@ -190,6 +190,9 @@ def _area_values(view: _View, subject: Any) -> list[Any]:
             code = view.one(o, SCHEMA + "identifier")
             if isinstance(code, Literal):
                 out.append({"code": str(code), "name": _area_name(view.objects(o, SCHEMA + "name"))})
+            elif code is None:
+                # A named area with no ISO code ("Benelux", 2026-11-23): its name alone.
+                out.append({"code": "", "name": _area_name(view.objects(o, SCHEMA + "name"))})
     return out
 
 

@@ -455,11 +455,15 @@ WHERE {
     GRAPH ?spaceGraph {
       # A space, or a network (2026-11-19): ?type tells them apart.
       ?spaceUri a ?type ;
-        schema:name ?name ;
-        schema:geo [
+        schema:name ?name .
+      # A network may have no position (2026-11-23: an area named without an ISO code has no centre);
+      # _binding_to_feature drops a space without one.
+      OPTIONAL {
+        ?spaceUri schema:geo [
           schema:latitude ?latitude ;
           schema:longitude ?longitude
-        ] .
+        ]
+      }
       OPTIONAL { ?spaceUri mom:geolocationFidelity ?geolocationFidelity }
       OPTIONAL { ?spaceUri mom:geolocationNote ?geolocationNote }
       OPTIONAL { ?spaceUri schema:streetAddress ?street }
@@ -490,7 +494,7 @@ WHERE {
         ?spaceUri schema:areaServed ?areaNode .
         OPTIONAL { ?areaNode schema:identifier ?areaCode }
         OPTIONAL { ?areaNode schema:name ?areaName }
-        BIND (CONCAT(IF(isLiteral(?areaNode), STR(?areaNode), STR(?areaCode)), "\u001f", COALESCE(STR(?areaName), "")) AS ?area)
+        BIND (CONCAT(IF(isLiteral(?areaNode), STR(?areaNode), COALESCE(STR(?areaCode), "")), "\u001f", COALESCE(STR(?areaName), "")) AS ?area)
       }
       FILTER (?type IN (mom:Space, mom:Network))
     }
@@ -663,6 +667,7 @@ _EMPTY_RESULT = {
     "schema_valid": False,
     "name_found": None,
     "coords_found": False,
+    "placeable": False,
     "lat": None,
     "lon": None,
 }
@@ -733,6 +738,8 @@ async def _fetch_and_validate(url: str) -> dict:
         "schema_valid": bool(name),
         "name_found": name,
         "coords_found": lat is not None and lon is not None,
+        # True when the file can go on the map: a position, or a network's area without one (2026-11-23).
+        "placeable": (lat is not None and lon is not None) or (kind == "network" and _has_area(data, source)),
         "lat": lat,
         "lon": lon,
         "kind": kind,
@@ -748,12 +755,24 @@ async def _fetch_and_validate(url: str) -> dict:
     }
     if not name:
         result["error"] = "Name not found — expected 'space' (SpaceAPI v13–15) or 'schema:name' / 'name' (JSON-LD, Turtle)"
-    elif lat is None or lon is None:
+    elif (lat is None or lon is None) and not (kind == "network" and _has_area(data, source)):
+        # A network serving an area needs no position (2026-11-23): one named without an ISO code has none.
         result["coords_error"] = "Coordinates not found — expected location.lat/lon (SpaceAPI), schema:geo (JSON-LD or Turtle)"
     return result
 
 
-def _build_sparql_update(graph_uri: str, space_uri: str, name: str, lat: float, lon: float,
+def _has_area(data: Any, source: Any) -> bool:
+    """True when the file names at least one area served (a network's, Turtle or SpaceAPI JSON)."""
+    if source is not None and getattr(source, "kind", None) == "turtle":
+        return bool(source.turtle.fields.get("schema:areaServed"))
+    mom_block = data.get("mom") if isinstance(data, dict) else None
+    raw = mom_block.get("areaServed") if isinstance(mom_block, dict) else None
+    if isinstance(raw, str):
+        raw = [raw]
+    return bool(clean_areas(raw)) if isinstance(raw, list) else False
+
+
+def _build_sparql_update(graph_uri: str, space_uri: str, name: str, lat: Optional[float], lon: Optional[float],
                           endpoint_url: str, data: dict,
                           subset: str = "", next_unlock: Optional[str] = None,
                           turtle_fields: Optional[dict] = None, profile_url: Optional[str] = None,
@@ -765,7 +784,9 @@ def _build_sparql_update(graph_uri: str, space_uri: str, name: str, lat: float, 
     envelope = [
         *types,
         f"<{space_uri}> <{SCHEMA}name> {escape_literal(name)} .",
-        f"<{space_uri}> <{SCHEMA}geo> [ <{SCHEMA}latitude> {lat} ; <{SCHEMA}longitude> {lon} ] .",
+        # No position (a network serving only a named area, 2026-11-23): no geo.
+        *([f"<{space_uri}> <{SCHEMA}geo> [ <{SCHEMA}latitude> {lat} ; <{SCHEMA}longitude> {lon} ] ."]
+          if lat is not None and lon is not None else []),
         f"<{space_uri}> <{MOM}endpointUrl> <{endpoint_url}> .",
         f'<{space_uri}> <{MOM}source> "self-registered" .',
     ]
@@ -818,11 +839,17 @@ def _binding_to_feature(b: dict) -> Optional[dict]:
     name = b.get("name", {}).get("value", "")
     lat_raw = b.get("latitude", {}).get("value")
     lon_raw = b.get("longitude", {}).get("value")
+    is_network = b.get("type", {}).get("value") == _KIND_TYPE["network"]
     if lat_raw is None or lon_raw is None:
-        return None
-    try:
-        lat, lon = float(lat_raw), float(lon_raw)
-    except (TypeError, ValueError):
+        lat = lon = None
+    else:
+        try:
+            lat, lon = float(lat_raw), float(lon_raw)
+        except (TypeError, ValueError):
+            lat = lon = None
+    # A space is a place: no position, not on the map. A network has no pin (M1) and may have no
+    # position at all (2026-11-23): it is listed with a null geometry.
+    if lat is None and not is_network:
         return None
 
     raw_specialties = b.get("specialties", {}).get("value", "")
@@ -846,12 +873,12 @@ def _binding_to_feature(b: dict) -> Optional[dict]:
 
     return {
         "type": "Feature",
-        "geometry": {"type": "Point", "coordinates": [lon, lat]},
+        "geometry": {"type": "Point", "coordinates": [lon, lat]} if lat is not None else None,
         "properties": {
             "id": space_id,
             "uri": space_uri,
             # "space" or "network" (2026-11-19). A network has no address: it serves areas (ISO 3166 codes).
-            "kind": "network" if b.get("type", {}).get("value") == _KIND_TYPE["network"] else "space",
+            "kind": "network" if is_network else "space",
             "area_served": _areas_served(b.get("areasServed", {}).get("value", "")),
             "name": name,
             "geolocationFidelity": b.get("geolocationFidelity", {}).get("value", ""),
@@ -1278,7 +1305,7 @@ async def register_url(req: UrlRequest, background_tasks: BackgroundTasks):
     data = result.pop("_data", {})
     source = result.pop("_source", None)
 
-    if not result.get("reachable") or not result.get("schema_valid") or not result.get("coords_found"):
+    if not result.get("reachable") or not result.get("schema_valid") or not result.get("placeable"):
         raise HTTPException(status_code=422, detail={"validation": result})
 
     name = result["name_found"]
@@ -1525,7 +1552,7 @@ async def get_space_pin(space_id: str):
     if feature is None:
         raise HTTPException(status_code=404, detail={"error": "not_on_map"})
     props = feature.get("properties", {})
-    lon, lat = feature.get("geometry", {}).get("coordinates", [None, None])[:2]
+    lon, lat = ((feature.get("geometry") or {}).get("coordinates") or [None, None])[:2]
     return {
         "id": space_id,
         "name": props.get("name", ""),

@@ -707,3 +707,59 @@ async def test_area_search_nominatim_down_is_503(monkeypatch):
     with pytest.raises(HTTPException) as err:
         await main.geocode(main.GeocodeRequest(area_search="Flanders"))
     assert err.value.status_code == 503
+
+
+
+# ── 2026-11-23: an area named without an ISO code ("Benelux"); a network with no position ──────────
+
+BENELUX_TTL = """@prefix mom: <https://mapsofmaking.org/ns/mom#> .
+@prefix schema: <https://schema.org/> .
+<#space> a mom:Network, schema:Organization ;
+  schema:name "Benelux Makers" ;
+  schema:areaServed [ a schema:AdministrativeArea ; schema:name "Benelux" ] ,
+                    [ a schema:AdministrativeArea ; schema:identifier "NL" ; schema:name "Netherlands" ] .
+"""
+BENELUX_JSON = '{"space": "Benelux Makers", "mom": {"kind": "network", "areaServed": [{"name": "Benelux"}, {"code": "NL", "name": "Netherlands"}]}}'
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body, content_type", [(BENELUX_TTL, "text/turtle"), (BENELUX_JSON, "application/json")], ids=["turtle", "json"])
+async def test_a_network_with_a_named_area_and_no_position_registers_and_is_listed(space_server, tmp_path, monkeypatch, body, content_type):
+    monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
+    with StoreOxigraph() as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        out = await main.validate_url(main.UrlRequest(url=serve(space_server, body, content_type, "/v")))
+        response = await register(space_server, ox, body, content_type, "/n")
+        g = inserted(ox.updates[-1])
+        rows = ox.select(main._SPARQL_SELECT)
+    assert out["placeable"] and not out["coords_found"] and "coords_error" not in out
+    assert response["kind"] == "network"
+    assert not any(p == URIRef(SCHEMA + "geo") for _, p, _ in g)
+    named = [a for a in g.objects(None, URIRef(SCHEMA + "areaServed")) if (a, URIRef(SCHEMA + "identifier"), None) not in g]
+    assert [str(g.value(a, URIRef(SCHEMA + "name"))) for a in named] == ["Benelux"]
+    feature = main._binding_to_feature(rows[0])
+    assert feature["geometry"] is None
+    assert feature["properties"]["area_served"] == [{"code": "NL", "name": "Netherlands"}, {"code": "", "name": "Benelux"}]
+
+
+@pytest.mark.asyncio
+async def test_a_space_with_no_position_is_still_refused(space_server, tmp_path, monkeypatch):
+    body = '{"space": "Nowhere Lab"}'
+    monkeypatch.setenv("SNAPSHOT_DB_PATH", str(tmp_path / "snap.db"))
+    with FakeOxigraph() as ox:
+        monkeypatch.setattr(main, "OXIGRAPH_ENDPOINT", ox.url)
+        with pytest.raises(HTTPException) as e:
+            await register(space_server, ox, body, "application/json", "/s")
+    assert e.value.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_a_network_with_no_area_and_no_position_is_still_refused(space_server):
+    body = '{"space": "Floating Net", "mom": {"kind": "network"}}'
+    out = await main.validate_url(main.UrlRequest(url=serve(space_server, body, "application/json", "/n")))
+    assert not out["placeable"] and "coords_error" in out
+
+
+def test_a_space_row_without_a_position_is_not_on_the_map():
+    row = {"spaceUri": {"value": "urn:mak:space/x"}, "type": {"value": MOM + "Space"}, "name": {"value": "X"}}
+    assert main._binding_to_feature(row) is None

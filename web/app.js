@@ -114,10 +114,11 @@
     state.geojsonGeneratedAt = json.generated_at || null;
     state.spaces = features.map((f) => ({
       ...f.properties,
-      coordinates: {
+      // A network may have no position (2026-11-23: an area named without an ISO code): null.
+      coordinates: f.geometry && Array.isArray(f.geometry.coordinates) ? {
         lat: f.geometry.coordinates[1],
         lon: f.geometry.coordinates[0],
-      },
+      } : null,
     }));
     // A network is its own entity (M1, 2026-11-19): found by the IRI its members name it with.
     state.networksByUri = new Map(state.spaces.filter(isNetwork).map((n) => [n.uri, n]));
@@ -663,7 +664,7 @@ function glyphColorExpr(surface) {
     showDetail(id);
     if (opts.fly) {
       const s = state.spaces.find((x) => x.id === id);
-      if (s) map.flyTo({ center: [s.coordinates.lon, s.coordinates.lat], zoom: Math.max(map.getZoom(), 8), speed: 1.2 });
+      if (s && s.coordinates) map.flyTo({ center: [s.coordinates.lon, s.coordinates.lat], zoom: Math.max(map.getZoom(), 8), speed: 1.2 });
     }
   }
 
@@ -903,7 +904,7 @@ function glyphColorExpr(surface) {
     const n = networkByUri(iri);
     const inView = filteredSpaces().filter((x) => !isNetwork(x));
     if (inView.length) fitToMatches(inView);
-    else if (n && map) map.flyTo({ center: [n.coordinates.lon, n.coordinates.lat], zoom: 6, speed: 1.2 });
+    else if (n && n.coordinates && map) map.flyTo({ center: [n.coordinates.lon, n.coordinates.lat], zoom: 6, speed: 1.2 });
     if (n) showDetail(n.id);
     else setDrawer('find'); // a network only its members name: the filtered list is what there is to see
   }
@@ -1598,7 +1599,7 @@ function glyphColorExpr(surface) {
     $('#preset-name').value = s.name;
     state.embed.centerId = id;
     state.embed.bbox = null;
-    if (map) map.flyTo({ center: [s.coordinates.lon, s.coordinates.lat], zoom: Math.max(map.getZoom(), 10), speed: 1.2 });
+    if (map && s.coordinates) map.flyTo({ center: [s.coordinates.lon, s.coordinates.lat], zoom: Math.max(map.getZoom(), 10), speed: 1.2 });
     setDrawer('preset');
   }
 
@@ -1700,7 +1701,10 @@ function glyphColorExpr(surface) {
         }[data.subset] || 'schema recognised';
         lines.push({ ok: true, text: schemaLabel });
         lines.push({ ok: true, text: `name: ${escHtml(data.name_found)}` });
-        if (!data.coords_found) {
+        if (!data.coords_found && data.placeable) {
+          // A network serving an area named without an ISO code (2026-11-23): no position, none needed.
+          lines.push({ ok: true, text: 'network: areas served, no position needed' });
+        } else if (!data.coords_found) {
           lines.push({ ok: false, text: 'coordinates missing — add lat/lon under location or schema:geo' });
           blocking = true;
         } else {
